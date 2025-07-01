@@ -249,9 +249,9 @@ router.post(
       ]);
 
       const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
+        expiresIn: "7d",
       });
-      await redisClient.setEx(`session:${user._id}`, 3600, token);
+      await redisClient.setEx(`session:${user._id}`,   7 * 24 * 3600, token);
 
       const verifiedUserData = {
         _id: user._id,
@@ -587,24 +587,7 @@ router.post("/direct-login", async (req, res) => {
         .json({ errors: [{ msg: "Invalid or expired token" }] });
     }
 
-    let sessionToken;
-    try {
-      sessionToken = await redisClient.get(`session:${userId}:${deviceId}`);
-      logger.debug(
-        `Session token fetched from Redis for user: ${userId}, device: ${deviceId}`,
-        {
-          sessionToken: sessionToken
-            ? sessionToken.substring(0, 10) + "..."
-            : null,
-        }
-      );
-    } catch (redisError) {
-      logger.error("Redis error during session fetch:", redisError);
-      return res
-        .status(503)
-        .json({ errors: [{ msg: "Service temporarily unavailable" }] });
-    }
-
+    const sessionToken = await redisClient.get(`session:${userId}:${deviceId}`);
     if (!sessionToken || sessionToken !== token) {
       logger.warn(
         `No active session for user: ${userId}, device: ${deviceId}`,
@@ -616,13 +599,18 @@ router.post("/direct-login", async (req, res) => {
       return res.status(401).json({ errors: [{ msg: "Session expired" }] });
     }
 
+    // Generate a new JWT token
+    const newToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
     try {
       await redisClient.setEx(
         `session:${userId}:${deviceId}`,
         7 * 24 * 3600,
-        token
+        newToken
       );
-      logger.debug(`Session extended for user: ${userId}, device: ${deviceId}`);
+      logger.debug(`New token issued for user: ${userId}, device: ${deviceId}`);
     } catch (redisError) {
       logger.error("Redis error during session extension:", redisError);
       return res
@@ -664,12 +652,12 @@ router.post("/direct-login", async (req, res) => {
     };
 
     logger.info(
-      `Direct login successful for user: ${user.email}, device: ${deviceId}`
+      `Direct login successful with new token for user: ${user.email}, device: ${deviceId}`
     );
     res.json({
       message: "Direct login successful",
       user: directLoginUserData,
-      token: sessionToken,
+      token: newToken,
     });
   } catch (error) {
     logger.error("Direct login error:", error);
@@ -977,19 +965,22 @@ router.post(
   }
 );
 
-// Get User Details
+//Me 
 router.get("/me", authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const deviceId = req.header("Device-Id") || "unknown";
-    const sessionToken = await redisClient.get(`session:${userId}:${deviceId}`);
-    if (sessionToken) {
-      await redisClient.setEx(
-        `session:${userId}:${deviceId}`,
-        3600,
-        sessionToken
-      );
-    }
+
+    const newToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    await redisClient.setEx(
+      `session:${userId}:${deviceId}`,
+      7 * 24 * 3600,
+      newToken
+    );
+    logger.debug(`New token issued and stored for user: ${userId}, device: ${deviceId}`);
 
     const user = await User.findById(userId).populate("role").select("-__v");
     if (!user) {
@@ -1028,8 +1019,8 @@ router.get("/me", authenticate, async (req, res) => {
       updatedAt: user.updatedAt,
     };
 
-    logger.info(`User data fetched for: ${user.email}`);
-    res.json({ user: userData });
+    logger.info(`User data fetched and new token issued for: ${user.email}`);
+    res.json({ user: userData, token: newToken });
   } catch (error) {
     logger.error("Fetch user error in /me:", error);
     res.status(500).json({ message: "Server error", error: error.message });

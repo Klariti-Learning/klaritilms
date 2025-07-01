@@ -22,11 +22,6 @@ const {
   sendCourseCallRescheduledEmail,
   sendCourseCallCancelledEmail
 } = require("../services/emailService");
-const {
-  sendScheduledCallSMS,
-  sendRescheduleCallSMS,
-  sendCancelCallSMS,
-} = require("../services/smsService");
 const logger = require("../utils/logger");
 const { getIO } = require("../config/socket");
 
@@ -440,7 +435,7 @@ router.post(
           });
       });
 
-      logger.info("Sending email and SMS");
+      logger.info("Sending email");
       const callDetails = {
         classType,
         classSubType,
@@ -458,14 +453,6 @@ router.post(
             );
           }
         ),
-        sendScheduledCallSMS(teacher.phone, teacher.name, callDetails).catch(
-          (error) => {
-            logger.error(
-              `Failed to send scheduled call SMS to ${teacher.phone}:`,
-              error
-            );
-          }
-        ),
         ...students
           .map((student) => [
             sendScheduledCallEmail(
@@ -478,21 +465,11 @@ router.post(
                 error
               );
             }),
-            sendScheduledCallSMS(
-              student.phone,
-              student.name,
-              callDetails
-            ).catch((error) => {
-              logger.error(
-                `Failed to send scheduled call SMS to ${student.phone}:`,
-                error
-              );
-            }),
           ])
           .flat(),
       ];
       await Promise.all(communications);
-      logger.info("Email and SMS sent");
+      logger.info("Email sent");
 
       logger.info(
         `Call scheduled for teacher: ${teacherId} by admin: ${adminId}`
@@ -842,7 +819,7 @@ router.post(
           });
       });
 
-      logger.info("Sending email and SMS");
+      logger.info("Sending email");
       const callDetails = {
         classType,
         classSubType,
@@ -860,14 +837,6 @@ router.post(
             );
           }
         ),
-        sendScheduledCallSMS(teacher.phone, teacher.name, callDetails).catch(
-          (error) => {
-            logger.error(
-              `Failed to send scheduled call SMS to ${teacher.phone}:`,
-              error
-            );
-          }
-        ),
         ...students
           .map((student) => [
             sendScheduledCallEmail(
@@ -880,21 +849,11 @@ router.post(
                 error
               );
             }),
-            sendScheduledCallSMS(
-              student.phone,
-              student.name,
-              callDetails
-            ).catch((error) => {
-              logger.error(
-                `Failed to send scheduled call SMS to ${student.phone}:`,
-                error
-              );
-            }),
           ])
           .flat(),
       ];
       await Promise.all(communications);
-      logger.info("Email and SMS sent");
+      logger.info("Email sent");
 
       logger.info(`Call scheduled by teacher: ${teacherId}`);
       res.json({ message: "Call scheduled successfully", call: scheduledCall });
@@ -1360,7 +1319,7 @@ router.post(
           });
       });
 
-      logger.info("Sending reschedule email and SMS");
+      logger.info("Sending reschedule email");
       const callDetails = {
         classType: scheduledCall.classType,
         classSubType: scheduledCall.classSubType,
@@ -1381,16 +1340,6 @@ router.post(
             error
           );
         }),
-        sendRescheduleCallSMS(
-          scheduledCall.teacherId.phone,
-          scheduledCall.teacherId.name,
-          callDetails
-        ).catch((error) => {
-          logger.error(
-            `Failed to send reschedule SMS to ${scheduledCall.teacherId.phone}:`,
-            error
-          );
-        }),
         ...scheduledCall.studentIds
           .map((student) => [
             sendRescheduleCallEmail(
@@ -1400,16 +1349,6 @@ router.post(
             ).catch((error) => {
               logger.error(
                 `Failed to send reschedule email to ${student.email}:`,
-                error
-              );
-            }),
-            sendRescheduleCallSMS(
-              student.phone,
-              student.name,
-              callDetails
-            ).catch((error) => {
-              logger.error(
-                `Failed to send reschedule SMS to ${student.phone}:`,
                 error
               );
             }),
@@ -1529,7 +1468,7 @@ router.post(
           });
       });
 
-      logger.info("Sending cancel email and SMS");
+      logger.info("Sending cancel email");
       const callDetails = {
         classType: scheduledCall.classType,
         classSubType: scheduledCall.classSubType,
@@ -1550,30 +1489,12 @@ router.post(
             error
           );
         }),
-        sendCancelCallSMS(
-          scheduledCall.teacherId.phone,
-          scheduledCall.teacherId.name,
-          callDetails
-        ).catch((error) => {
-          logger.error(
-            `Failed to send cancel SMS to ${scheduledCall.teacherId.phone}:`,
-            error
-          );
-        }),
         ...scheduledCall.studentIds
           .map((student) => [
             sendCancelCallEmail(student.email, student.name, callDetails).catch(
               (error) => {
                 logger.error(
                   `Failed to send cancel email to ${student.email}:`,
-                  error
-                );
-              }
-            ),
-            sendCancelCallSMS(student.phone, student.name, callDetails).catch(
-              (error) => {
-                logger.error(
-                  `Failed to send cancel SMS to ${student.phone}:`,
                   error
                 );
               }
@@ -2797,7 +2718,6 @@ router.post(
   }
 );
 
-// Get batch calls
 // Get batch calls
 router.get("/batch/:batchId/calls", authenticate, async (req, res) => {
   try {

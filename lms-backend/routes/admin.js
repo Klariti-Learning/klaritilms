@@ -12,10 +12,6 @@ const {
   sendRegistrationEmail,
   sendRoleAssignmentEmail,
 } = require("../services/emailService");
-const {
-  sendRoleAssignmentSMS,
-  sendAdminNotificationSMS,
-} = require("../services/smsService");
 const { getIO } = require("../config/socket");
 
 const generateUniqueId = async (suffix, model, field) => {
@@ -281,19 +277,6 @@ router.post(
             error
           );
         }),
-        sendRoleAssignmentSMS(
-          user.phone,
-          user.name,
-          roleName,
-          adminRole,
-          subjects,
-          teacherId ? teacherName : undefined
-        ).catch((error) => {
-          logger.error(
-            `Failed to send role assignment SMS to ${user.phone}:`,
-            error
-          );
-        }),
         sendRegistrationEmail(
           user.email,
           user.name,
@@ -324,19 +307,6 @@ router.post(
             ).catch((error) => {
               logger.error(
                 `Failed to send admin notification email to ${admin.userId.email}:`,
-                error
-              );
-            }),
-            sendAdminNotificationSMS(
-              admin.userId.phone,
-              user.name,
-              user._id,
-              `User ${user.name} has been assigned the role: ${roleName}${
-                subjects ? ` with subjects: ${subjects.join(", ")}` : ""
-              }${teacherId ? ` and assigned to teacher: ${teacherName}` : ""}`
-            ).catch((error) => {
-              logger.error(
-                `Failed to send admin notification SMS to ${admin.userId.phone}:`,
                 error
               );
             }),
@@ -475,19 +445,16 @@ router.post(
       let admin = await Admin.findOne({ userId });
 
       if (admin) {
-        // Update existing admin entry
         admin.role = adminRole;
         admin.isSuperAdmin = isSuperAdmin;
         await admin.save();
         logger.info(`Updated admin role for user: ${userId} to ${adminRole}`);
       } else {
-        // Create new admin entry
         admin = new Admin({ userId, role: adminRole, isSuperAdmin });
         await admin.save();
         logger.info(`Created new admin for user: ${userId} with role ${adminRole}`);
       }
 
-      // Update or create role entry
       let existingRole = await Role.findOne({ userId });
       if (!existingRole) {
         const role = new Role({
@@ -579,17 +546,6 @@ router.post(
             error
           );
         }),
-        sendRoleAssignmentSMS(
-          user.phone,
-          user.name,
-          adminRole,
-          adminRoleName
-        ).catch((error) => {
-          logger.error(
-            `Failed to send role assignment SMS to ${user.phone}:`,
-            error
-          );
-        }),
         sendRegistrationEmail(
           user.email,
           user.name,
@@ -616,17 +572,6 @@ router.post(
             ).catch((error) => {
               logger.error(
                 `Failed to send admin notification email to ${admin.userId.email}:`,
-                error
-              );
-            }),
-            sendAdminNotificationSMS(
-              admin.userId.phone,
-              user.name,
-              user._id,
-              `User ${user.name} has been assigned the role: ${adminRole}`
-            ).catch((error) => {
-              logger.error(
-                `Failed to send admin notification SMS to ${admin.userId.phone}:`,
                 error
               );
             }),

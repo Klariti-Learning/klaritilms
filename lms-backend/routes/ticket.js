@@ -17,13 +17,11 @@ const {
   sendSubjectChangeRequestEmail,
   sendTeacherChangeRequestEmail,
 } = require("../services/emailService");
-const { sendTicketConfirmationSMS } = require("../services/smsService");
 const { getIO } = require("../config/socket");
 const upload = require("../config/multer");
 const { uploadFile, deleteLocalFile } = require("../config/cloudinary");
 
 const sendDelayedNotifications = async (user, ticket) => {
-  const isValidPhone = (phone) => phone && /^\+?[1-9]\d{1,14}$/.test(phone);
   const ticketDetails = {
     name: user.name,
     ticketId: ticket.ticketNumber,
@@ -40,22 +38,6 @@ const sendDelayedNotifications = async (user, ticket) => {
       `Failed to send delayed ticket confirmation email to ${user.email}:`,
       error
     );
-  }
-
-  if (isValidPhone(user.phone)) {
-    try {
-      await sendTicketConfirmationSMS(user.phone, ticketDetails);
-      logger.info(
-        `Delayed ticket confirmation SMS sent to ${user.phone} for ticket ${ticket.ticketNumber}`
-      );
-    } catch (error) {
-      logger.error(
-        `Failed to send delayed ticket confirmation SMS to ${user.phone}:`,
-        error
-      );
-    }
-  } else {
-    logger.warn(`Invalid or missing phone number for user: ${user._id}`);
   }
 };
 

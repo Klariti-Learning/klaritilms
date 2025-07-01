@@ -30,7 +30,7 @@ const validateInputs = (
   if (!name.match(/^[A-Za-z\s]+$/)) {
     errors.name = "Name must contain only letters and spaces";
   }
-  const cleanEmail = email.replace(/\s+/g, "");
+  const cleanEmail = email.replace(/\s+/g, "").toLowerCase(); // Normalize email to lowercase
   if (!cleanEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
     errors.email = "Invalid email format";
   }
@@ -102,7 +102,8 @@ export default function Signup() {
     e.preventDefault();
     setState((prev) => ({ ...prev, errors: {}, loading: true }));
 
-    const validationErrors = validateInputs(name, email, phone, gender);
+    const normalizedEmail = email.replace(/\s+/g, "").toLowerCase(); // Normalize email to lowercase
+    const validationErrors = validateInputs(name, normalizedEmail, phone, gender);
     if (Object.keys(validationErrors).length > 0) {
       setState((prev) => ({
         ...prev,
@@ -116,11 +117,11 @@ export default function Signup() {
       const fullPhone = `${countryCode}${phone}`;
       const res = await api.post(
         "/auth/signup",
-        { name, email, phone: fullPhone, gender },
+        { name, email: normalizedEmail, phone: fullPhone, gender },
         { headers: { "Device-Id": deviceId } }
       );
 
-      localStorage.setItem("userEmail", email);
+      localStorage.setItem("userEmail", normalizedEmail);
       localStorage.setItem("userPhone", fullPhone);
 
       setState((prev) => ({
@@ -221,7 +222,7 @@ export default function Signup() {
                 onChange={(e) =>
                   setState((prev) => ({
                     ...prev,
-                    email: e.target.value.replace(/\s+/g, ""),
+                    email: e.target.value,
                   }))
                 }
                 placeholder="Enter your email"

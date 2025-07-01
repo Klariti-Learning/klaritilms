@@ -19,7 +19,7 @@ const validateIdentifier = (
   identifier: string,
   countryCode: string
 ): ValidationResult => {
-  const cleanIdentifier = identifier.replace(/\s+/g, "");
+  const cleanIdentifier = identifier.replace(/\s+/g, "").toLowerCase();
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^\d{10}$/;
   if (emailRegex.test(cleanIdentifier)) return { isValid: true, type: "email" };
@@ -58,88 +58,88 @@ export function LoginContent() {
   const searchParams = useSearchParams();
   const sessionExpired = searchParams.get("sessionExpired");
 
-useEffect(() => {
-  if (deviceId && !authLoading && !user) {
-    const checkSession = async () => {
-      const token = localStorage.getItem("token");
-      const userId = localStorage.getItem("userId");
-      const isLoggedIn = localStorage.getItem("isLoggedIn");
+  useEffect(() => {
+    if (deviceId && !authLoading && !user) {
+      const checkSession = async () => {
+        const token = localStorage.getItem("token");
+        const userId = localStorage.getItem("userId");
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
 
-      if (token && userId && isLoggedIn === "true" && deviceId) {
-        try {
-          setState((prev) => ({ ...prev, loading: true }));
-          const response = await api.post(
-            "/auth/direct-login",
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Device-Id": deviceId,
-              },
+        if (token && userId && isLoggedIn === "true" && deviceId) {
+          try {
+            setState((prev) => ({ ...prev, loading: true }));
+            const response = await api.post(
+              "/auth/direct-login",
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Device-Id": deviceId,
+                },
+              }
+            );
+
+            const { user: directLoginUser, token: newToken } = response.data;
+            localStorage.setItem("token", newToken);
+            localStorage.setItem("userId", directLoginUser._id);
+            localStorage.setItem("isLoggedIn", "true");
+            setUser(directLoginUser);
+            toast.success("Logged in successfully!");
+
+            const roleName = directLoginUser.role?.roleName.toLowerCase().replace(/\s+/g, "");
+            if (!roleName) {
+              router.push("/my-learnings");
+            } else if (
+              (roleName === "student" || roleName === "teacher") &&
+              (directLoginUser.isFirstLogin || !directLoginUser.isTimezoneSet)
+            ) {
+              router.push("/timezone-setup");
+            } else if (roleName === "admin" || roleName === "superadmin") {
+              router.push(`/${roleName}`);
+            } else {
+              router.push(`/${roleName}`);
             }
-          );
-
-          const { user: directLoginUser, token: newToken } = response.data;
-          localStorage.setItem("token", newToken);
-          localStorage.setItem("userId", directLoginUser._id);
-          localStorage.setItem("isLoggedIn", "true");
-          setUser(directLoginUser);
-          toast.success("Logged in successfully!");
-
-          const roleName = directLoginUser.role?.roleName.toLowerCase().replace(/\s+/g, "");
-          if (!roleName) {
-            router.push("/my-learnings");
-          } else if (
-            (roleName === "student" || roleName === "teacher") &&
-            (directLoginUser.isFirstLogin || !directLoginUser.isTimezoneSet)
-          ) {
-            router.push("/timezone-setup");
-          } else if (roleName === "admin" || roleName === "superadmin") {
-            router.push(`/${roleName}`);
-          } else {
-            router.push(`/${roleName}`);
+          } catch (error) {
+            const errorMsg = error as ApiError;
+            console.error("Direct login failed in LoginContent:", {
+              message: errorMsg.response?.data?.message,
+              status: errorMsg.response?.status,
+              response: errorMsg.response?.data,
+            });
+            if (errorMsg.response?.data?.errors?.[0]?.msg === "Session expired or invalid") {
+              localStorage.removeItem("token");
+              localStorage.removeItem("isLoggedIn");
+              localStorage.removeItem("isVerified");
+              localStorage.removeItem("userIdentifier");
+              localStorage.removeItem("identifierType");
+              localStorage.removeItem("userId");
+            }
+            setState((prev) => ({ ...prev, loading: false }));
           }
-        } catch (error) {
-          const errorMsg =  error as ApiError;
-          console.error("Direct login failed in LoginContent:", {
-            message: errorMsg.response?.data?.message,
-            status: errorMsg.response?.status,
-            response: errorMsg.response?.data,
-          });
-          if (errorMsg.response?.data?.errors?.[0]?.msg === "Session expired or invalid") {
-            localStorage.removeItem("token");
-            localStorage.removeItem("isLoggedIn");
-            localStorage.removeItem("isVerified");
-            localStorage.removeItem("userIdentifier");
-            localStorage.removeItem("identifierType");
-            localStorage.removeItem("userId");
-          }
+        } else {
           setState((prev) => ({ ...prev, loading: false }));
         }
-      } else {
-        setState((prev) => ({ ...prev, loading: false }));
-      }
-    };
+      };
 
-    checkSession();
-  } else if (user) {
-    const roleName = user.role?.roleName.toLowerCase().replace(/\s+/g, "");
-    if (!roleName) {
-      router.push("/my-learnings");
-    } else if (
-      (roleName === "student" || roleName === "teacher") &&
-      (user.isFirstLogin || !user.isTimezoneSet)
-    ) {
-      router.push("/timezone-setup");
-    } else if (roleName === "admin" || roleName === "superadmin") {
-      router.push(`/${roleName}`);
+      checkSession();
+    } else if (user) {
+      const roleName = user.role?.roleName.toLowerCase().replace(/\s+/g, "");
+      if (!roleName) {
+        router.push("/my-learnings");
+      } else if (
+        (roleName === "student" || roleName === "teacher") &&
+        (user.isFirstLogin || !user.isTimezoneSet)
+      ) {
+        router.push("/timezone-setup");
+      } else if (roleName === "admin" || roleName === "superadmin") {
+        router.push(`/${roleName}`);
+      } else {
+        router.push(`/${roleName}`);
+      }
     } else {
-      router.push(`/${roleName}`);
+      setState((prev) => ({ ...prev, loading: false }));
     }
-  } else {
-    setState((prev) => ({ ...prev, loading: false }));
-  }
-}, [deviceId, authLoading, user, router, setUser]);
+  }, [deviceId, authLoading, user, router, setUser]);
 
   if (authLoading) {
     return <LoadingPage message="Checking authentication..." color="#ff0000" />;
@@ -161,7 +161,8 @@ useEffect(() => {
       loading: true,
     }));
 
-    const validation = validateIdentifier(identifier, countryCode);
+    const normalizedIdentifier = identifier.replace(/\s+/g, "").toLowerCase(); // Normalize identifier to lowercase
+    const validation = validateIdentifier(normalizedIdentifier, countryCode);
     if (!validation.isValid) {
       setState((prev) => ({
         ...prev,
@@ -175,7 +176,7 @@ useEffect(() => {
     try {
       const payload = {
         identifier:
-          validation.type === "phone" ? validation.fullPhone : identifier,
+          validation.type === "phone" ? validation.fullPhone : normalizedIdentifier,
       };
       const res = await api.post("/auth/login", payload, {
         headers: { "Device-Id": deviceId },
@@ -218,7 +219,7 @@ useEffect(() => {
       }
 
       const identifierValue =
-        validation.type === "phone" ? validation.fullPhone! : identifier;
+        validation.type === "phone" ? validation.fullPhone! : normalizedIdentifier;
       const identifierType = validation.type;
 
       localStorage.setItem("userIdentifier", identifierValue);
@@ -234,8 +235,8 @@ useEffect(() => {
       toast.success("OTP sent! Please check your email or phone.");
       router.push(`/verify-otp?userId=${res.data.userId}&type=login`);
     } catch (error) { 
-      const errorMsg =error as ApiError;
-      const errors =  errorMsg.response?.data?.errors?.[0]?.msg ||
+      const errorMsg = error as ApiError;
+      const errors = errorMsg.response?.data?.errors?.[0]?.msg ||
         errorMsg.response?.data?.message ||
         "Login failed. Please try again.";
       setState((prev) => ({
@@ -333,7 +334,7 @@ useEffect(() => {
                   onChange={(e) =>
                     setState((prev) => ({
                       ...prev,
-                      identifier: e.target.value.replace(/\s+/g, ""),
+                      identifier: e.target.value,
                     }))
                   }
                   placeholder="Enter your email"
