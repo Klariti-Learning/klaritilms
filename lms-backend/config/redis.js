@@ -1,0 +1,50 @@
+const { createClient } = require("redis");
+const logger = require("../utils/logger");
+require("dotenv").config();
+
+const redisClient = createClient({
+  url: `redis://${process.env.REDIS_USERNAME}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+  socket: {
+    reconnectStrategy: (retries) => {
+      logger.info(`Redis reconnect attempt ${retries}`);
+      if (retries > 10) {
+        logger.error("Too many Redis reconnect attempts");
+        return new Error("Too many reconnect attempts");
+      }
+      return Math.min(retries * 100, 3000); // Exponential backoff up to 3s
+    },
+    connectTimeout: 10000, // 10s timeout for initial connection
+  },
+});
+
+redisClient.on("error", (err) => {
+  logger.error("Redis Client Error:", err);
+});
+
+redisClient.on("connect", () => {
+  logger.info("Connected to Redis");
+});
+
+redisClient.on("ready", () => {
+  logger.info("Redis client ready for use");
+});
+
+redisClient.on("end", () => {
+  logger.info("Redis client disconnected");
+});
+
+redisClient.on("reconnecting", () => {
+  logger.info("Redis client reconnecting");
+});
+
+const connectRedis = async () => {
+  try {
+    await redisClient.connect();
+    logger.info("Redis connection established");
+  } catch (err) {
+    logger.error("Failed to connect to Redis:", err);
+    throw err;
+  }
+};
+
+module.exports = { redisClient, connectRedis };
