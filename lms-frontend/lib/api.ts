@@ -1,3 +1,4 @@
+import { ApiError } from "@/types";
 import axios, { InternalAxiosRequestConfig, AxiosRequestHeaders } from "axios";
 
 interface PendingRequest {
@@ -12,20 +13,16 @@ const api = axios.create({
   },
 });
 
-let isSessionRestored = false;
+export let isSessionRestored = false;
 let pendingRequests: PendingRequest[] = [];
 
-const QUEUE_TIMEOUT = 5000;
+const QUEUE_TIMEOUT = 10000;
 
 export const setSessionRestored = (value: boolean) => {
   console.debug("[API] Setting isSessionRestored:", value);
   isSessionRestored = value;
   if (value && pendingRequests.length > 0) {
-    console.debug(
-      "[API] Resolving",
-      pendingRequests.length,
-      "pending requests"
-    );
+    console.debug("[API] Resolving", pendingRequests.length, "pending requests");
     pendingRequests.forEach(({ resolve, config }) => resolve(config));
     pendingRequests = [];
   }
@@ -37,11 +34,8 @@ api.interceptors.request.use(
   ): InternalAxiosRequestConfig | Promise<InternalAxiosRequestConfig> => {
     config.headers = config.headers || ({} as AxiosRequestHeaders);
 
-    if (config.url?.includes("/auth/direct-login")) {
-      console.debug(
-        "[API] Bypassing interceptor for direct-login:",
-        config.url
-      );
+    if (config.url?.includes("/auth/direct-login") || config.url?.includes("/auth/verify-login-otp")) {
+      console.debug("[API] Bypassing interceptor for:", config.url);
       return config;
     }
 
@@ -85,6 +79,7 @@ api.interceptors.request.use(
     console.debug("[API] Sending request:", {
       url: config.url,
       method: config.method,
+      token: token ? `${token.slice(0, 10)}...` : "none",
     });
     return config;
   },
@@ -94,65 +89,64 @@ api.interceptors.request.use(
   }
 );
 
-// api.interceptors.response.use(
-//   (response) => {
-//     console.debug("[API] Response received:", {
-//       url: response.config.url,
-//       status: response.status,
-//     });
-//     return response;
-//   },
-//   (error) => {
-//     console.error("[API] Response error:", {
-//       url: error.config?.url,
-//       status: error.response?.status,
-//       message: error.response?.data?.message,
-//     });
-//     if (
-//       error.response?.status === 401 &&
-//       !error.config.url.includes("/auth/logout")
-//     ) {
-//       console.warn("[API] 401 Unauthorized, clearing session");
-//       localStorage.setItem("isLoggedIn", "false");
-//       if (typeof window !== "undefined") {
-//         window.location.href = "/login";
-//       }
-//     }
-//     return Promise.reject(error);
-//   }
-// );
-
 api.interceptors.response.use(
   (response) => {
     console.debug("[API] Response received:", {
       url: response.config.url,
       status: response.status,
     });
-    if (response.data.token) {
+    if (response.data.token && (response.config.url?.includes("/auth/verify-login-otp") || response.config.url?.includes("/auth/direct-login"))) {
       const currentToken = localStorage.getItem("token");
       if (response.data.token !== currentToken) {
         localStorage.setItem("token", response.data.token);
-        console.debug("[API] Updated token in localStorage from response:", response.config.url);
+        if (response.data.user?._id) {
+          localStorage.setItem("userId", response.data.user._id);
+          localStorage.setItem("isLoggedIn", "true");
+        }
+        console.debug("[API] Updated token and user data from response:", response.config.url);
       }
     }
     return response;
   },
-  (error) => {
+  async (error) => {
     console.error("[API] Response error:", {
       url: error.config?.url,
       status: error.response?.status,
       message: error.response?.data?.message,
     });
+
     if (
       error.response?.status === 401 &&
-      !error.config.url.includes("/auth/logout")
+      !error.config.url.includes("/auth/logout") &&
+      !error.config._retry
     ) {
-      console.warn("[API] 401 Unauthorized, clearing session");
-      localStorage.setItem("isLoggedIn", "false");
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+      console.debug("[API] Attempting token renewal");
+      error.config._retry = true;
+
+      const userId = localStorage.getItem("userId");
+      const deviceId = localStorage.getItem("deviceId") || "unknown";
+
+      if (userId && deviceId) {
+        try {
+          const response = await api.post("/auth/renew-token", { userId, deviceId });
+          const newToken = response.data.token;
+          localStorage.setItem("token", newToken);
+          console.debug("[API] Token renewed successfully");
+
+          error.config.headers.Authorization = `Bearer ${newToken}`;
+          return api(error.config);
+        } catch (error) {
+          const renewError = error as ApiError;
+          console.error("[API] Token renewal failed:", renewError.response?.data?.message || renewError.message);
+          localStorage.setItem("isLoggedIn", "false");
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return Promise.reject(renewError);
+        }
       }
     }
+
     return Promise.reject(error);
   }
 );
