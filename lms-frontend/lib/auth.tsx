@@ -3,9 +3,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { User, AuthContextType, ApiError } from "@/types";
-import api, { setSessionRestored } from "./api";
+import api, { setSessionRestored, isSessionRestored } from "./api";
 import toast from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
+import { debounce } from "lodash";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const LOGOUT_TOAST_ID = "logout-success";
@@ -15,6 +16,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [deviceId, setDeviceId] = useState<string>("");
+  const [isRestoring, setIsRestoring] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -25,19 +27,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [pathname]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userId = localStorage.getItem("userId");
-    const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (!token || !userId || isLoggedIn !== "true") {
-      clearSession();
-      setLoading(false);
-      setSessionRestored(true);
-      router.push("/login");
-      return;
-    }
-  }, [router]);
-
-  useEffect(() => {
     let storedDeviceId = localStorage.getItem("deviceId");
     if (!storedDeviceId) {
       storedDeviceId = uuidv4();
@@ -46,114 +35,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setDeviceId(storedDeviceId);
   }, []);
 
-
   const clearSession = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("lastPath");
+    localStorage.removeItem("sessionLock");
+    localStorage.setItem("lastPath", "/my-learnings");
     setUser(null);
   };
 
-  // const restoreSession = useCallback(async () => {
-  //   setLoading(true);
-  //   const token = localStorage.getItem("token");
-  //   const userId = localStorage.getItem("userId");
-  //   const isLoggedIn = localStorage.getItem("isLoggedIn");
-  //   const lastPath = localStorage.getItem("lastPath") || "/my-learnings";
-
-  //   if (!token || !userId || isLoggedIn !== "true" || !deviceId) {
-  //     clearSession();
-  //     setLoading(false);
-  //     setSessionRestored(true);
-  //     router.push("/login");
-  //     return;
-  //   }
-
-  //   try {
-  //     const response = await api.post("/auth/direct-login", {}, {
-  //       headers: { Authorization: `Bearer ${token}`, "Device-Id": deviceId },
-  //     });
-  //     const { user: restoredUser, token: returnedToken } = response.data;
-  //     if (returnedToken && returnedToken !== token) {
-  //       localStorage.setItem("token", returnedToken);
-  //     }
-  //     localStorage.setItem("userId", restoredUser._id);
-  //     localStorage.setItem("isLoggedIn", "true");
-  //     setUser(restoredUser);
-  //     setSessionRestored(true);
-
-  //     await api.post("/auth/sync-device", { deviceId }, {
-  //       headers: { "Device-Id": deviceId, Authorization: `Bearer ${returnedToken || token}` },
-  //     });
-
-  //     const roleName = restoredUser.role?.roleName.toLowerCase().replace(/\s+/g, "");
-  //     setTimeout(() => {
-  //       if ((roleName === "student" || roleName === "teacher") && 
-  //           (restoredUser.isFirstLogin || !restoredUser.isTimezoneSet)) {
-  //         router.push("/timezone-setup");
-  //         localStorage.setItem("lastPath", lastPath);
-  //       } else {
-  //         router.push(lastPath);
-  //       }
-  //     }, 500);
-  //   } catch (error) {
-  //     const errorMsg = error as ApiError;
-  //     clearSession();
-  //     setLoading(false);
-  //     setSessionRestored(true);
-  //     router.push("/login");
-  //     toast.error(errorMsg?.response?.data?.message || "Session expired. Please log in again.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }, [deviceId, router]);
-
   const restoreSession = useCallback(async () => {
-  setLoading(true);
-  const token = localStorage.getItem("token");
-  const userId = localStorage.getItem("userId");
-  const isLoggedIn = localStorage.getItem("isLoggedIn");
-  const lastPath = localStorage.getItem("lastPath") || "/my-learnings";
+    if (isRestoring || localStorage.getItem("sessionLock") === "true") {
+      console.debug("[AuthProvider] Skipping restoreSession, already in progress or locked");
+      return;
+    }
+    setIsRestoring(true);
+    localStorage.setItem("sessionLock", "true");
+    setLoading(true);
 
-  if (!token || !userId || isLoggedIn !== "true" || !deviceId) {
-    clearSession();
-    setLoading(false);
-    setSessionRestored(true);
-    router.push("/login");
-    return;
-  }
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
+    const lastPath = localStorage.getItem("lastPath") || "/my-learnings";
 
-  try {
-    const response = await api.post(
-      "/auth/direct-login",
-      {},
-      {
-        headers: { Authorization: `Bearer ${token}`, "Device-Id": deviceId },
-      }
-    );
-    const { user: restoredUser, token: newToken } = response.data;
-
-    if (newToken && newToken !== token) {
-      localStorage.setItem("token", newToken);
-      console.debug("[AuthProvider] Updated token in localStorage");
+    if (!token || !userId || isLoggedIn !== "true" || !deviceId) {
+      console.debug("[AuthProvider] Invalid session data, clearing session");
+      clearSession();
+      setLoading(false);
+      setSessionRestored(true);
+      router.push("/login");
+      setIsRestoring(false);
+      localStorage.removeItem("sessionLock");
+      return;
     }
 
-    localStorage.setItem("userId", restoredUser._id);
-    localStorage.setItem("isLoggedIn", "true");
-    setUser(restoredUser);
-    setSessionRestored(true);
+    try {
+      const response = await api.post(
+        "/auth/direct-login",
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}`, "Device-Id": deviceId },
+        }
+      );
+      const { user: restoredUser, token: newToken } = response.data;
 
-    await api.post(
-      "/auth/sync-device",
-      { deviceId },
-      {
-        headers: { "Device-Id": deviceId, Authorization: `Bearer ${newToken || token}` },
+      if (newToken && newToken !== token) {
+        localStorage.setItem("token", newToken);
+        console.debug("[AuthProvider] Updated token in localStorage");
       }
-    );
 
-    const roleName = restoredUser.role?.roleName.toLowerCase().replace(/\s+/g, "");
-    setTimeout(() => {
+      localStorage.setItem("userId", restoredUser._id);
+      localStorage.setItem("isLoggedIn", "true");
+      setUser(restoredUser);
+      setSessionRestored(true);
+
+      await api.post(
+        "/auth/sync-device",
+        { deviceId },
+        {
+          headers: { "Device-Id": deviceId, Authorization: `Bearer ${newToken || token}` },
+        }
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const roleName = restoredUser.role?.roleName.toLowerCase().replace(/\s+/g, "");
       if (
         (roleName === "student" || roleName === "teacher") &&
         (restoredUser.isFirstLogin || !restoredUser.isTimezoneSet)
@@ -163,27 +109,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         router.push(lastPath);
       }
-    }, 500);
-  } catch (error) {
-    const errorMsg = error as ApiError;
-    clearSession();
-    setLoading(false);
-    setSessionRestored(true);
-    router.push("/login");
-    toast.error(errorMsg?.response?.data?.message || "Session expired. Please log in again.");
-  } finally {
-    setLoading(false);
-  }
-}, [deviceId, router]);
-
-    useEffect(() => {
-    if (deviceId) {
-      restoreSession();
+    } catch (error) {
+      const errorMsg = error as ApiError;
+      console.error("[AuthProvider] Restore session error:", errorMsg.response?.data?.message || errorMsg.message);
+      clearSession();
+      setLoading(false);
+      setSessionRestored(true);
+      router.push("/login");
+      toast.error(errorMsg?.response?.data?.message || "Session expired. Please log in again.");
+    } finally {
+      setLoading(false);
+      setIsRestoring(false);
+      localStorage.removeItem("sessionLock");
     }
-  }, [deviceId, restoreSession]);
+  }, [deviceId, router, isRestoring]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedRestoreSession = useCallback(
+    debounce(() => restoreSession(), 4000),
+    [restoreSession]
+  );
+
+  useEffect(() => {
+    if (deviceId && !isSessionRestored && !isRestoring) {
+      debouncedRestoreSession();
+    }
+  }, [deviceId, isRestoring, debouncedRestoreSession]);
 
   const logout = useCallback(async () => {
-    if (isLoggingOut) return;
+    if (isLoggingOut) {
+      console.debug("[AuthProvider] Logout already in progress, skipping");
+      return;
+    }
     isLoggingOut = true;
     try {
       const token = localStorage.getItem("token");
@@ -214,9 +171,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const handleStorageChange = (event: StorageEvent) => {
       if (
         event.key === "isLoggedIn" &&
-        event.newValue === "false" && 
+        event.newValue === "false" &&
         event.storageArea === localStorage
       ) {
+        console.debug("[AuthProvider] Detected isLoggedIn set to false, proceeding with logout");
         logout();
       }
     };
