@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import Loader from "@/components/Loader";
 
 export default function Batch() {
-const { user, loading: authLoading, deviceId } = useAuth();
+  const { user, loading: authLoading, deviceId } = useAuth();
   const [teacher, setTeacher] = useState<UserDetails | null>(null);
   const [peers, setPeers] = useState<UserDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,129 +21,136 @@ const { user, loading: authLoading, deviceId } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   const handleUnauthorized = useCallback(() => {
-  console.debug("[Batch] Handling unauthorized access");
-  localStorage.removeItem("token");
-  localStorage.removeItem("userId");
-  localStorage.removeItem("isLoggedIn");
-  router.push("/login");
-}, [router]);
+    console.debug("[Batch] Handling unauthorized access");
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("isLoggedIn");
+    router.push("/login");
+  }, [router]);
 
-const fetchBatch = useCallback(async () => {
-  if (!user || !deviceId) return;
-  try {
-    setLoading(true);
-    setError(null);
-    const token = localStorage.getItem("token");
-    if (!token) {
+  const fetchBatch = useCallback(async () => {
+    if (!user || !deviceId) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        handleUnauthorized();
+        return;
+      }
+
+      const res = await api.get(`/users/students/${user._id}/peers`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Device-Id": deviceId,
+        },
+      });
+      setTeacher(res.data.teacher);
+      setPeers(res.data.fellowStudents);
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error("[Batch] Failed to fetch batch data:", apiError);
+      const errorMessage =
+        apiError.response?.data?.message || "Failed to fetch batch data";
+      setError(errorMessage);
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [user, deviceId, handleUnauthorized]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user || user?.role?.roleName !== "Student") {
+      console.debug("[Batch] Redirecting to login", {
+        user: !!user,
+        role: user?.role?.roleName,
+        authLoading,
+      });
       handleUnauthorized();
       return;
     }
+    console.debug("[Batch] Fetching batch data", { userId: user._id });
+    fetchBatch();
+  }, [user, authLoading, router, fetchBatch, handleUnauthorized]);
 
-    const res = await api.get(`/users/students/${user._id}/peers`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Device-Id": deviceId,
-      },
-    });
-    setTeacher(res.data.teacher);
-    setPeers(res.data.fellowStudents);
-  } catch (error) {
-    const apiError = error as ApiError;
-    console.error("[Batch] Failed to fetch batch data:", apiError);
-    const errorMessage =
-      apiError.response?.data?.message || "Failed to fetch batch data";
-    setError(errorMessage);
-    if (apiError.response?.status === 401) {
-      handleUnauthorized();
-    } else {
-      toast.error(errorMessage);
+  const handleCardClick = (studentId: string | undefined) => {
+    if (!studentId) {
+      toast.error("Invalid student ID");
+      console.error("Invalid student ID:", studentId);
+      return;
     }
-  } finally {
-    setLoading(false);
-  }
-}, [user, deviceId, handleUnauthorized]);
+    router.push(`/student/${studentId}`);
+  };
 
-useEffect(() => {
-  if (authLoading) return;
-  if (!user || user?.role?.roleName !== "Student") {
-    console.debug("[Batch] Redirecting to login", {
-      user: !!user,
-      role: user?.role?.roleName,
-      authLoading,
-    });
-    handleUnauthorized();
-    return;
-  }
-  console.debug("[Batch] Fetching batch data", { userId: user._id });
-  fetchBatch();
-}, [user, authLoading, router, fetchBatch, handleUnauthorized]);
-
-const handleCardClick = (studentId: string | undefined) => {
-  if (!studentId) {
-    toast.error("Invalid student ID");
-    console.error("Invalid student ID:", studentId);
-    return;
-  }
-  router.push(`/student/${studentId}`);
-};
-
-if (authLoading || (!user && loading)) {
-  return (
-    <Loader
-      height="80"
-      width="80"
-      color="#ff0000"
-      ariaLabel="triangle-loading"
-      wrapperStyle={{}}
-      wrapperClass=""
-      visible={true}
-      fullScreen={true}
-    />
-  );
-}
-
-if (!user || user.role?.roleName !== "Student") {
-  return null;
-}
-
-if (error) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
-    >
+  if (authLoading || (!user && loading)) {
+    return (
       <div className="text-center">
-        <div className="p-4 bg-red-50 rounded-xl shadow-lg">
-          <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">
-            Error Loading Batch
-          </h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => {
-              setError(null);
-              fetchBatch();
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition-all"
-          >
-            Try Again
-          </button>
+        <div className="relative">
+          <div className="absolute inset-0 bg-blue-400 rounded-full blur-xl opacity-20 animate-pulse"></div>
+          <Loader
+            height="80"
+            width="80"
+            color="#2563eb"
+            ariaLabel="triangle-loading"
+            wrapperStyle={{}}
+            wrapperClass=""
+            visible={true}
+          />
+          <p className="mt-6 text-blue-700 font-medium text-lg">
+            Loading your batch...
+          </p>
         </div>
       </div>
-    </motion.div>
-  );
-}
+    );
+  }
+
+  if (!user || user.role?.roleName !== "Student") {
+    return null;
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="min-h-screen bg-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+      >
+        <div className="text-center">
+          <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border-0">
+            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+              Error Loading Batch
+            </h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => {
+                setError(null);
+                fetchBatch();
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+      className="min-h-screen bg-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
     >
-      <div className="w-full max-w-3xl bg-white rounded-3xl shadow-xl p-6 sm:p-8">
+      <div className="w-full max-w-3xl bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-6 sm:p-8 border-0">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">
           My Batch
         </h1>
@@ -157,29 +164,7 @@ if (error) {
             whileHover={{ scale: 1.02 }}
           >
             <Card
-              className="relative bg-white border-2 border-[#dddd] rounded-3xl transition-all cursor-pointer overflow-hidden mb-8"
-              style={{
-                transform:
-                  "perspective(1000px) rotateX(2deg) rotateY(2deg) translateY(0)",
-                boxShadow: "6px 6px 0 0 #dddd",
-                border: "1px solid #eeee",
-                transition:
-                  "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, border 0.3s ease-in-out",
-              }}
-              onMouseEnter={(e) => {
-                const card = e.currentTarget;
-                card.style.transform =
-                  "perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(-8px)";
-                card.style.boxShadow = "12px 12px 0 0 #dddd";
-                card.style.border = "1px solid #eeee";
-              }}
-              onMouseLeave={(e) => {
-                const card = e.currentTarget;
-                card.style.transform =
-                  "perspective(1000px) rotateX(2deg) rotateY(2deg) translateY(0)";
-                card.style.boxShadow = "6px 6px 0 0 #dddd";
-                card.style.border = "1px solid #eeee";
-              }}
+              className="relative bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all cursor-pointer overflow-hidden mb-8"
               onClick={() => router.push(`/student/teacher`)}
               role="button"
               aria-label={`View profile of ${teacher.name}`}
@@ -211,32 +196,43 @@ if (error) {
                 </div>
                 <div className="space-y-4">
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
-                  >
-                    <Book className="w-6 h-6 text-indigo-500" />
-                    <div className="flex-1 ml-4">
-                      <p className="text-sm font-medium text-gray-600">
-                        Subjects
-                      </p>
-                      <p className="mt-1 text-gray-800 text-lg font-medium">
-                        {teacher.subjects?.join(", ") || "None"}
-                      </p>
-                    </div>
-                  </motion.div>
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3, delay: 0.1 }}
+  className="bg-blue-50 rounded-xl p-4 hover:bg-blue-100 transition-colors"
+>
+  <div className="flex-1">
+    <div className="flex items-center gap-2">
+      <Book className="w-6 h-6 text-indigo-500 shrink-0" />
+      <p className="text-sm font-medium text-gray-600">Subjects:</p>
+      <div className="flex flex-wrap gap-2">
+        {teacher.subjects?.length ? (
+          teacher.subjects.map((subject, index) => (
+            <div
+              key={index}
+              className="flex items-center px-3 py-1 rounded-full text-sm font-medium text-indigo-700 bg-indigo-100/30 border border-indigo-200 hover:bg-indigo-100/50 transition-colors"
+            >
+              {subject}
+            </div>
+          ))
+        ) : (
+          <span className="text-gray-600 text-sm font-medium">None</span>
+        )}
+      </div>
+    </div>
+  </div>
+</motion.div>
                 </div>
               </div>
             </Card>
           </motion.div>
         ) : (
-          <p className="mb-8 text-gray-600">No teacher assigned</p>
+          <p className="mb-8 text-gray-600 font-medium">No teacher assigned</p>
         )}
         {/* Peers Section */}
         <h3 className="text-2xl font-bold mb-4 text-gray-900">My Peers</h3>
         {peers.length === 0 ? (
-          <p className="text-gray-600">No peers found</p>
+          <p className="text-gray-600 font-medium">No peers found</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {peers.map((peer) => (
@@ -248,29 +244,7 @@ if (error) {
                 whileHover={{ scale: 1.02 }}
               >
                 <Card
-                  className="relative bg-white border-2 border-[#dddd] rounded-3xl transition-all cursor-pointer overflow-hidden"
-                  style={{
-                    transform:
-                      "perspective(1000px) rotateX(2deg) rotateY(2deg) translateY(0)",
-                    boxShadow: "6px 6px 0 0 #dddd",
-                    border: "1px solid #eeee",
-                    transition:
-                      "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, border 0.3s ease-in-out",
-                  }}
-                  onMouseEnter={(e) => {
-                    const card = e.currentTarget;
-                    card.style.transform =
-                      "perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(-8px)";
-                    card.style.boxShadow = "12px 12px 0 0 #dddd";
-                    card.style.border = "1px solid #eeee";
-                  }}
-                  onMouseLeave={(e) => {
-                    const card = e.currentTarget;
-                    card.style.transform =
-                      "perspective(1000px) rotateX(2deg) rotateY(2deg) translateY(0)";
-                    card.style.boxShadow = "6px 6px 0 0 #dddd";
-                    card.style.border = "1px solid #eeee";
-                  }}
+                  className="relative bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all cursor-pointer overflow-hidden"
                   onClick={() => handleCardClick(peer._id)}
                   role="button"
                   aria-label={`View profile of ${peer.name}`}
@@ -305,16 +279,33 @@ if (error) {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: 0.1 }}
-                        className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+                        className="bg-blue-50 rounded-xl p-4 hover:bg-blue-100 transition-colors"
                       >
-                        <Book className="w-6 h-6 text-indigo-500" />
-                        <div className="flex-1 ml-4">
-                          <p className="text-sm font-medium text-gray-600">
-                            Subjects
-                          </p>
-                          <p className="mt-1 text-gray-800 text-lg font-medium">
-                            {peer.subjects?.join(", ") || "None"}
-                          </p>
+                        <div className="flex items-center gap-4">
+                          <Book className="w-6 h-6 text-indigo-500 shrink-0" />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-gray-600">
+                                Subjects:
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {peer.subjects?.length ? (
+                                peer.subjects.map((subject, index) => (
+                                  <span
+                                    key={index}
+                                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-indigo-700 bg-indigo-100/30 border border-indigo-200 hover:bg-indigo-100/50 transition-colors"
+                                  >
+                                    {subject}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-gray-600 text-sm font-medium">
+                                  None
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </motion.div>
                     </div>

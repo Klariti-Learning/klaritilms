@@ -232,7 +232,7 @@ export default function AssignTeachers() {
         teacherIds: teachersToAssign,
       });
       toast.success("Course assigned successfully to selected teachers");
-      router.push("/superadmin/courses");
+      router.push("/admin/courses");
     } catch (error) {
       const apiError = error as ApiError;
       console.error("[AssignTeachers] Failed to assign course:", apiError);
@@ -290,7 +290,7 @@ export default function AssignTeachers() {
           <div className="flex items-center gap-4 ml-35">
             <Button
               variant="ghost"
-              onClick={() => router.push("/superadmin/courses")}
+              onClick={() => router.push("/admin/courses")}
               className="text-indigo-600 hover:bg-indigo-100/50 rounded-full p-2 cursor-pointer"
             >
               <ChevronLeft className="w-6 h-6" />
