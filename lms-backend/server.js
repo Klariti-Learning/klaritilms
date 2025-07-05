@@ -1,3 +1,6 @@
+require("./instrument.js");
+
+const Sentry = require("@sentry/node");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -18,6 +21,7 @@ const server = http.createServer(app);
 initializeSocket(server);
 
 const allowedOrigin = process.env.BASE_URL;
+
 
 app.use(helmet());
 app.use(
@@ -75,14 +79,23 @@ const initializeRoutesAndJobs = () => {
 
 initializeRoutesAndJobs();
 
+
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "OK", message: "Server is healthy" });
 });
+
+
+app.get("/debug-sentry", function mainHandler(req, res) {
+  throw new Error("My first Sentry error!");
+});
+
 
 app.use((err, req, res, next) => {
   logger.error("Server error:", err);
   res.status(500).json({ message: "Server error", error: err.message });
 });
+
+Sentry.setupExpressErrorHandler(app);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, async () => {

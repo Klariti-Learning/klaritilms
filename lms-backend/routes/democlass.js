@@ -90,14 +90,14 @@ router.post(
       const user = await User.findById(scheduledById).populate("role");
       if (
         !user ||
-        !["Admin", "SuperAdmin", "Teacher", "Student"].includes(user.role.roleName)
+        !["Admin", "Super Admin", "Teacher", "Student"].includes(user.role.roleName)
       ) {
         logger.warn(`Unauthorized demo class creation attempt by user: ${scheduledById}`);
         return res.status(403).json({ message: "Not authorized" });
       }
 
       let teacherId = scheduledById;
-      if (assignedTeacherId && ["Admin", "SuperAdmin"].includes(user.role.roleName)) {
+      if (assignedTeacherId && ["Admin", "Super Admin"].includes(user.role.roleName)) {
         const teacher = await User.findById(assignedTeacherId).populate("role");
         if (!teacher || teacher.role.roleName !== "Teacher") {
           logger.warn(`Invalid or unauthorized teacher ID: ${assignedTeacherId}`);
@@ -346,7 +346,7 @@ router.put(
 
       // Validate user permissions
       const user = await User.findById(scheduledById).populate("role");
-      if (!user || !["Admin", "SuperAdmin", "Teacher"].includes(user.role.roleName)) {
+      if (!user || !["Admin", "Super Admin", "Teacher"].includes(user.role.roleName)) {
         logger.warn(`Unauthorized reschedule attempt by user: ${scheduledById}`);
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -362,7 +362,7 @@ router.put(
 
       // Validate teacher if assignedTeacherId is provided
       let teacherId = demoClass.assignedTeacherId;
-      if (assignedTeacherId && ["Admin", "SuperAdmin"].includes(user.role.roleName)) {
+      if (assignedTeacherId && ["Admin", "Super Admin"].includes(user.role.roleName)) {
         const teacher = await User.findById(assignedTeacherId).populate("role");
         if (!teacher || teacher.role.roleName !== "Teacher") {
           logger.warn(`Invalid or unauthorized teacher ID: ${assignedTeacherId}`);
@@ -530,7 +530,7 @@ router.post(
 
     try {
       const user = await User.findById(scheduledById).populate("role");
-      if (!user || !["Admin", "SuperAdmin", "Teacher"].includes(user.role.roleName)) {
+      if (!user || !["Admin", "Super Admin", "Teacher"].includes(user.role.roleName)) {
         logger.warn(
           `Unauthorized demo class cancellation attempt by user: ${scheduledById}`
         );
@@ -543,7 +543,6 @@ router.post(
         return res.status(404).json({ message: "Demo class not found" });
       }
 
-      // Verify authorization: Admins/SuperAdmins can cancel any class, Teachers can only cancel their own
       if (
         user.role.roleName === "Teacher" &&
         demoClass.assignedTeacherId.toString() !== scheduledById &&
@@ -612,7 +611,7 @@ router.post(
   }
 );
 
-// Get All Demo Classes (Admins, SuperAdmins, Teachers, and Students)
+// Get All Demo Classes 
 router.get("/list", authenticate, async (req, res) => {
   const userId = req.user.userId;
 
@@ -626,7 +625,7 @@ router.get("/list", authenticate, async (req, res) => {
     const roleName = user.role.roleName;
     let demoClasses;
 
-    if (roleName === "Admin" || roleName === "SuperAdmin") {
+    if (roleName === "Admin" || roleName === "Super Admin") {
       demoClasses = await DemoClass.find()
         .populate({
           path: "scheduledBy",
@@ -752,7 +751,7 @@ router.get(
       const roleName = user.role.roleName;
       let demoClass;
 
-      if (roleName === "Admin" || roleName === "SuperAdmin") {
+      if (roleName === "Admin" || roleName === "Super Admin") {
         demoClass = await DemoClass.findById(callId)
           .populate({
             path: "scheduledBy",

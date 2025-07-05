@@ -14,12 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TicketSlash } from "lucide-react";
 
 const CreateTicketPage = () => {
-const { user, loading: authLoading, deviceId } = useAuth();
+  const { user, loading: authLoading, deviceId } = useAuth();
   const router = useRouter();
-  const [issueRelatedTo, setIssueRelatedTo] =
-    useState<string>("Customer Support");
+  const [issueRelatedTo, setIssueRelatedTo] = useState<string>("Customer Support");
   const [subject, setSubject] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [descriptionError, setDescriptionError] = useState<string>("");
@@ -30,42 +30,44 @@ const { user, loading: authLoading, deviceId } = useAuth();
   const [isBold, setIsBold] = useState<boolean>(false);
   const [isItalic, setIsItalic] = useState<boolean>(false);
   const [isUnderline, setIsUnderline] = useState<boolean>(false);
-  const [isTeacherChangeModalOpen, setIsTeacherChangeModalOpen] =
-    useState<boolean>(false);
-  const [isClassPauseModalOpen, setIsClassPauseModalOpen] =
-    useState<boolean>(false);
-  const [isTimeChangeModalOpen, setIsTimeChangeModalOpen] =
-    useState<boolean>(false);
-  const [selectedTeacherReason, setSelectedTeacherReason] =
-    useState<string>("");
+  const [isTeacherChangeModalOpen, setIsTeacherChangeModalOpen] = useState<boolean>(false);
+  const [isClassPauseModalOpen, setIsClassPauseModalOpen] = useState<boolean>(false);
+  const [isTimeChangeModalOpen, setIsTimeChangeModalOpen] = useState<boolean>(false);
+  const [selectedTeacherReason, setSelectedTeacherReason] = useState<string>("");
   const [selectedTimeReason, setSelectedTimeReason] = useState<string>("");
   const [modalDescription, setModalDescription] = useState<string>("");
-  const [modalDescriptionError, setModalDescriptionError] =
-    useState<string>("");
+  const [modalDescriptionError, setModalDescriptionError] = useState<string>("");
   const [error, setError] = useState<string>("");
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUnauthorized = useCallback(() => {
-  console.debug("[CreateTicketPage] Handling unauthorized access");
-  localStorage.removeItem("token");
-  localStorage.removeItem("userId");
-  localStorage.removeItem("isLoggedIn");
-  toast.error("Session expired. Please log in again.");
-  router.push("/login");
-}, [router]);
+    console.debug("[CreateTicketPage] Handling unauthorized access");
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("isLoggedIn");
+    toast.error("Session expired. Please log in again.");
+    router.push("/login");
+  }, [router]);
 
-useEffect(() => {
-  if (authLoading) return;
-  if (!user || !user?.role || user?.role?.roleName !== "Student") {
-    handleUnauthorized();
-  }
-}, [user, authLoading, router, handleUnauthorized]);
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user || !user?.role || user?.role?.roleName !== "Student") {
+      handleUnauthorized();
+    }
+  }, [user, authLoading, router, handleUnauthorized]);
 
   const updateFormattingState = () => {
-    setIsBold(document.queryCommandState("bold"));
-    setIsItalic(document.queryCommandState("italic"));
-    setIsUnderline(document.queryCommandState("underline"));
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const parent = range.commonAncestorContainer.parentElement;
+      if (parent && editorRef.current?.contains(parent)) {
+        setIsBold(document.queryCommandState("bold"));
+        setIsItalic(document.queryCommandState("italic"));
+        setIsUnderline(document.queryCommandState("underline"));
+      }
+    }
   };
 
   const getPlainText = (html: string) => {
@@ -122,60 +124,60 @@ useEffect(() => {
     }
   };
 
-const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  if (editorRef.current) {
-    setDescription(getPlainText(editorRef.current.innerHTML));
-  }
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (editorRef.current) {
+      setDescription(getPlainText(editorRef.current.innerHTML));
+    }
 
-  if (!description || description.trim() === "") {
-    setError("Description is required.");
-    return;
-  }
-
-  const issueTypeMap: { [key: string]: string } = {
-    "Customer Support": "Other",
-    "Technical Support": "Technical",
-    Billing: "Payment",
-    Other: "Other",
-  };
-
-  const formData = new FormData();
-  formData.append("issueType", issueTypeMap[issueRelatedTo]);
-  formData.append(
-    "description",
-    subject ? `${subject}: ${description}` : description
-  );
-  formData.append("visibleToTeacher", isVisibleToTeacher.toString());
-  if (file) {
-    formData.append("file", file);
-  }
-
-  try {
-    const token = localStorage.getItem("token");
-    if (!token || !deviceId) {
-      handleUnauthorized();
+    if (!description || description.trim() === "") {
+      setError("Description is required.");
       return;
     }
-    await api.post("/tickets/raise", formData, {
-      headers: {
-        "Device-Id": deviceId,
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    toast.success("Ticket raised successfully!");
-    router.push("/student/raise-query?success=true");
-  } catch (error) {
-    const apiError = error as ApiError;
-    console.error("[CreateTicketPage] Ticket submission error:", apiError);
-    if (apiError.response?.status === 401) {
-      handleUnauthorized();
-    } else {
-      setError(apiError.response?.data?.message || "Failed to raise ticket");
+
+    const issueTypeMap: { [key: string]: string } = {
+      "Customer Support": "Other",
+      "Technical Support": "Technical",
+      Billing: "Payment",
+      Other: "Other",
+    };
+
+    const formData = new FormData();
+    formData.append("issueType", issueTypeMap[issueRelatedTo]);
+    formData.append(
+      "description",
+      subject ? `${subject}: ${description}` : description
+    );
+    formData.append("visibleToTeacher", isVisibleToTeacher.toString());
+    if (file) {
+      formData.append("file", file);
     }
-  }
-};
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !deviceId) {
+        handleUnauthorized();
+        return;
+      }
+      await api.post("/tickets/raise", formData, {
+        headers: {
+          "Device-Id": deviceId,
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      toast.success("Ticket raised successfully!");
+      router.push("/student/raise-query?success=true");
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error("[CreateTicketPage] Ticket submission error:", apiError);
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        setError(apiError.response?.data?.message || "Failed to raise ticket");
+      }
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -206,52 +208,68 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     }
   };
 
-  const selectAllContent = () => {
-    if (editorRef.current) {
-      const range = document.createRange();
-      range.selectNodeContents(editorRef.current);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    }
-  };
-
   const applyFormatting = (format: "bold" | "italic" | "underline") => {
     if (editorRef.current) {
-      selectAllContent();
-      document.execCommand(format, false, undefined);
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        // Apply formatting to selected text
+        document.execCommand(format, false, undefined);
+      } else {
+        // Apply formatting to all content if no selection
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        document.execCommand(format, false, undefined);
+        selection?.removeAllRanges();
+      }
       editorRef.current.focus();
       setDescription(editorRef.current.innerHTML);
       updateFormattingState();
-      window.getSelection()?.removeAllRanges();
     }
   };
 
   const applyFont = (font: string) => {
     if (editorRef.current) {
-      selectAllContent();
-      document.execCommand("fontName", false, font);
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        document.execCommand("fontName", false, font);
+      } else {
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        document.execCommand("fontName", false, font);
+        selection?.removeAllRanges();
+      }
       setCurrentFont(font);
       editorRef.current.focus();
       setDescription(editorRef.current.innerHTML);
-      window.getSelection()?.removeAllRanges();
     }
   };
 
   const applyFontSize = (size: string) => {
     if (editorRef.current) {
-      selectAllContent();
+      const selection = window.getSelection();
       const sizeMap: { [key: string]: string } = {
         "12": "2",
         "14": "3",
         "16": "4",
       };
       const mappedSize = sizeMap[size] || "3";
-      document.execCommand("fontSize", false, mappedSize);
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        document.execCommand("fontSize", false, mappedSize);
+      } else {
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        document.execCommand("fontSize", false, mappedSize);
+        selection?.removeAllRanges();
+      }
       setCurrentFontSize(size);
       editorRef.current.focus();
       setDescription(editorRef.current.innerHTML);
-      window.getSelection()?.removeAllRanges();
     }
   };
 
@@ -267,164 +285,176 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     setIsTimeChangeModalOpen(true);
   };
 
-const handleTeacherChangeSubmit = async (
-  e: React.FormEvent<HTMLFormElement>
-) => {
-  e.preventDefault();
-  if (!selectedTeacherReason) {
-    alert("Please select a reason.");
-    return;
-  }
-
-  const descriptionText = `${selectedTeacherReason}${
-    modalDescription ? `: ${modalDescription}` : ""
-  }`;
-  if (descriptionText.length < 10) {
-    setModalDescriptionError(
-      "Description must be at least 10 characters long."
-    );
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("token");
-    if (!token || !deviceId) {
-      handleUnauthorized();
+  const handleTeacherChangeSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+    if (!selectedTeacherReason) {
+      alert("Please select a reason.");
       return;
     }
-    await api.post(
-      "/tickets/raise-teacher-change",
-      { description: descriptionText },
-      {
-        headers: {
-          "Device-Id": deviceId,
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    toast.success("Teacher change request raised successfully!");
-    setIsTeacherChangeModalOpen(false);
-    setSelectedTeacherReason("");
-    setModalDescription("");
-    setModalDescriptionError("");
-    router.push("/student/raise-query?success=true&type=teacher-change");
-  } catch (error) {
-    const apiError = error as ApiError;
-    console.error(
-      "[CreateTicketPage] Teacher change request error:",
-      apiError
-    );
-    if (apiError.response?.status === 401) {
-      handleUnauthorized();
-    } else {
-      setError(
-        apiError.response?.data?.message ||
-          "Failed to raise teacher change request"
+
+    const descriptionText = `${selectedTeacherReason}${
+      modalDescription ? `: ${modalDescription}` : ""
+    }`;
+    if (descriptionText.length < 10) {
+      setModalDescriptionError(
+        "Description must be at least 10 characters long."
       );
-    }
-  }
-};
-
-const handleTimeChangeSubmit = async (
-  e: React.FormEvent<HTMLFormElement>
-) => {
-  e.preventDefault();
-  if (!selectedTimeReason) {
-    alert("Please select a reason.");
-    return;
-  }
-
-  const descriptionText = `${selectedTimeReason}${
-    modalDescription ? `: ${modalDescription}` : ""
-  }`;
-  if (descriptionText.length < 10) {
-    setModalDescriptionError(
-      "Description must be at least 10 characters long."
-    );
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("token");
-    if (!token || !deviceId) {
-      handleUnauthorized();
       return;
     }
-    await api.post(
-      "/tickets/raise-timezone-change",
-      { description: descriptionText },
-      {
-        headers: {
-          "Device-Id": deviceId,
-          Authorization: `Bearer ${token}`,
-        },
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !deviceId) {
+        handleUnauthorized();
+        return;
       }
-    );
-    toast.success("Time change request raised successfully!");
-    setIsTimeChangeModalOpen(false);
-    setSelectedTimeReason("");
-    setModalDescription("");
-    setModalDescriptionError("");
-    router.push("/student/raise-query?success=true&type=time-change");
-  } catch (error) {
-    const apiError = error as ApiError;
-    console.error("[CreateTicketPage] Time change request error:", apiError);
-    if (apiError.response?.status === 401) {
-      handleUnauthorized();
-    } else {
-      setError(
-        apiError.response?.data?.message ||
-          "Failed to raise time change request"
+      await api.post(
+        "/tickets/raise-teacher-change",
+        { description: descriptionText },
+        {
+          headers: {
+            "Device-Id": deviceId,
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
+      toast.success("Teacher change request raised successfully!");
+      setIsTeacherChangeModalOpen(false);
+      setSelectedTeacherReason("");
+      setModalDescription("");
+      setModalDescriptionError("");
+      router.push("/student/raise-query?success=true&type=teacher-change");
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error(
+        "[CreateTicketPage] Teacher change request error:",
+        apiError
+      );
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        setError(
+          apiError.response?.data?.message ||
+            "Failed to raise teacher change request"
+        );
+      }
     }
-  }
-};
+  };
 
-const handleClassPauseSubmit = async (
-  e: React.FormEvent<HTMLFormElement>
-) => {
-  e.preventDefault();
-
-  try {
-    const token = localStorage.getItem("token");
-    if (!token || !deviceId) {
-      handleUnauthorized();
+  const handleTimeChangeSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+    if (!selectedTimeReason) {
+      alert("Please select a reason.");
       return;
     }
-    await api.post(
-      "/tickets/raise-class-pause",
-      {},
-      {
-        headers: {
-          "Device-Id": deviceId,
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    toast.success("Class pause request raised successfully!");
-    setIsClassPauseModalOpen(false);
-    router.push("/student/raise-query?success=true&type=class-pause");
-  } catch (error) {
-    const apiError = error as ApiError;
-    console.error("[CreateTicketPage] Class pause request error:", apiError);
-    if (apiError.response?.status === 401) {
-      handleUnauthorized();
-    } else {
-      setError(
-        apiError.response?.data?.message ||
-          "Failed to raise class pause request"
+
+    const descriptionText = `${selectedTimeReason}${
+      modalDescription ? `: ${modalDescription}` : ""
+    }`;
+    if (descriptionText.length < 10) {
+      setModalDescriptionError(
+        "Description must be at least 10 characters long."
       );
+      return;
     }
-  }
-};
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !deviceId) {
+        handleUnauthorized();
+        return;
+      }
+      await api.post(
+        "/tickets/raise-timezone-change",
+        { description: descriptionText },
+        {
+          headers: {
+            "Device-Id": deviceId,
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      toast.success("Time change request raised successfully!");
+      setIsTimeChangeModalOpen(false);
+      setSelectedTimeReason("");
+      setModalDescription("");
+      setModalDescriptionError("");
+      router.push("/student/raise-query?success=true&type=time-change");
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error("[CreateTicketPage] Time change request error:", apiError);
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        setError(
+          apiError.response?.data?.message ||
+            "Failed to raise time change request"
+        );
+      }
+    }
+  };
+
+  const handleClassPauseSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !deviceId) {
+        handleUnauthorized();
+        return;
+      }
+      await api.post(
+        "/tickets/raise-class-pause",
+        {},
+        {
+          headers: {
+            "Device-Id": deviceId,
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      toast.success("Class pause request raised successfully!");
+      setIsClassPauseModalOpen(false);
+      router.push("/student/raise-query?success=true&type=class-pause");
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error("[CreateTicketPage] Class pause request error:", apiError);
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        setError(
+          apiError.response?.data?.message ||
+            "Failed to raise class pause request"
+        );
+      }
+    }
+  };
 
   return (
-    <div className="p-4 sm:p-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen mt-10 font-sans ml-20">
+    <div className="p-4 sm:p-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen pt-20 font-sans">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center space-x-3 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mt-6 overflow-hidden rounded-2xl bg-blue-600 p-8 text-white shadow-xl flex items-center gap-4"
+        >
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute top-4 right-4 opacity-30">
+            <div className="flex gap-2">
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse delay-75"></div>
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse delay-150"></div>
+            </div>
+          </div>
           <button
             onClick={() => router.push("/student/raise-query")}
-            className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="p-2 text-white hover:bg-blue-700 rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer z-10"
             aria-label="Go back"
           >
             <svg
@@ -442,18 +472,26 @@ const handleClassPauseSubmit = async (
               />
             </svg>
           </button>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-            Raise a Ticket
-          </h1>
-        </div>
+          <div className="relative flex flex-col">
+            <div className="flex items-center gap-3">
+              <TicketSlash className="w-10 h-10 text-white-400" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-white">
+                Raise a New Ticket
+              </h1>
+            </div>
+            <p className="text-lg text-gray-300 mt-2">
+              Submit your support requests and track their progress
+            </p>
+          </div>
+        </motion.div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg shadow-sm animate-slide-in">
+          <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg shadow-sm animate-slide-in">
             {error}
           </div>
         )}
 
-        <div className="flex flex-col items-center mb-6">
+        <div className="flex flex-col items-center mt-6 mb-6">
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             <span className="text-md font-semibold text-sky-600 mr-2 mt-1 sm:mr-4">
               Quick Actions:
@@ -861,8 +899,7 @@ const handleClassPauseSubmit = async (
                             value="My teacher's teaching style is incompatible with me"
                             className="text-left text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150 cursor-pointer"
                           >
-                            My teacher&apos;s teaching style is incompatible
-                            with me
+                            My teacher&apos;s teaching style is incompatible with me
                           </SelectItem>
                           <SelectItem
                             value="My teacher is always late to class"

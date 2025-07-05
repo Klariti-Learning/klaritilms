@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
 import {
-  Star,
   Plus,
   Filter,
   SortAsc,
@@ -20,6 +19,7 @@ import {
   AlertCircle,
   XCircle,
   Check,
+  TicketSlash,
 } from "lucide-react";
 import type { ApiError, Ticket } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -204,9 +204,9 @@ const RaiseQueryPage = () => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "open":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-amber-100 text-amber-800 border-amber-200";
       case "in-progress":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-teal-100 text-teal-800 border-teal-200";
       case "resolved":
         return "bg-green-100 text-green-800 border-green-200";
       default:
@@ -280,35 +280,52 @@ const RaiseQueryPage = () => {
     });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6 lg:p-8 mt-16">
+    <div className="min-h-screen bg-blue-50 p-4 md:p-6 lg:p-8 pt-20">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">
+        {/* Header with welcome banner */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mt-4 overflow-hidden rounded-2xl bg-blue-600 p-8 text-white shadow-xl flex justify-between items-center"
+        >
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute top-4 right-4 opacity-30">
+            <div className="flex gap-2">
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse delay-75"></div>
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse delay-150"></div>
+            </div>
+          </div>
+          <div className="relative flex flex-col">
+            <div className="flex items-center gap-3">
+              <TicketSlash className="w-10 h-10 text-white-400" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-white">
                 Support Tickets
               </h1>
-              <p className="text-lg text-gray-600">
-                Manage your support requests and track their progress
-              </p>
             </div>
-            <Button
-              onClick={handleCreateNewTicket}
-              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-base"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Create New Ticket
-            </Button>
+            <p className="text-lg text-gray-300 mt-2">
+              Manage your support requests and track their progress
+            </p>
           </div>
-        </div>
+        </motion.div>
 
-        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl mb-8">
+        <motion.div className="flex mt-4 mb-4 justify-end">
+          <Button
+            onClick={handleCreateNewTicket}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-base z-10"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Create New Ticket
+          </Button>
+        </motion.div>
+
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl mb-8">
           <CardContent className="p-8">
             <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center justify-between">
               <div className="flex flex-wrap gap-5 items-center">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <SortAsc className="w-6 h-5 text-gray-500" />
+                    <SortAsc className="w-6 h-5 text-blue-500" />
                     <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
                       Sort:
                     </span>
@@ -317,7 +334,7 @@ const RaiseQueryPage = () => {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="min-w-[160px] justify-between bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm rounded-xl px-6 py-3 h-auto cursor-pointer"
+                        className="min-w-[160px] justify-between bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm rounded-xl px-6 py-3 h-auto cursor-pointer"
                       >
                         <div className="flex items-center gap-1">
                           {(() => {
@@ -327,7 +344,7 @@ const RaiseQueryPage = () => {
                             const IconComponent = option?.icon || Clock;
                             return (
                               <>
-                                <IconComponent className="w-4 h-4 text-gray-500" />
+                                <IconComponent className="w-4 h-4 text-blue-500" />
                                 <span className="text-sm font-medium text-gray-700">
                                   {option?.label}
                                 </span>
@@ -335,12 +352,12 @@ const RaiseQueryPage = () => {
                             );
                           })()}
                         </div>
-                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                        <ChevronDown className="w-4 h-4 text-blue-500" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
-                      className="w-[180px] bg-white border-gray-200 shadow-xl rounded-xl p-2"
+                      className="w-[180px] bg-white border-blue-200 shadow-xl rounded-xl p-2"
                     >
                       {sortOptions.map((option) => {
                         const IconComponent = option.icon;
@@ -348,10 +365,10 @@ const RaiseQueryPage = () => {
                           <DropdownMenuItem
                             key={option.value}
                             onClick={() => setSortBy(option.value)}
-                            className="flex items-center justify-between cursor-pointer px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                            className="flex items-center justify-between cursor-pointer px-3 py-2.5 rounded-lg hover:bg-blue-50 transition-colors"
                           >
                             <div className="flex items-center gap-2">
-                              <IconComponent className="w-4 h-4 text-gray-500" />
+                              <IconComponent className="w-4 h-4 text-blue-500" />
                               <span className="text-sm font-medium text-gray-700">
                                 {option.label}
                               </span>
@@ -368,7 +385,7 @@ const RaiseQueryPage = () => {
 
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <Filter className="w-5 h-5 text-gray-500" />
+                    <Filter className="w-5 h-5 text-blue-500" />
                     <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">
                       Status:
                     </span>
@@ -377,7 +394,7 @@ const RaiseQueryPage = () => {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="min-w-[140px] justify-between bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm rounded-xl px-4 py-3 h-auto cursor-pointer"
+                        className="min-w-[140px] justify-between bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm rounded-xl px-4 py-3 h-auto cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
                           {(() => {
@@ -387,7 +404,7 @@ const RaiseQueryPage = () => {
                             const IconComponent = option?.icon || TicketIcon;
                             return (
                               <>
-                                <IconComponent className="w-4 h-4 text-gray-500" />
+                                <IconComponent className="w-4 h-4 text-blue-500" />
                                 <span className="text-sm font-medium text-gray-700">
                                   {option?.label}
                                 </span>
@@ -395,12 +412,12 @@ const RaiseQueryPage = () => {
                             );
                           })()}
                         </div>
-                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                        <ChevronDown className="w-4 h-4 text-blue-500" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
-                      className="w-[160px] bg-white border-gray-200 shadow-xl rounded-xl p-2"
+                      className="w-[160px] bg-white border-blue-200 shadow-xl rounded-xl p-2"
                     >
                       {statusOptions.map((option) => {
                         const IconComponent = option.icon;
@@ -408,10 +425,10 @@ const RaiseQueryPage = () => {
                           <DropdownMenuItem
                             key={option.value}
                             onClick={() => setStatusFilter(option.value)}
-                            className="flex items-center justify-between cursor-pointer px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                            className="flex items-center justify-between cursor-pointer px-3 py-2.5 rounded-lg hover:bg-blue-50 transition-colors"
                           >
                             <div className="flex items-center gap-2">
-                              <IconComponent className="w-4 h-4 text-gray-500" />
+                              <IconComponent className="w-4 h-4 text-blue-500" />
                               <span className="text-sm font-medium text-gray-700">
                                 {option.label}
                               </span>
@@ -434,7 +451,7 @@ const RaiseQueryPage = () => {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="min-w-[200px] justify-between bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm rounded-xl px-4 py-3 h-auto cursor-pointer" // Increased min-width
+                        className="min-w-[200px] justify-between bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm rounded-xl px-4 py-3 h-auto cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
                           {(() => {
@@ -444,7 +461,7 @@ const RaiseQueryPage = () => {
                             const IconComponent = option?.icon || Filter;
                             return (
                               <>
-                                <IconComponent className="w-4 h-4 text-gray-500" />
+                                <IconComponent className="w-4 h-4 text-blue-500" />
                                 <span className="text-sm font-medium text-gray-700 truncate">
                                   {option?.label}
                                 </span>
@@ -452,12 +469,12 @@ const RaiseQueryPage = () => {
                             );
                           })()}
                         </div>
-                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                        <ChevronDown className="w-4 h-4 text-blue-500" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
-                      className="w-[240px] bg-white border-gray-200 shadow-xl rounded-xl p-3 max-h-[300px] overflow-y-auto scrollbar-hidden" // Increased width, added max-height and scrollbar-hidden
+                      className="w-[240px] bg-white border-blue-200 shadow-xl rounded-xl p-3 max-h-[300px] overflow-y-auto scrollbar-hidden"
                     >
                       {categoryOptions.map((option) => {
                         const IconComponent = option.icon;
@@ -465,10 +482,10 @@ const RaiseQueryPage = () => {
                           <DropdownMenuItem
                             key={option.value}
                             onClick={() => setCategoryFilter(option.value)}
-                            className="flex items-center justify-between cursor-pointer px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+                            className="flex items-center justify-between cursor-pointer px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors"
                           >
                             <div className="flex items-center gap-3 w-full">
-                              <IconComponent className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                              <IconComponent className="w-4 h-4 text-blue-500 flex-shrink-0" />
                               <span className="text-sm font-medium text-gray-700 truncate">
                                 {option.label}
                               </span>
@@ -504,7 +521,7 @@ const RaiseQueryPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
               >
-                <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden">
+                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden">
                   <CardContent
                     className="p-6"
                     onClick={(e) => {
@@ -521,7 +538,7 @@ const RaiseQueryPage = () => {
                           </div>
                           <div className="flex-1">
                             <h3 className="text-xl font-bold text-gray-900 mb-2">
-                              Ticket #{ticket.ticketNumber}
+                              Ticket {ticket.ticketNumber}
                             </h3>
                             <p className="text-gray-700 mb-3 leading-relaxed">
                               {ticket.description}
@@ -554,14 +571,14 @@ const RaiseQueryPage = () => {
                           </Badge>
                           <Badge
                             variant="outline"
-                            className="text-gray-600 border-gray-300 px-3 py-1.5 text-sm font-medium"
+                            className="text-blue-600 border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium"
                           >
                             {ticket.issueType}
                           </Badge>
                           {ticket.teacher && (
                             <Badge
                               variant="outline"
-                              className="text-purple-600 border-purple-200 bg-purple-50 px-3 py-1.5 text-sm font-medium"
+                              className="text-indigo-600 border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-medium"
                             >
                               Assigned to: {ticket.teacher.name}
                             </Badge>
@@ -574,13 +591,13 @@ const RaiseQueryPage = () => {
                               Rate this support:
                             </span>
                             {isSubmitting[ticket._id] ? (
-                              <span className="text-sm text-gray-500">
+                              <span className="text-sm text-blue-500">
                                 Submitting...
                               </span>
                             ) : (
                               <div className="flex gap-1">
                                 {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
+                                  <TicketSlash
                                     key={star}
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -591,8 +608,8 @@ const RaiseQueryPage = () => {
                                       (selectedRatings[ticket._id] ||
                                         ticket.rating ||
                                         0)
-                                        ? "text-yellow-500 fill-yellow-500 scale-110"
-                                        : "text-gray-300 hover:text-yellow-400 hover:scale-105"
+                                        ? "text-yellow-400 fill-yellow-400 scale-110"
+                                        : "text-gray-300 hover:text-yellow-300 hover:scale-105"
                                     }`}
                                   />
                                 ))}
@@ -604,7 +621,7 @@ const RaiseQueryPage = () => {
 
                       <div className="ml-6">
                         <ChevronDown
-                          className={`w-6 h-6 text-gray-400 transform transition-transform duration-300 ${
+                          className={`w-6 h-6 text-blue-400 transform transition-transform duration-300 ${
                             expandedTicketId === ticket._id ? "rotate-180" : ""
                           }`}
                         />
@@ -621,17 +638,17 @@ const RaiseQueryPage = () => {
                           className="mt-6 pt-6 border-t border-gray-200"
                         >
                           <h4 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                            <FileText className="w-5 h-5" />
+                            <FileText className="w-5 h-5 text-blue-500" />
                             Ticket Details
                           </h4>
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="space-y-4">
                               <div>
                                 <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-                                  Ticket ID
+                                  Ticket No.
                                 </span>
-                                <p className="text-sm text-gray-900 font-mono bg-gray-100 px-3 py-2 rounded-lg mt-2">
-                                  {ticket._id}
+                                <p className="text-sm text-gray-900 font-mono bg-blue-50 px-3 py-2 rounded-lg mt-2">
+                                  {ticket.ticketNumber}
                                 </p>
                               </div>
                               <div>
@@ -672,7 +689,7 @@ const RaiseQueryPage = () => {
                                 <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
                                   Response
                                 </span>
-                                <p className="text-sm text-gray-900 mt-2 bg-gray-100 p-4 rounded-lg leading-relaxed">
+                                <p className="text-sm text-gray-900 mt-2 bg-blue-50 p-4 rounded-lg leading-relaxed">
                                   {ticket.response || "No response yet"}
                                 </p>
                               </div>
@@ -704,9 +721,9 @@ const RaiseQueryPage = () => {
               </motion.div>
             ))
           ) : (
-            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="p-16 text-center">
-                <TicketIcon className="w-20 h-20 text-gray-300 mx-auto mb-6" />
+                <TicketIcon className="w-20 h-20 text-blue-200 mx-auto mb-6" />
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">
                   No tickets found
                 </h3>
@@ -719,7 +736,7 @@ const RaiseQueryPage = () => {
                 </p>
                 <Button
                   onClick={handleCreateNewTicket}
-                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 text-base rounded-xl"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-base rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
                 >
                   <Plus className="w-5 h-5 mr-2" />
                   Create Your First Ticket
