@@ -1,8 +1,8 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,6 +80,7 @@ import DocumentPopup from "@/components/DocumentPopup";
 import { Input } from "@/components/ui/input";
 import { FaCalendarCheck } from "react-icons/fa";
 import Link from "next/link";
+import Loader from "@/components/Loader";
 
 interface CallLinks {
   zoomLink?: string;
@@ -270,8 +271,9 @@ const allClassTypeOptions = [
   { value: "Public Speaking", label: "Public Speaking", icon: Video },
 ];
 
-export default function ScheduleCall() {
+export function ScheduleCallContent() {
   const { user, loading: authLoading, deviceId } = useAuth();
+  const searchParams = useSearchParams();
   const [state, setState] = useState<TeacherDemoScheduleCallState>({
     selectedStudentIds: [],
     selectedCallId: "",
@@ -279,7 +281,7 @@ export default function ScheduleCall() {
     students: [],
     scheduledCalls: [],
     loading: true,
-    showScheduleForm: false,
+    showScheduleForm: searchParams.get("openForm") === "true",
     showRescheduleForm: false,
     formLoading: false,
     isModalScrolling: false,
@@ -812,230 +814,232 @@ export default function ScheduleCall() {
     }
   };
 
-const onSubmit = async (data: FormData) => {
-  setState((prev) => ({ ...prev, formLoading: true }));
+  const onSubmit = async (data: FormData) => {
+    setState((prev) => ({ ...prev, formLoading: true }));
 
-  if (!user || !user._id) {
-    toast.error("User not authenticated");
-    setState((prev) => ({ ...prev, formLoading: false }));
-    handleUnauthorized();
-    return;
-  }
-
-  const selectedSlot = generateTimeSlots(data.timezone).find(
-    (slot) => slot.slot === data.startTime
-  );
-  if (!selectedSlot) {
-    toast.error("Selected time slot not found");
-    setState((prev) => ({ ...prev, formLoading: false }));
-    return;
-  }
-
-  const formattedStartTime = selectedSlot.startTime24;
-  const formattedEndTime = selectedSlot.endTime24;
-
-  try {
-    const startMoment = moment.tz(formattedStartTime, "HH:mm", data.timezone);
-    const endMoment = moment.tz(formattedEndTime, "HH:mm", data.timezone);
-    if (!startMoment.isValid() || !endMoment.isValid()) {
-      throw new Error("Invalid time format");
-    }
-  } catch (error) {
-    const apiError = error as ApiError;
-    toast.error(
-      apiError?.message || "Invalid time format. Please select a valid time slot."
-    );
-    setState((prev) => ({ ...prev, formLoading: false }));
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("assignedTeacherId", user._id);
-  data.studentEmails.forEach((email) =>
-    formData.append("studentEmails[]", email)
-  );
-  formData.append("classType", data.classType);
-  formData.append("meetingType", data.meetingType);
-  if (data.meetingType === "external" && data.meetingLink) {
-    formData.append("meetingLink", data.meetingLink);
-  }
-  if (data.meetingType === "zoom" && data.zoomLink) {
-    formData.append("zoomLink", data.zoomLink);
-  }
-  formData.append("date", format(data.date, "yyyy-MM-dd"));
-  formData.append("startTime", formattedStartTime);
-  formData.append("endTime", formattedEndTime);
-  formData.append("timezone", data.timezone);
-
-  if (state.documents.length > 0) {
-    state.documents.forEach((file) => {
-      formData.append("documents", file);
-    });
-  } else {
-    formData.append("documents", JSON.stringify([]));
-  }
-
-  try {
-    const response = await api.post("/demo-class/create", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-        "Device-Id": localStorage.getItem("deviceId"),
-      },
-    });
-
-    // Assume the API returns the created call in response.data.demoClass
-    const newCall: TeacherDemoScheduleCall = response.data.demoClass;
-
-    toast.success("Class scheduled successfully");
-
-    setState((prev) => ({
-      ...prev,
-      scheduledCalls: [...prev.scheduledCalls, newCall], // Append the new call
-      documents: [],
-      showScheduleForm: false,
-      formLoading: false,
-      showScheduledCalls: true,
-    }));
-    form.reset();
-    setCurrentEmailInput("");
-  } catch (error) {
-    const apiError = error as ApiError;
-    console.error("[ScheduleCall] Failed to schedule class:", apiError);
-    const errorMessage =
-      apiError.response?.data?.message || "Failed to schedule class";
-    toast.error(errorMessage);
-    if (apiError.response?.status === 401) {
+    if (!user || !user._id) {
+      toast.error("User not authenticated");
+      setState((prev) => ({ ...prev, formLoading: false }));
       handleUnauthorized();
+      return;
     }
-    setState((prev) => ({ ...prev, formLoading: false }));
-  }
-};
 
-const onRescheduleSubmit = async (data: RescheduleFormData) => {
-  if (!user || !deviceId) {
-    handleUnauthorized();
-    return;
-  }
-  setState((prev) => ({ ...prev, formLoading: true }));
+    const selectedSlot = generateTimeSlots(data.timezone).find(
+      (slot) => slot.slot === data.startTime
+    );
+    if (!selectedSlot) {
+      toast.error("Selected time slot not found");
+      setState((prev) => ({ ...prev, formLoading: false }));
+      return;
+    }
 
-  const payload: {
-    date: string;
-    startTime: string;
-    endTime: string;
-    timezone: string;
-  } = {
-    date: data.date ? format(data.date, "yyyy-MM-dd") : "",
-    startTime: "",
-    endTime: "",
-    timezone: data.timezone || moment.tz.guess(),
+    const formattedStartTime = selectedSlot.startTime24;
+    const formattedEndTime = selectedSlot.endTime24;
+
+    try {
+      const startMoment = moment.tz(formattedStartTime, "HH:mm", data.timezone);
+      const endMoment = moment.tz(formattedEndTime, "HH:mm", data.timezone);
+      if (!startMoment.isValid() || !endMoment.isValid()) {
+        throw new Error("Invalid time format");
+      }
+    } catch (error) {
+      const apiError = error as ApiError;
+      toast.error(
+        apiError?.message ||
+          "Invalid time format. Please select a valid time slot."
+      );
+      setState((prev) => ({ ...prev, formLoading: false }));
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("assignedTeacherId", user._id);
+    data.studentEmails.forEach((email) =>
+      formData.append("studentEmails[]", email)
+    );
+    formData.append("classType", data.classType);
+    formData.append("meetingType", data.meetingType);
+    if (data.meetingType === "external" && data.meetingLink) {
+      formData.append("meetingLink", data.meetingLink);
+    }
+    if (data.meetingType === "zoom" && data.zoomLink) {
+      formData.append("zoomLink", data.zoomLink);
+    }
+    formData.append("date", format(data.date, "yyyy-MM-dd"));
+    formData.append("startTime", formattedStartTime);
+    formData.append("endTime", formattedEndTime);
+    formData.append("timezone", data.timezone);
+
+    if (state.documents.length > 0) {
+      state.documents.forEach((file) => {
+        formData.append("documents", file);
+      });
+    } else {
+      formData.append("documents", JSON.stringify([]));
+    }
+
+    try {
+      const response = await api.post("/demo-class/create", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Device-Id": localStorage.getItem("deviceId"),
+        },
+      });
+
+      // Assume the API returns the created call in response.data.demoClass
+      const newCall: TeacherDemoScheduleCall = response.data.demoClass;
+
+      toast.success("Class scheduled successfully");
+
+      setState((prev) => ({
+        ...prev,
+        scheduledCalls: [...prev.scheduledCalls, newCall], // Append the new call
+        documents: [],
+        showScheduleForm: false,
+        formLoading: false,
+        showScheduledCalls: true,
+      }));
+      form.reset();
+      setCurrentEmailInput("");
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error("[ScheduleCall] Failed to schedule class:", apiError);
+      const errorMessage =
+        apiError.response?.data?.message || "Failed to schedule class";
+      toast.error(errorMessage);
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      }
+      setState((prev) => ({ ...prev, formLoading: false }));
+    }
   };
 
-  const selectedSlot = generateTimeSlots(
-    data.timezone || moment.tz.guess()
-  ).find((slot) => slot.slot === data.startTime);
-  if (!selectedSlot) {
-    toast.error("Selected time slot not found");
-    setState((prev) => ({ ...prev, formLoading: false }));
-    return;
-  }
-  payload.startTime = selectedSlot.startTime24;
-  payload.endTime = selectedSlot.endTime24;
-
-  try {
-    const startMoment = moment.tz(
-      payload.startTime,
-      "HH:mm",
-      data.timezone || moment.tz.guess()
-    );
-    const endMoment = moment.tz(
-      payload.endTime,
-      "HH:mm",
-      data.timezone || moment.tz.guess()
-    );
-    if (!startMoment.isValid() || !endMoment.isValid()) {
-      throw new Error("Invalid time format");
+  const onRescheduleSubmit = async (data: RescheduleFormData) => {
+    if (!user || !deviceId) {
+      handleUnauthorized();
+      return;
     }
-  } catch (error) {
-    const apiError = error as ApiError;
-    toast.error(
-      apiError?.message || "Invalid time format. Please select a valid time slot."
-    );
-    setState((prev) => ({ ...prev, formLoading: false }));
-    return;
-  }
+    setState((prev) => ({ ...prev, formLoading: true }));
 
-  try {
-    const response = await api.put(
-      `/demo-class/reschedule/${state.selectedCallId}`,
-      payload
-    );
-
-    // Assume the API returns the updated call in response.data.demoClass
-    const updatedCall: TeacherDemoScheduleCall = {
-      ...response.data.demoClass,
-      status: "Rescheduled", // Update status to Rescheduled
+    const payload: {
+      date: string;
+      startTime: string;
+      endTime: string;
+      timezone: string;
+    } = {
+      date: data.date ? format(data.date, "yyyy-MM-dd") : "",
+      startTime: "",
+      endTime: "",
+      timezone: data.timezone || moment.tz.guess(),
     };
 
-    toast.success("Class rescheduled successfully");
-
-    setState((prev) => ({
-      ...prev,
-      scheduledCalls: prev.scheduledCalls.map((call) =>
-        call._id === state.selectedCallId ? updatedCall : call
-      ), // Update the specific call
-      selectedCallId: "",
-      showRescheduleForm: false,
-      formLoading: false,
-    }));
-    rescheduleForm.reset();
-  } catch (error) {
-    const apiError = error as ApiError;
-    console.error("[ScheduleCall] Failed to reschedule class:", apiError);
-    const errorMessage =
-      apiError.response?.data?.message || "Failed to reschedule class";
-    toast.error(errorMessage);
-    if (apiError.response?.status === 401) {
-      handleUnauthorized();
+    const selectedSlot = generateTimeSlots(
+      data.timezone || moment.tz.guess()
+    ).find((slot) => slot.slot === data.startTime);
+    if (!selectedSlot) {
+      toast.error("Selected time slot not found");
+      setState((prev) => ({ ...prev, formLoading: false }));
+      return;
     }
-    setState((prev) => ({ ...prev, formLoading: false }));
-  }
-};
+    payload.startTime = selectedSlot.startTime24;
+    payload.endTime = selectedSlot.endTime24;
 
-const handleCancelCall = async (callId: string) => {
-  if (!user || !deviceId) {
-    handleUnauthorized();
-    return;
-  }
-  try {
-    await api.post(`/demo-class/cancel/${callId}`);
-
-    toast.success("Class cancelled successfully");
-
-    setState((prev) => ({
-      ...prev,
-      scheduledCalls: prev.scheduledCalls.map((call) =>
-        call._id === callId ? { ...call, status: "Cancelled" } : call
-      ), // Update the specific call's status
-      showCancelConfirm: false,
-      cancelCallId: "",
-    }));
-  } catch (error) {
-    const apiError = error as ApiError;
-    console.error("[ScheduleCall] Failed to cancel class:", apiError);
-    const errorMessage =
-      apiError.response?.data?.message || "Failed to cancel class";
-    toast.error(errorMessage);
-    if (apiError.response?.status === 401) {
-      handleUnauthorized();
+    try {
+      const startMoment = moment.tz(
+        payload.startTime,
+        "HH:mm",
+        data.timezone || moment.tz.guess()
+      );
+      const endMoment = moment.tz(
+        payload.endTime,
+        "HH:mm",
+        data.timezone || moment.tz.guess()
+      );
+      if (!startMoment.isValid() || !endMoment.isValid()) {
+        throw new Error("Invalid time format");
+      }
+    } catch (error) {
+      const apiError = error as ApiError;
+      toast.error(
+        apiError?.message ||
+          "Invalid time format. Please select a valid time slot."
+      );
+      setState((prev) => ({ ...prev, formLoading: false }));
+      return;
     }
-    setState((prev) => ({
-      ...prev,
-      showCancelConfirm: false,
-      cancelCallId: "",
-    }));
-  }
-};
+
+    try {
+      const response = await api.put(
+        `/demo-class/reschedule/${state.selectedCallId}`,
+        payload
+      );
+
+      // Assume the API returns the updated call in response.data.demoClass
+      const updatedCall: TeacherDemoScheduleCall = {
+        ...response.data.demoClass,
+        status: "Rescheduled", // Update status to Rescheduled
+      };
+
+      toast.success("Class rescheduled successfully");
+
+      setState((prev) => ({
+        ...prev,
+        scheduledCalls: prev.scheduledCalls.map((call) =>
+          call._id === state.selectedCallId ? updatedCall : call
+        ), // Update the specific call
+        selectedCallId: "",
+        showRescheduleForm: false,
+        formLoading: false,
+      }));
+      rescheduleForm.reset();
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error("[ScheduleCall] Failed to reschedule class:", apiError);
+      const errorMessage =
+        apiError.response?.data?.message || "Failed to reschedule class";
+      toast.error(errorMessage);
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      }
+      setState((prev) => ({ ...prev, formLoading: false }));
+    }
+  };
+
+  const handleCancelCall = async (callId: string) => {
+    if (!user || !deviceId) {
+      handleUnauthorized();
+      return;
+    }
+    try {
+      await api.post(`/demo-class/cancel/${callId}`);
+
+      toast.success("Class cancelled successfully");
+
+      setState((prev) => ({
+        ...prev,
+        scheduledCalls: prev.scheduledCalls.map((call) =>
+          call._id === callId ? { ...call, status: "Cancelled" } : call
+        ), // Update the specific call's status
+        showCancelConfirm: false,
+        cancelCallId: "",
+      }));
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error("[ScheduleCall] Failed to cancel class:", apiError);
+      const errorMessage =
+        apiError.response?.data?.message || "Failed to cancel class";
+      toast.error(errorMessage);
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      }
+      setState((prev) => ({
+        ...prev,
+        showCancelConfirm: false,
+        cancelCallId: "",
+      }));
+    }
+  };
 
   const getStatusText = (call: TeacherDemoScheduleCall): string => {
     return call.status;
@@ -1048,10 +1052,10 @@ const handleCancelCall = async (callId: string) => {
       case "Cancelled":
         return "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg";
       case "Rescheduled":
-        return "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg";
+        return "bg-gradient-to-r from-orange-400 to-orange-500 text-white shadow-lg";
       case "Scheduled":
       default:
-        return "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg";
+        return "bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-lg";
     }
   };
 
@@ -1068,6 +1072,38 @@ const handleCancelCall = async (callId: string) => {
         }, {} as Record<string, boolean>),
       },
     }));
+  };
+
+  const getHeaderGradient = (callView: string) => {
+    switch (callView) {
+      case "today":
+        return "bg-gradient-to-br from-orange-400 to-orange-500";
+      case "week":
+        return "bg-gradient-to-br from-indigo-400 to-indigo-500";
+      case "completed":
+        return "bg-gradient-to-br from-emerald-500 to-green-500";
+      case "cancelled":
+        return "bg-gradient-to-br from-red-500 to-pink-500";
+      case "upcoming":
+      default:
+        return "bg-gradient-to-b from-blue-500 to-blue-700";
+    }
+  };
+
+  const getTextGradient = (callView: string) => {
+    switch (callView) {
+      case "today":
+        return "bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600";
+      case "week":
+        return "bg-gradient-to-r from-indigo-400 via-indigo-500 to-indigo-600";
+      case "completed":
+        return "bg-gradient-to-r from-emerald-500 via-green-500 to-green-600";
+      case "cancelled":
+        return "bg-gradient-to-r from-red-500 via-pink-500 to-pink-600";
+      case "upcoming":
+      default:
+        return "bg-gradient-to-b from-blue-500 to-blue-700";
+    }
   };
 
   useEffect(() => {
@@ -1091,28 +1127,27 @@ const handleCancelCall = async (callId: string) => {
       )
     : [];
 
-const sortedCalls = [...state.scheduledCalls].sort((a, b) => {
-  const dateA = moment
-    .tz(`${a.date} ${a.startTime}`, "YYYY-MM-DD h:mm a", a.timezone || "UTC")
-    .valueOf();
-  const dateB = moment
-    .tz(`${b.date} ${b.startTime}`, "YYYY-MM-DD h:mm a", b.timezone || "UTC")
-    .valueOf();
-  return dateA - dateB; // Sort in ascending order (earliest first)
-}) as TeacherDemoScheduleCall[];
+  const sortedCalls = [...state.scheduledCalls].sort((a, b) => {
+    const dateA = moment
+      .tz(`${a.date} ${a.startTime}`, "YYYY-MM-DD h:mm a", a.timezone || "UTC")
+      .valueOf();
+    const dateB = moment
+      .tz(`${b.date} ${b.startTime}`, "YYYY-MM-DD h:mm a", b.timezone || "UTC")
+      .valueOf();
+    return dateA - dateB; // Sort in ascending order (earliest first)
+  }) as TeacherDemoScheduleCall[];
 
-const todayCalls = sortedCalls.filter((call) => {
-  const callDate = moment.tz(call.date, call.timezone || "UTC");
-  const today = moment.tz(call.timezone || "UTC").startOf("day");
-  return (
-    callDate.isSame(today, "day") &&
-    call.status !== "Completed" &&
-    call.status !== "Cancelled"
-  );
-});
+  const todayCalls = sortedCalls.filter((call) => {
+    const callDate = moment.tz(call.date, call.timezone || "UTC");
+    const today = moment.tz(call.timezone || "UTC").startOf("day");
+    return (
+      callDate.isSame(today, "day") &&
+      call.status !== "Completed" &&
+      call.status !== "Cancelled"
+    );
+  });
 
-const weekCalls = sortedCalls
-  .filter((call) => {
+  const weekCalls = sortedCalls.filter((call) => {
     const callDate = moment.tz(call.date, call.timezone || "UTC");
     const today = moment.tz(call.timezone || "UTC").startOf("day");
     const endOfWeekDate = moment
@@ -1127,23 +1162,23 @@ const weekCalls = sortedCalls
     );
   });
 
-const completedCalls = sortedCalls.filter(
-  (call) => call.status === "Completed"
-);
-const cancelledCalls = sortedCalls.filter(
-  (call) => call.status === "Cancelled"
-);
+  const completedCalls = sortedCalls.filter(
+    (call) => call.status === "Completed"
+  );
+  const cancelledCalls = sortedCalls.filter(
+    (call) => call.status === "Cancelled"
+  );
 
-const upcomingCalls = sortedCalls
-  .filter((call) => {
-    const callDate = moment.tz(call.date, call.timezone || "UTC");
-    const today = moment.tz(call.timezone || "UTC").startOf("day");
-    return (
-      (call.status === "Scheduled" || call.status === "Rescheduled") &&
-      callDate.isSameOrAfter(today, "day") // Include calls on or after today
-    );
-  })
-  .slice(0, 2); // Limit to 2 nearest calls
+  const upcomingCalls = sortedCalls
+    .filter((call) => {
+      const callDate = moment.tz(call.date, call.timezone || "UTC");
+      const today = moment.tz(call.timezone || "UTC").startOf("day");
+      return (
+        (call.status === "Scheduled" || call.status === "Rescheduled") &&
+        callDate.isSameOrAfter(today, "day") // Include calls on or after today
+      );
+    })
+    .slice(0, 2); // Limit to 2 nearest calls
 
   const displayCalls =
     state.callView === "upcoming"
@@ -1225,18 +1260,37 @@ const upcomingCalls = sortedCalls
                     repeat: Number.POSITIVE_INFINITY,
                     ease: "linear",
                   }}
-                  className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg"
+                  className={`p-3 ${getHeaderGradient(
+                    state.callView
+                  )} rounded-2xl shadow-lg`}
                 >
                   <GraduationCap className="w-8 h-8 text-white" />
                 </motion.div>
-                <h1 className="text-5xl md:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+                <h1
+                  className={`text-5xl md:text-6xl font-extrabold bg-clip-text text-transparent ${getTextGradient(
+                    state.callView
+                  )}`}
+                >
+                  {" "}
                   Schedule Class
                 </h1>
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
                 >
-                  <Sparkles className="w-8 h-8 text-purple-500" />
+                  <Sparkles
+                    className={`w-8 h-8 ${
+                      state.callView === "today"
+                        ? "text-orange-500"
+                        : state.callView === "week"
+                        ? "text-indigo-500"
+                        : state.callView === "completed"
+                        ? "text-green-500"
+                        : state.callView === "cancelled"
+                        ? "text-pink-500"
+                        : "text-blue-500"
+                    }`}
+                  />{" "}
                 </motion.div>
               </div>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -1251,7 +1305,9 @@ const upcomingCalls = sortedCalls
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mb-8 flex items-center justify-center"
             >
-              <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-2 shadow-xl border border-white/20">
+              <div
+                className={`bg-white/80 backdrop-blur-lg rounded-2xl p-2 shadow-xl border border-white/20`}
+              >
                 <Button
                   onClick={() =>
                     setState((prev) => ({
@@ -1259,7 +1315,12 @@ const upcomingCalls = sortedCalls
                       showScheduleForm: true,
                     }))
                   }
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl px-8 py-3 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
+                  className={`${getHeaderGradient(
+                    state.callView
+                  )} hover:${getHeaderGradient(state.callView).replace(
+                    "bg-gradient-to-br",
+                    "bg-gradient-to-br hover:from-blue-600 hover:to-blue-700"
+                  )} text-white rounded-xl px-8 py-3 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300`}
                 >
                   <Calendar className="w-5 h-5 mr-2" />
                   Schedule Class
@@ -1284,58 +1345,87 @@ const upcomingCalls = sortedCalls
                   >
                     <Card className="bg-white/90 backdrop-blur-xl border-0 shadow-2xl rounded-3xl overflow-hidden sticky top-8">
                       <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/30 to-purple-50/30" />
-                      <CardHeader className="relative z-10 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4">
+                      <CardHeader
+                        className={`relative z-10 ${getHeaderGradient(
+                          state.callView
+                        )} text-white p-4`}
+                      >
                         <CardTitle className="text-xl font-bold text-center">
                           Filter Classes
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="relative z-10 p-8 space-y-4">
+                      <CardContent className="relative z-10 p-8 space-y-4 flex flex-col items-center">
                         {[
                           {
                             key: "upcoming",
                             label: "Upcoming Classes",
                             icon: Clock,
+                            color: "bg-gradient-to-r from-blue-500 to-blue-700",
+                            activeColor: getHeaderGradient("upcoming"),
                           },
                           {
                             key: "today",
                             label: "Today's Classes",
-                            icon: Calendar,
+                            icon: BookOpen,
+                            color:
+                              "bg-gradient-to-r from-orange-400 to-orange-500",
+                            activeColor: getHeaderGradient("today"),
                           },
                           {
                             key: "week",
                             label: "Weekly Classes",
-                            icon: CalendarIcon,
+                            icon: GraduationCap,
+                            color:
+                              "bg-gradient-to-r from-indigo-400 to-indigo-500",
+                            activeColor: getHeaderGradient("week"),
                           },
                           {
                             key: "completed",
                             label: "Completed Classes",
                             icon: CheckCircle,
+                            color:
+                              "bg-gradient-to-r from-emerald-500 to-green-500",
+                            activeColor: getHeaderGradient("completed"),
                           },
                           {
                             key: "cancelled",
                             label: "Cancelled Classes",
                             icon: X,
+                            color: "bg-gradient-to-r from-red-500 to-pink-500",
+                            activeColor: getHeaderGradient("cancelled"),
                           },
                         ].map((filter, index) => {
                           const IconComponent = filter.icon;
+                          const isActive = state.callView === filter.key;
+                          const classCount = {
+                            upcoming: upcomingCalls.length,
+                            today: todayCalls.length,
+                            week: weekCalls.length,
+                            completed: completedCalls.length,
+                            cancelled: cancelledCalls.length,
+                          }[filter.key];
+
                           return (
                             <motion.div
                               key={filter.key}
-                              initial={{ opacity: 0, x: -10 }}
+                              initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.3, delay: index * 0.1 }}
+                              transition={{ duration: 0.4, delay: index * 0.1 }}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              className="w-full flex justify-center" // Ensure motion.div centers its content
                             >
                               <Button
-                                className={`w-full rounded-xl py-4 font-semibold transition-all duration-300 ${
-                                  state.callView === filter.key
-                                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
+                                variant="ghost"
+                                className={`w-max h-12 rounded-xl font-semibold transition-all duration-300 group ${
+                                  isActive
+                                    ? `${filter.activeColor} text-white shadow-lg ring-2 ring-white/30`
+                                    : "text-slate-700 hover:bg-gradient-to-r hover:from-slate-50/80 hover:to-blue-50/80 hover:shadow-md"
                                 }`}
                                 onClick={() =>
                                   setState((prev) => ({
                                     ...prev,
                                     callView: filter.key as
-                                      | "all"
                                       | "upcoming"
                                       | "today"
                                       | "week"
@@ -1344,8 +1434,36 @@ const upcomingCalls = sortedCalls
                                   }))
                                 }
                               >
-                                <IconComponent className="w-5 h-5 mr-3" />
-                                {filter.label}
+                                <div className="flex items-center">
+                                  <div
+                                    className={`p-2 rounded-lg mr-3 transition-all duration-300 ${
+                                      isActive
+                                        ? "bg-white/20"
+                                        : "bg-slate-50 group-hover:bg-blue-50"
+                                    }`}
+                                  >
+                                    <IconComponent
+                                      className={`w-4 h-4 ${
+                                        isActive
+                                          ? "text-white"
+                                          : "text-slate-600"
+                                      }`}
+                                    />
+                                  </div>
+                                  <span className="text-sm">
+                                    {filter.label}
+                                  </span>
+                                </div>
+                                <Badge
+                                  variant="secondary"
+                                  className={`${
+                                    isActive
+                                      ? "bg-white/20 text-white border-white/30"
+                                      : "bg-gradient-to-r from-slate-50 to-blue-50 text-slate-600"
+                                  } px-2 py-1 text-xs font-bold`}
+                                >
+                                  {classCount}
+                                </Badge>
                               </Button>
                             </motion.div>
                           );
@@ -1362,7 +1480,19 @@ const upcomingCalls = sortedCalls
                   >
                     <Card className="bg-white/90 backdrop-blur-xl border-0 shadow-2xl rounded-3xl overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-purple-50/20" />
-                      <CardHeader className="relative z-10 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4">
+                      <CardHeader
+                        className={`relative z-10 ${
+                          state.callView === "upcoming"
+                            ? "bg-gradient-to-r from-blue-500 to-blue-700"
+                            : state.callView === "today"
+                            ? "bg-gradient-to-r from-orange-400 to-orange-500"
+                            : state.callView === "week"
+                            ? "bg-gradient-to-r from-indigo-400 to-indigo-500"
+                            : state.callView === "completed"
+                            ? "bg-gradient-to-r from-emerald-500 to-green-500"
+                            : "bg-gradient-to-r from-red-500 to-pink-500"
+                        } text-white p-4`}
+                      >
                         <CardTitle className="text-2xl font-bold flex items-center justify-between">
                           <div className="flex items-center">
                             <CalendarIcon className="w-7 h-7 mr-3" />
@@ -1430,8 +1560,34 @@ const upcomingCalls = sortedCalls
                                     <VerticalTimelineElement
                                       date=""
                                       iconStyle={{
-                                        background:
-                                          "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                                        background: (() => {
+                                          // If callView is 'today' or 'week', override the gradient for Scheduled/Rescheduled calls
+                                          if (
+                                            state.callView === "today" &&
+                                            (call.status === "Scheduled" ||
+                                              call.status === "Rescheduled")
+                                          ) {
+                                            return "linear-gradient(135deg, #fb923c, #f97316)"; // orange-400 to orange-500 for Today's Classes
+                                          } else if (
+                                            state.callView === "week" &&
+                                            (call.status === "Scheduled" ||
+                                              call.status === "Rescheduled")
+                                          ) {
+                                            return "linear-gradient(135deg, #a5b4fc, #6366f1)"; // indigo-400 to indigo-500 for Weekly Classes
+                                          }
+                                          // Fallback to status-based gradients
+                                          switch (call.status) {
+                                            case "Completed":
+                                              return "linear-gradient(135deg, #10b981, #22c55e)"; // emerald-500 to green-500
+                                            case "Cancelled":
+                                              return "linear-gradient(135deg, #ef4444, #f472b6)"; // red-500 to pink-500
+                                            case "Rescheduled":
+                                              return "linear-gradient(135deg, #fb923c, #f97316)"; // orange-400 to orange-500
+                                            case "Scheduled":
+                                            default:
+                                              return "linear-gradient(135deg, #3b82f6, #2563eb)"; // blue-500 to blue-600
+                                          }
+                                        })(),
                                         color: "#fff",
                                         boxShadow:
                                           "0 10px 25px rgba(99, 102, 241, 0.3)",
@@ -1459,7 +1615,11 @@ const upcomingCalls = sortedCalls
                                         <div className="flex justify-between items-start mb-6">
                                           <div className="flex-1">
                                             <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-3 mb-3">
-                                              <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
+                                              <div
+                                                className={`p-2 ${getHeaderGradient(
+                                                  state.callView
+                                                )} rounded-xl`}
+                                              >
                                                 <Calendar className="w-6 h-6 text-white" />
                                               </div>
                                               {call.classType}
@@ -1646,94 +1806,99 @@ const upcomingCalls = sortedCalls
                                             className="mt-6 pt-6 border-t border-gray-200"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            {isScheduledOrRescheduled && !isCancelled && call.status !== "Completed" && (
-                                              <div className="space-y-4">
-                                                <div className="grid grid-cols-2 gap-3">
-                                                  <Button
-                                                    size="sm"
-                                                    className="px-3 py-1 text-xs bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setState((prev) => ({
-                                                        ...prev,
-                                                        selectedCallId:
-                                                          call._id,
-                                                        showRescheduleForm:
-                                                          true,
-                                                      }));
-                                                    }}
-                                                  >
-                                                    <Edit className="w-3 h-3 mr-1" />
-                                                    Reschedule
-                                                  </Button>
-                                                  <Button
-                                                    size="sm"
-                                                    className="px-3 py-1 text-xs bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setState((prev) => ({
-                                                        ...prev,
-                                                        showCancelConfirm: true,
-                                                        cancelCallId: call._id,
-                                                      }));
-                                                    }}
-                                                  >
-                                                    <Trash2 className="w-3 h-3 mr-1" />
-                                                    Cancel
-                                                  </Button>
-                                                </div>
-
-                                                {isScheduledOrRescheduled &&
-                                                  call.documents &&
-                                                  call.documents.length > 0 && (
-                                                    <motion.div
-                                                      initial={{
-                                                        opacity: 0,
-                                                        y: 10,
-                                                      }}
-                                                      animate={{
-                                                        opacity: 1,
-                                                        y: 0,
-                                                      }}
-                                                      transition={{
-                                                        duration: 0.3,
-                                                        delay: 0.5,
-                                                      }}
-                                                      className="flex gap-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl"
-                                                    >
-                                                      <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="px-3 py-1 text-xs border-2 border-amber-300 text-amber-600 hover:bg-amber-50 rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-                                                        onClick={(e) => {
-                                                          e.preventDefault();
-                                                          handleViewDocument(
+                                            {isScheduledOrRescheduled &&
+                                              !isCancelled &&
+                                              call.status !== "Completed" && (
+                                                <div className="space-y-4">
+                                                  <div className="grid grid-cols-2 gap-3">
+                                                    <Button
+                                                      size="sm"
+                                                      className="px-3 py-1 text-xs bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setState((prev) => ({
+                                                          ...prev,
+                                                          selectedCallId:
                                                             call._id,
-                                                            call.classType
-                                                          );
+                                                          showRescheduleForm:
+                                                            true,
+                                                        }));
+                                                      }}
+                                                    >
+                                                      <Edit className="w-3 h-3 mr-1" />
+                                                      Reschedule
+                                                    </Button>
+                                                    <Button
+                                                      size="sm"
+                                                      className="px-3 py-1 text-xs bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setState((prev) => ({
+                                                          ...prev,
+                                                          showCancelConfirm:
+                                                            true,
+                                                          cancelCallId:
+                                                            call._id,
+                                                        }));
+                                                      }}
+                                                    >
+                                                      <Trash2 className="w-3 h-3 mr-1" />
+                                                      Cancel
+                                                    </Button>
+                                                  </div>
+
+                                                  {isScheduledOrRescheduled &&
+                                                    call.documents &&
+                                                    call.documents.length >
+                                                      0 && (
+                                                      <motion.div
+                                                        initial={{
+                                                          opacity: 0,
+                                                          y: 10,
                                                         }}
-                                                      >
-                                                        <FileText className="w-3 h-3 mr-1" />
-                                                        View Document
-                                                      </Button>
-                                                      <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="px-3 py-1 text-xs border-2 border-amber-300 text-amber-600 hover:bg-amber-50 rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-                                                        onClick={(e) => {
-                                                          e.preventDefault();
-                                                          handleDownloadDocument(
-                                                            call._id
-                                                          );
+                                                        animate={{
+                                                          opacity: 1,
+                                                          y: 0,
                                                         }}
+                                                        transition={{
+                                                          duration: 0.3,
+                                                          delay: 0.5,
+                                                        }}
+                                                        className="flex gap-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl"
                                                       >
-                                                        <Download className="w-3 h-3 mr-1" />
-                                                        Download
-                                                      </Button>
-                                                    </motion.div>
-                                                  )}
-                                              </div>
-                                            )}
+                                                        <Button
+                                                          size="sm"
+                                                          variant="outline"
+                                                          className="px-3 py-1 text-xs border-2 border-amber-300 text-amber-600 hover:bg-amber-50 rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                                                          onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handleViewDocument(
+                                                              call._id,
+                                                              call.classType
+                                                            );
+                                                          }}
+                                                        >
+                                                          <FileText className="w-3 h-3 mr-1" />
+                                                          View Document
+                                                        </Button>
+                                                        <Button
+                                                          size="sm"
+                                                          variant="outline"
+                                                          className="px-3 py-1 text-xs border-2 border-amber-300 text-amber-600 hover:bg-amber-50 rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                                                          onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handleDownloadDocument(
+                                                              call._id
+                                                            );
+                                                          }}
+                                                        >
+                                                          <Download className="w-3 h-3 mr-1" />
+                                                          Download
+                                                        </Button>
+                                                      </motion.div>
+                                                    )}
+                                                </div>
+                                              )}
                                           </motion.div>
                                         )}
                                       </AnimatePresence>
@@ -2709,5 +2874,19 @@ const upcomingCalls = sortedCalls
         }
       `}</style>
     </>
+  );
+}
+
+export default function ScheduleCall() {
+  return (
+    <Suspense
+      fallback={
+        <div>
+          <Loader />
+        </div>
+      }
+    >
+      <ScheduleCallContent />
+    </Suspense>
   );
 }

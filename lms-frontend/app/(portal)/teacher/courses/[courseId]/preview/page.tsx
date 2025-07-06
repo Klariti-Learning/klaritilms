@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -10,10 +11,10 @@ import {
   Calendar,
   GraduationCap,
   Sparkles,
-  Badge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import { ApiError } from "@/types";
@@ -80,9 +81,7 @@ export default function CoursePreview() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openLessons, setOpenLessons] = useState<{ [key: string]: boolean }>(
-    {}
-  );
+  const [openLessons, setOpenLessons] = useState<{ [key: string]: boolean }>({});
 
   const handleUnauthorized = useCallback(() => {
     console.debug("[CoursePreview] Handling unauthorized access");
@@ -217,7 +216,7 @@ export default function CoursePreview() {
 
   if (authLoading || loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+      <div className="fixed inset-0 flex items-center justify-center ">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{
@@ -227,7 +226,7 @@ export default function CoursePreview() {
           }}
           className="h-16 w-16"
         >
-          <div className="h-16 w-16 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin"></div>
+          <div className="h-16 w-16 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
         </motion.div>
       </div>
     );
@@ -235,12 +234,12 @@ export default function CoursePreview() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 p-6 md:p-8 mt-10">
+      <div className="min-h-screen p-6 md:p-8 mt-10">
         <div className="max-w-7xl mx-auto w-full text-center">
           <Button
             variant="outline"
             onClick={() => router.push("/teacher/courses")}
-            className="mb-6 border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl px-6 py-3 font-medium shadow-sm"
+            className="mb-6 border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl px-6 py-3 font-medium shadow-sm"
           >
             ← Back to Courses
           </Button>
@@ -259,12 +258,12 @@ export default function CoursePreview() {
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 p-6 md:p-8 mt-10">
+      <div className="min-h-screen p-6 md:p-8 mt-10">
         <div className="max-w-7xl mx-auto w-full text-center">
           <Button
             variant="outline"
             onClick={() => router.push("/teacher/courses")}
-            className="mb-6 border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl px-6 py-3 font-medium shadow-sm"
+            className="mb-6 border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl px-6 py-3 font-medium shadow-sm"
           >
             ← Back to Courses
           </Button>
@@ -283,12 +282,12 @@ export default function CoursePreview() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 p-6 md:p-8 mt-10">
+    <div className="min-h-screen p-6 md:p-8">
       <div className="max-w-7xl mx-auto w-full">
         <Button
           variant="outline"
           onClick={() => router.push("/teacher/courses")}
-          className="mb-8 border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl px-6 py-3 font-medium shadow-sm transition-all duration-200"
+          className="mb-8 border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl px-6 py-3 font-medium shadow-sm transition-all duration-200"
         >
           ← Back to Courses
         </Button>
@@ -300,9 +299,9 @@ export default function CoursePreview() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-3xl shadow-lg mb-8">
+          <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-4 rounded-3xl shadow-lg mb-8">
             <GraduationCap className="w-6 h-6" />
-            <span className="text-xl font-bold">Hii</span>
+            <span className="text-xl font-bold">{course.title}</span>
             <Sparkles className="w-5 h-5" />
           </div>
 
@@ -333,7 +332,7 @@ export default function CoursePreview() {
           <div className="p-8 md:p-12">
             {/* Course Title */}
             <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-4">
                 {course.title}
               </h1>
             </div>
@@ -342,122 +341,143 @@ export default function CoursePreview() {
             {course.chapters && course.chapters.length > 0 && (
               <div className="mb-16">
                 <div className="text-center mb-10">
-                  <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+                  <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-4">
                     Table of Contents
                   </h2>
-                  <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto"></div>
+                  <div className="w-24 h-1 bg-gradient-to-r from-blue-600 to-blue-800 rounded-full mx-auto"></div>
                 </div>
 
                 <div className="space-y-8">
-                  {course.chapters.map(
-                    (chapter, chapterIndex) =>
-                      chapter.title?.trim() && (
-                        <motion.div
-                          key={chapter.chapterId}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{
-                            duration: 0.5,
-                            delay: chapterIndex * 0.1,
-                          }}
-                          className="bg-white/60 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/30"
-                        >
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                              {chapterIndex + 1}
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800">
-                                J - {chapterIndex + 1}
-                              </h3>
-                              <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                                <span className="flex items-center gap-1">
-                                  📖 {chapter.lessons?.length || 0} Lessons
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  ⭐ Premium
-                                </span>
-                              </div>
+                  {course.chapters.map((chapter, chapterIndex) =>
+                    chapter.title?.trim() ? (
+                      <motion.div
+                        key={chapter.chapterId}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          duration: 0.5,
+                          delay: chapterIndex * 0.1,
+                        }}
+                        className="bg-white/60 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/30"
+                      >
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                            {chapterIndex + 1}
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-800">
+                              {chapter.title}
+                            </h3>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                              <span className="flex items-center gap-1">
+                                📖 {chapter.lessons?.length || 0} Lessons
+                              </span>
+                              <span className="flex items-center gap-1">
+                                ⭐ Premium
+                              </span>
                             </div>
                           </div>
+                        </div>
 
-                          {chapter.lessons?.length ? (
-                            <div className="space-y-4">
-                              {chapter.lessons.map((lesson, lessonIndex) => (
-                                <motion.div
-                                  key={lessonIndex}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{
-                                    duration: 0.3,
-                                    delay: lessonIndex * 0.05,
-                                  }}
-                                  className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-white/40 hover:shadow-md transition-all duration-200"
+                        {chapter.lessons?.length ? (
+                          <div className="space-y-4">
+                            {chapter.lessons.map((lesson, lessonIndex) => (
+                              <motion.div
+                                key={lesson._id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{
+                                  duration: 0.3,
+                                  delay: lessonIndex * 0.05,
+                                }}
+                                className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-white/40 hover:shadow-md transition-all duration-200"
+                              >
+                                <div
+                                  className="flex items-center justify-between cursor-pointer"
+                                  onClick={() =>
+                                    toggleLesson(chapterIndex, lessonIndex)
+                                  }
                                 >
-                                  <div
-                                    className="flex items-center justify-between cursor-pointer"
-                                    onClick={() =>
-                                      toggleLesson(chapterIndex, lessonIndex)
-                                    }
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
-                                        {getLessonIcon(lesson.format)}
-                                      </div>
-                                      <div>
-                                        <h4 className="font-semibold text-gray-800">
-                                          Lesson {lessonIndex + 1}:{" "}
-                                          {lesson.title || "Untitled"}
-                                        </h4>
-                                        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                                          <span>
-                                            {lesson.format || "No format"}
-                                          </span>
-                                          <span>🔗 Interactive</span>
-                                        </div>
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                                      {getLessonIcon(lesson.format)}
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-gray-800">
+                                        Lesson {lessonIndex + 1}:{" "}
+                                        {lesson.title || "Untitled"}
+                                      </h4>
+                                      <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                                        <span>
+                                          {lesson.format || "No format"}
+                                        </span>
+                                        <span>🔗 Interactive</span>
                                       </div>
                                     </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-gray-400 hover:text-gray-600 rounded-full"
-                                    >
-                                      {openLessons[
-                                        `${chapterIndex}-${lessonIndex}`
-                                      ] ? (
-                                        <ChevronUp className="w-5 h-5" />
-                                      ) : (
-                                        <ChevronDown className="w-5 h-5" />
-                                      )}
-                                    </Button>
                                   </div>
-
-                                  <AnimatePresence>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-gray-400 hover:text-gray-600 rounded-full"
+                                  >
                                     {openLessons[
                                       `${chapterIndex}-${lessonIndex}`
-                                    ] && (
-                                      <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                        className="mt-6 pt-6 border-t border-gray-100"
-                                      >
-                                        {lesson.resources?.length > 0 && (
+                                    ] ? (
+                                      <ChevronUp className="w-5 h-5" />
+                                    ) : (
+                                      <ChevronDown className="w-5 h-5" />
+                                    )}
+                                  </Button>
+                                </div>
+
+                                <AnimatePresence>
+                                  {openLessons[`${chapterIndex}-${lessonIndex}`] && (
+                                    <motion.div
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: "auto", opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={{ duration: 0.3 }}
+                                      className="mt-6 pt-6 border-t border-gray-100"
+                                    >
+                                      {lesson.resources?.length > 0 && (
+                                        <div className="mb-6">
+                                          <h5 className="font-medium text-gray-700 mb-3">
+                                            📎 Resources
+                                          </h5>
+                                          <div className="grid gap-2">
+                                            {lesson.resources.map(
+                                              (file, fileIndex) => (
+                                                <div
+                                                  key={fileIndex}
+                                                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                                                >
+                                                  {getFileIcon(lesson.format)}
+                                                  <span className="text-sm text-gray-600 truncate">
+                                                    {file.name}
+                                                  </span>
+                                                </div>
+                                              )
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {lesson.worksheets &&
+                                        lesson.worksheets.length > 0 && (
                                           <div className="mb-6">
                                             <h5 className="font-medium text-gray-700 mb-3">
-                                              📎 Resources
+                                              📝 Worksheets
                                             </h5>
                                             <div className="grid gap-2">
-                                              {lesson.resources.map(
-                                                (file, fileIndex) => (
+                                              {lesson.worksheets.map(
+                                                (worksheet, fileIndex) => (
                                                   <div
                                                     key={fileIndex}
                                                     className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                                                   >
                                                     {getFileIcon(lesson.format)}
                                                     <span className="text-sm text-gray-600 truncate">
-                                                      {file.name}
+                                                      {worksheet.name}
                                                     </span>
                                                   </div>
                                                 )
@@ -466,69 +486,43 @@ export default function CoursePreview() {
                                           </div>
                                         )}
 
-                                        {lesson.worksheets &&
-                                          lesson.worksheets.length > 0 && (
-                                            <div className="mb-6">
-                                              <h5 className="font-medium text-gray-700 mb-3">
-                                                📝 Worksheets
-                                              </h5>
-                                              <div className="grid gap-2">
-                                                {lesson.worksheets.map(
-                                                  (worksheet, fileIndex) => (
-                                                    <div
-                                                      key={fileIndex}
-                                                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                                      {lesson.learningGoals &&
+                                        lesson.learningGoals.some((goal) =>
+                                          goal?.trim()
+                                        ) && (
+                                          <div>
+                                            <h5 className="font-medium text-gray-700 mb-3">
+                                              🎯 Learning Goals
+                                            </h5>
+                                            <ul className="space-y-2">
+                                              {lesson.learningGoals.map(
+                                                (goal, goalIndex) =>
+                                                  goal?.trim() && (
+                                                    <li
+                                                      key={goalIndex}
+                                                      className="flex items-start gap-2 text-sm text-gray-600"
                                                     >
-                                                      {getFileIcon(
-                                                        lesson.format
-                                                      )}
-                                                      <span className="text-sm text-gray-600 truncate">
-                                                        {worksheet.name}
-                                                      </span>
-                                                    </div>
+                                                      <span className="w-1.5 h-1.5 bg-purple-400 rounded-full mt-2 flex-shrink-0"></span>
+                                                      {goal}
+                                                    </li>
                                                   )
-                                                )}
-                                              </div>
-                                            </div>
-                                          )}
-
-                                        {lesson.learningGoals &&
-                                          lesson.learningGoals.some((goal) =>
-                                            goal?.trim()
-                                          ) && (
-                                            <div>
-                                              <h5 className="font-medium text-gray-700 mb-3">
-                                                🎯 Learning Goals
-                                              </h5>
-                                              <ul className="space-y-2">
-                                                {lesson.learningGoals.map(
-                                                  (goal, goalIndex) =>
-                                                    goal?.trim() && (
-                                                      <li
-                                                        key={goalIndex}
-                                                        className="flex items-start gap-2 text-sm text-gray-600"
-                                                      >
-                                                        <span className="w-1.5 h-1.5 bg-purple-400 rounded-full mt-2 flex-shrink-0"></span>
-                                                        {goal}
-                                                      </li>
-                                                    )
-                                                )}
-                                              </ul>
-                                            </div>
-                                          )}
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
-                                </motion.div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-gray-500 text-center py-8">
-                              No lessons available.
-                            </p>
-                          )}
-                        </motion.div>
-                      )
+                                              )}
+                                            </ul>
+                                          </div>
+                                        )}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </motion.div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-center py-8">
+                            No lessons available.
+                          </p>
+                        )}
+                      </motion.div>
+                    ) : null
                   )}
                 </div>
               </div>
@@ -538,10 +532,10 @@ export default function CoursePreview() {
             {course.assignedTeachers && course.assignedTeachers.length > 0 && (
               <div className="mb-16">
                 <div className="text-center mb-10">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2">
                     Assigned Teachers
                   </h3>
-                  <div className="w-16 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto"></div>
+                  <div className="w-16 h-1 bg-gradient-to-r from-blue-600 to-blue-800 rounded-full mx-auto"></div>
                 </div>
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {course.assignedTeachers.map((teacher, index) => (
@@ -563,9 +557,9 @@ export default function CoursePreview() {
                             alt={teacher.name}
                             width={48}
                             height={48}
-                            className="w-12 h-12 rounded-full object-cover border-2 border-purple-200"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-white/30"
                           />
-                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-100 rounded-full border-2 border-white"></div>
                         </div>
                         <div className="flex-1">
                           <h4 className="font-semibold text-gray-800">
@@ -580,10 +574,15 @@ export default function CoursePreview() {
                             </p>
                           )}
                           {teacher.subjects && teacher.subjects.length > 0 && (
-                            <div className="mt-2">
-                              <Badge className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full border-0">
-                                {teacher.subjects.join(", ")}
-                              </Badge>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {teacher.subjects.map((subject, subjectIndex) => (
+                                <Badge
+                                  key={subjectIndex}
+                                  className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full border-0"
+                                >
+                                  {subject}
+                                </Badge>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -598,10 +597,10 @@ export default function CoursePreview() {
             {batches.length > 0 && (
               <div>
                 <div className="text-center mb-10">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2">
                     Assigned Batches
                   </h3>
-                  <div className="w-16 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto"></div>
+                  <div className="w-16 h-1 bg-gradient-to-r from-blue-600 to-blue-800 rounded-full mx-auto"></div>
                 </div>
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {batches.map((batch, index) => (
@@ -628,7 +627,7 @@ export default function CoursePreview() {
                           </h4>
                           <div className="space-y-3 text-sm">
                             <div className="flex items-center gap-2 text-gray-600">
-                              <Users className="w-4 h-4 text-purple-500" />
+                              <Users className="w-4 h-4 text-blue-500" />
                               <span>
                                 {batch.studentIds?.filter(
                                   (s) => s.isInThisBatch
@@ -637,13 +636,13 @@ export default function CoursePreview() {
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-gray-600">
-                              <FaBook className="w-4 h-4 text-purple-500" />
+                              <FaBook className="w-4 h-4 text-blue-500" />
                               <span className="truncate">
                                 {batch.courseId?.title || "N/A"}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-gray-600">
-                              <Calendar className="w-4 h-4 text-purple-500" />
+                              <Calendar className="w-4 h-4 text-blue-500" />
                               <span>
                                 {new Date(batch.createdAt).toLocaleDateString()}
                               </span>
