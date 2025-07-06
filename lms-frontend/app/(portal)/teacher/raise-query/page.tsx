@@ -1,99 +1,36 @@
 "use client";
 
-import type React from "react";
-
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
-import { Star, ChevronDown, Check } from "lucide-react";
+import {
+  Plus,
+  Filter,
+  SortAsc,
+  ChevronDown,
+  TicketIcon,
+  Clock,
+  User,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  Check,
+  Star,
+} from "lucide-react";
 import type { ApiError, Ticket } from "@/types";
-
-interface DropdownOption {
-  value: string;
-  label: string;
-}
-
-interface CustomDropdownProps {
-  value: string;
-  onValueChange: (value: string) => void;
-  options: DropdownOption[];
-  placeholder?: string;
-  className?: string;
-}
-
-const CustomDropdown: React.FC<CustomDropdownProps> = ({
-  value,
-  onValueChange,
-  options,
-  placeholder = "Select an option",
-  className = "",
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const selectedOption = options.find((option) => option.value === value);
-
-  return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="border border-gray-300 rounded-full px-4 py-2 text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 hover:bg-gray-50 cursor-pointer flex items-center justify-between min-w-[120px]"
-      >
-        <span>{selectedOption ? selectedOption.label : placeholder}</span>
-        <ChevronDown
-          className={`h-4 w-4 ml-2 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg animate-slide-in">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => {
-                onValueChange(option.value);
-                setIsOpen(false);
-              }}
-              className={`w-full text-left px-4 py-2 text-sm transition-colors duration-150 cursor-pointer first:rounded-t-lg last:rounded-b-lg ${
-                value === option.value
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-900 hover:bg-blue-50 hover:text-blue-700"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span>{option.label}</span>
-                {value === option.value && <Check className="h-4 w-4" />}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const useDebounce = <T extends (ticketId: string, rating: number) => void>(
   callback: T,
@@ -165,10 +102,7 @@ const RaiseQueryPage = () => {
         if (!token || !deviceId) {
           console.debug(
             "[RaiseQueryPage] Missing token or deviceId in fetchTickets",
-            {
-              token,
-              deviceId,
-            }
+            { token, deviceId }
           );
           handleUnauthorized();
           return;
@@ -200,15 +134,11 @@ const RaiseQueryPage = () => {
         if (!token || !deviceId) {
           console.debug(
             "[RaiseQueryPage] Missing token or deviceId in submitRating",
-            {
-              token,
-              deviceId,
-            }
+            { token, deviceId }
           );
           handleUnauthorized();
           return;
         }
-
         setIsSubmitting((prev) => ({ ...prev, [ticketId]: true }));
         await api.put(`/tickets/${ticketId}/rate`, { rating });
         setTickets((prevTickets) =>
@@ -284,6 +214,56 @@ const RaiseQueryPage = () => {
       : formatDate(ticket.createdAt);
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "open":
+        return <AlertCircle className="w-4 h-4" />;
+      case "in-progress":
+        return <Clock className="w-4 h-4" />;
+      case "resolved":
+        return <CheckCircle className="w-4 h-4" />;
+      default:
+        return <XCircle className="w-4 h-4" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "open":
+        return "bg-amber-100 text-amber-800 border-amber-200";
+      case "in-progress":
+        return "bg-teal-100 text-teal-800 border-teal-200";
+      case "resolved":
+        return "bg-green-100 text-green-800 border-green-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const sortOptions = [
+    { value: "Raised Date", label: "Raised Date", icon: Clock },
+    { value: "Recently Updated", label: "Recently Updated", icon: AlertCircle },
+    { value: "Category", label: "Category", icon: Filter },
+    { value: "Status", label: "Status", icon: CheckCircle },
+  ];
+
+  const statusOptions = [
+    { value: "All", label: "All Status", icon: TicketIcon },
+    { value: "Open", label: "Open", icon: AlertCircle },
+    { value: "In-progress", label: "In Progress", icon: Clock },
+    { value: "Resolved", label: "Resolved", icon: CheckCircle },
+  ];
+
+  const categoryOptions = [
+    { value: "All", label: "All Categories", icon: Filter },
+    { value: "Parent Tickets", label: "Parent Tickets", icon: User },
+    { value: "Customer Support", label: "Customer Support", icon: FileText },
+    { value: "Technical", label: "Technical", icon: FileText },
+    { value: "Payment", label: "Payment", icon: FileText },
+    { value: "Timezone Change Request", label: "Timezone Change Request", icon: Clock },
+    { value: "Other", label: "Other", icon: FileText },
+  ];
+
   const filteredTickets = useMemo(() => {
     return tickets
       .filter((ticket) => {
@@ -296,13 +276,9 @@ const RaiseQueryPage = () => {
       })
       .sort((a, b) => {
         if (sortBy === "Raised Date" || sortBy === "Raised at") {
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         } else if (sortBy === "Recently Updated") {
-          return (
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-          );
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
         } else if (sortBy === "Category") {
           return a.issueType.localeCompare(b.issueType);
         } else if (sortBy === "Status") {
@@ -312,90 +288,238 @@ const RaiseQueryPage = () => {
       });
   }, [tickets, statusFilter, categoryFilter, sortBy]);
 
-  // Dropdown options
-  const sortOptions = [
-    { value: "Raised Date", label: "Raised Date" },
-    { value: "Raised at", label: "Raised at" },
-    { value: "Recently Updated", label: "Recently Updated" },
-    { value: "Category", label: "Category" },
-    { value: "Status", label: "Status" },
-  ];
-
-  const statusOptions = [
-    { value: "All", label: "All" },
-    { value: "Open", label: "Open" },
-    { value: "In-progress", label: "In-progress" },
-    { value: "Resolved", label: "Resolved" },
-  ];
-
-  const categoryOptions = [
-    { value: "All", label: "All" },
-    { value: "Parent Tickets", label: "Parent Tickets" },
-    { value: "Customer Support", label: "Customer Support" },
-    { value: "Technical", label: "Technical" },
-    { value: "Payment", label: "Payment" },
-    { value: "Timezone Change Request", label: "Timezone Change Request" },
-    { value: "Other", label: "Other" },
-  ];
-
   return (
-    <div className="p-4 sm:p-8 bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen mt-10">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-center gap-4 mb-8">
-          <button
-            onClick={handleCreateNewTicket}
-            className="bg-gradient-to-r from-red-600 to-red-700 text-white uppercase font-semibold py-3 px-8 rounded-full shadow-lg hover:from-red-700 hover:to-red-800 hover:scale-105 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
-          >
-            Create New Ticket
-          </button>
-        </div>
+    <div className="min-h-screen bg-blue-50 p-4 md:p-6 lg:p-8 ">
+      <div className="max-w-7xl mx-auto">
+        {/* Header with welcome banner */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mt-4 overflow-hidden rounded-2xl bg-blue-600 p-8 text-white shadow-xl flex justify-between items-center"
+        >
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute top-4 right-4 opacity-30">
+            <div className="flex gap-2">
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse delay-75"></div>
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse delay-150"></div>
+            </div>
+          </div>
+          <div className="relative flex flex-col">
+            <div className="flex items-center gap-3">
+              <TicketIcon className="w-10 h-10 text-white-400" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-white">
+                Teacher Support Tickets
+              </h1>
+            </div>
+            <p className="text-lg text-gray-300 mt-2">
+              Manage your support requests and track their progress
+            </p>
+          </div>
+        </motion.div>
 
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-10 bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-          <div className="flex items-center space-x-4 mb-9 sm:mb-0">
-            <span className="text-gray-800 font-semibold text-sm">
-              Sort by:
-            </span>
-            <CustomDropdown
-              value={sortBy}
-              onValueChange={setSortBy}
-              options={sortOptions}
-              placeholder="Sort by"
-              className="min-w-[180px]" // Adjust width as needed
-            />
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
-              <span className="text-gray-800 font-semibold text-sm">
-                Status:
-              </span>
-              <CustomDropdown
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-                options={statusOptions}
-                placeholder="Status"
-                className="min-w-[130px]"
-              />
+        <motion.div className="flex mt-4 mb-4 justify-end">
+          <Button
+            onClick={handleCreateNewTicket}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-base z-10"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Create New Ticket
+          </Button>
+        </motion.div>
+
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl mb-8">
+          <CardContent className="p-8">
+            <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center justify-between">
+              <div className="flex flex-wrap gap-5 items-center">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <SortAsc className="w-6 h-5 text-blue-500" />
+                    <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                      Sort:
+                    </span>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="min-w-[160px] justify-between bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm rounded-xl px-6 py-3 h-auto cursor-pointer"
+                      >
+                        <div className="flex items-center gap-1">
+                          {(() => {
+                            const option = sortOptions.find(
+                              (opt) => opt.value === sortBy
+                            );
+                            const IconComponent = option?.icon || Clock;
+                            return (
+                              <>
+                                <IconComponent className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm font-medium text-gray-700">
+                                  {option?.label}
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-blue-500" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-[180px] bg-white border-blue-200 shadow-xl rounded-xl p-2"
+                    >
+                      {sortOptions.map((option) => {
+                        const IconComponent = option.icon;
+                        return (
+                          <DropdownMenuItem
+                            key={option.value}
+                            onClick={() => setSortBy(option.value)}
+                            className="flex items-center justify-between cursor-pointer px-3 py-2.5 rounded-lg hover:bg-blue-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <IconComponent className="w-4 h-4 text-blue-500" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {option.label}
+                              </span>
+                            </div>
+                            {sortBy === option.value && (
+                              <Check className="w-4 h-4 text-blue-600" />
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-5 h-5 text-blue-500" />
+                    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                      Status:
+                    </span>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="min-w-[140px] justify-between bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm rounded-xl px-4 py-3 h-auto cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const option = statusOptions.find(
+                              (opt) => opt.value === statusFilter
+                            );
+                            const IconComponent = option?.icon || TicketIcon;
+                            return (
+                              <>
+                                <IconComponent className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm font-medium text-gray-700">
+                                  {option?.label}
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-blue-500" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-[160px] bg-white border-blue-200 shadow-xl rounded-xl p-2"
+                    >
+                      {statusOptions.map((option) => {
+                        const IconComponent = option.icon;
+                        return (
+                          <DropdownMenuItem
+                            key={option.value}
+                            onClick={() => setStatusFilter(option.value)}
+                            className="flex items-center justify-between cursor-pointer px-3 py-2.5 rounded-lg hover:bg-blue-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <IconComponent className="w-4 h-4 text-blue-500" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {option.label}
+                              </span>
+                            </div>
+                            {statusFilter === option.value && (
+                              <Check className="w-4 h-4 text-blue-600" />
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                    Category:
+                  </span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="min-w-[200px] justify-between bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm rounded-xl px-4 py-3 h-auto cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const option = categoryOptions.find(
+                              (opt) => opt.value === categoryFilter
+                            );
+                            const IconComponent = option?.icon || Filter;
+                            return (
+                              <>
+                                <IconComponent className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm font-medium text-gray-700 truncate">
+                                  {option?.label}
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-blue-500" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-[240px] bg-white border-blue-200 shadow-xl rounded-xl p-3 max-h-[300px] overflow-y-auto scrollbar-hidden"
+                    >
+                      {categoryOptions.map((option) => {
+                        const IconComponent = option.icon;
+                        return (
+                          <DropdownMenuItem
+                            key={option.value}
+                            onClick={() => setCategoryFilter(option.value)}
+                            className="flex items-center justify-between cursor-pointer px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 w-full">
+                              <IconComponent className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                              <span className="text-sm font-medium text-gray-700 truncate">
+                                {option.label}
+                              </span>
+                            </div>
+                            {categoryFilter === option.value && (
+                              <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <Button
+                  onClick={handleClearFilters}
+                  variant="outline"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 font-semibold px-6 py-3 whitespace-nowrap rounded-xl shadow-sm"
+                >
+                  Clear Filters
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center space-x-5 min-w-[200px]">
-              <span className="text-gray-800 mifont-semibold text-sm">
-                Category:
-              </span>
-              <CustomDropdown
-                value={categoryFilter}
-                onValueChange={setCategoryFilter}
-                options={categoryOptions}
-                placeholder="Category"
-                className="min-w-[190px]"
-              />
-            </div>
-            <button
-              onClick={handleClearFilters}
-              className="text-blue-600 text-sm font-semibold hover:text-blue-800 transition-colors duration-200 cursor-pointer"
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         <div className="space-y-6">
           {filteredTickets.length > 0 ? (
@@ -405,187 +529,253 @@ const RaiseQueryPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                onClick={(e) => {
-                  if (!(e.target as HTMLElement).closest(".star-rating")) {
-                    toggleExpandTicket(ticket._id);
-                  }
-                }}
               >
-                <div className="flex justify-between items-center">
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-bold text-gray-900">
-                      Ticket {ticket.ticketNumber} - {ticket.description}
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      <span className="font-semibold">Last Activity: </span>
-                      {getLastActivity(ticket)}
-                    </p>
-                    <p className="text-gray-600 text-sm">
-                      <span className="font-semibold">Created on: </span>
-                      {formatDate(ticket.createdAt)}
-                    </p>
-                    <p className="text-gray-600 text-sm">
-                      <span className="font-semibold">Status: </span>
-                      <span
-                        className={
-                          ticket.status === "Open"
-                            ? "bg-yellow-100 text-yellow-800 inline-block px-3 py-1 rounded-full text-xs font-medium"
-                            : ticket.status === "In-progress"
-                            ? "bg-blue-100 text-blue-800 inline-block px-3 py-1 rounded-full text-xs font-medium"
-                            : ticket.status === "Resolved"
-                            ? "bg-green-100 text-green-800 inline-block px-3 py-1 rounded-full text-xs font-medium"
-                            : "bg-gray-100 text-gray-800 inline-block px-3 py-1 rounded-full text-xs font-medium"
-                        }
-                      >
-                        {ticket.status}
-                      </span>
-                    </p>
-                    {ticket.status === "Resolved" && (
-                      <p className="text-gray-600 text-sm star-rating">
-                        <span className="font-semibold">Give Rating: </span>
-                        {isSubmitting[ticket._id] ? (
-                          <span className="text-gray-500">Submitting...</span>
-                        ) : (
-                          [1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRatingClick(ticket._id, star);
-                              }}
-                              className={`inline-block cursor-pointer w-6 h-6 ${
-                                star <=
-                                (selectedRatings[ticket._id] ||
-                                  ticket.rating ||
-                                  0)
-                                  ? "text-yellow-500 fill-yellow-500"
-                                  : "text-gray-300 fill-transparent"
-                              }`}
-                            />
-                          ))
-                        )}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <svg
-                      className={`w-6 h-6 text-gray-500 transform transition-transform duration-300 ${
-                        expandedTicketId === ticket._id ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {expandedTicketId === ticket._id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="mt-4 border-t border-gray-200 pt-4"
-                    >
-                      <h4 className="text-md font-semibold text-gray-800 mb-2">
-                        Ticket Details
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
-                        <div>
-                          <p>
-                            <span className="font-semibold">Ticket ID: </span>
-                            {ticket._id}
-                          </p>
-                          <p>
-                            <span className="font-semibold">Issue Type: </span>
-                            {ticket.issueType}
-                          </p>
-                        </div>
-                        <div>
-                          <p>
-                            <span className="font-semibold">User: </span>
-                            {ticket.user.name} ({ticket.user.email})
-                          </p>
-                          <p>
-                            <span className="font-semibold">Response: </span>
-                            {ticket.response || "No response yet"}
-                          </p>
-                          {ticket.fileUrl && (
-                            <p>
-                              <span className="font-semibold">
-                                Attachment:{" "}
-                              </span>
-                              <a
-                                href={ticket.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                View File
-                              </a>
+                <Card
+                  className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
+                >
+                  <CardContent
+                    className="p-6"
+                    onClick={(e) => {
+                      if (!(e.target as HTMLElement).closest(".star-rating")) {
+                        toggleExpandTicket(ticket._id);
+                      }
+                    }}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 space-y-4">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 bg-blue-100 rounded-xl">
+                            <TicketIcon className="w-6 h-6 text-blue-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                              Ticket {ticket.ticketNumber}
+                            </h3>
+                            <p className="text-gray-700 mb-3 leading-relaxed">
+                              {ticket.description}
                             </p>
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4" />
+                                <span>
+                                  Created: {formatDate(ticket.createdAt)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4" />
+                                <span>
+                                  Last Activity: {getLastActivity(ticket)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Badge
+                            className={`${getStatusColor(
+                              ticket.status
+                            )} border flex items-center gap-2 px-3 py-1.5 text-sm font-medium`}
+                          >
+                            {getStatusIcon(ticket.status)}
+                            {ticket.status}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="text-blue-600 border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium"
+                          >
+                            {ticket.issueType}
+                          </Badge>
+                          {ticket.teacher && (
+                            <Badge
+                              variant="outline"
+                              className="text-indigo-600 border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-medium"
+                            >
+                              Assigned to: {ticket.teacher.name}
+                            </Badge>
                           )}
                         </div>
+
+                        {ticket.status === "Resolved" && (
+                          <div className="star-rating flex items-center gap-3 pt-3 border-t border-gray-200">
+                            <span className="text-sm font-semibold text-gray-700">
+                              Rate this support:
+                            </span>
+                            {isSubmitting[ticket._id] ? (
+                              <span className="text-sm text-blue-500">
+                                Submitting...
+                              </span>
+                            ) : (
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRatingClick(ticket._id, star);
+                                    }}
+                                    className={`w-6 h-6 cursor-pointer transition-all duration-200 ${
+                                      star <=
+                                      (selectedRatings[ticket._id] ||
+                                        ticket.rating ||
+                                        0)
+                                        ? "text-yellow-400 fill-yellow-400 scale-110"
+                                        : "text-gray-300 hover:text-yellow-300 hover:scale-105"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+
+                      <div className="ml-6">
+                        <ChevronDown
+                          className={`w-6 h-6 text-blue-400 transform transition-transform duration-300 ${
+                            expandedTicketId === ticket._id ? "rotate-180" : ""
+                          }`}
+                        />
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {expandedTicketId === ticket._id && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="mt-6 pt-6 border-t border-gray-200"
+                        >
+                          <h4 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-blue-500" />
+                            Ticket Details
+                          </h4>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                  Ticket No.
+                                </span>
+                                <p className="text-sm text-gray-900 font-mono bg-blue-50 px-3 py-2 rounded-lg mt-2">
+                                  {ticket.ticketNumber}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                  Issue Type
+                                </span>
+                                <p className="text-sm text-gray-900 mt-2">
+                                  {ticket.issueType}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                  Visible to Teacher
+                                </span>
+                                <p className="text-sm text-gray-900 mt-2">
+                                  {ticket.visibleToTeacher ? "Yes" : "No"}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                  Assigned Teacher
+                                </span>
+                                <p className="text-sm text-gray-900 mt-2">
+                                  {ticket.teacher?.name || "Not Assigned"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="space-y-4">
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                  Student
+                                </span>
+                                <p className="text-sm text-gray-900 mt-2">
+                                  {ticket.user.name} ({ticket.user.email})
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                  Response
+                                </span>
+                                <p className="text-sm text-gray-900 mt-2 bg-blue-50 p-4 rounded-lg leading-relaxed">
+                                  {ticket.response || "No response yet"}
+                                </p>
+                              </div>
+                              {ticket.fileUrl && (
+                                <div>
+                                  <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                    Attachment
+                                  </span>
+                                  <div className="mt-2">
+                                    <a
+                                      href={ticket.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                    >
+                                      <FileText className="w-4 h-4" />
+                                      View Attachment
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </CardContent>
+                </Card>
               </motion.div>
             ))
           ) : (
-            <p className="text-gray-600 text-center text-lg">
-              No tickets found.
-            </p>
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardContent className="p-16 text-center">
+                <TicketIcon className="w-20 h-20 text-blue-200 mx-auto mb-6" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  No tickets found
+                </h3>
+                <p className="text-gray-600 mb-8 text-lg">
+                  {statusFilter !== "All" || categoryFilter !== "All"
+                    ? "Try adjusting your filters"
+                    : "You haven't created any support tickets yet"}
+                </p>
+                <Button
+                  onClick={handleCreateNewTicket}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-base rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Create Your First Ticket
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </div>
 
         {totalPages > 1 && (
           <div className="flex justify-center mt-8 space-x-4">
-            <button
+            <Button
               onClick={() => handlePageChange(page - 1)}
               disabled={page === 1}
               className="bg-blue-600 text-white py-2 px-4 rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-all duration-200 cursor-pointer"
             >
               Previous
-            </button>
+            </Button>
             <span className="text-gray-700 font-semibold">
               Page {page} of {totalPages}
             </span>
-            <button
+            <Button
               onClick={() => handlePageChange(page + 1)}
               disabled={page === totalPages}
               className="bg-blue-600 text-white py-2 px-4 rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-all duration-200 cursor-pointer"
             >
               Next
-            </button>
+            </Button>
           </div>
         )}
-
-        <style jsx>{`
-          @keyframes slide-in {
-            from {
-              opacity: 0;
-              transform: translateY(10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          .animate-slide-in {
-            animation: slide-in 0.2s ease-out;
-          }
-        `}</style>
       </div>
     </div>
   );

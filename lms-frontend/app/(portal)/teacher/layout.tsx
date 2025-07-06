@@ -77,23 +77,16 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
   const [showNotificationOptions, setShowNotificationOptions] = useState(false);
-  const [notificationMethod, setNotificationMethod] = useState<string | null>(
-    null
-  );
-  const [notificationTiming, setNotificationTiming] =
-    useState<string>("1 hour");
+  const [notificationMethod, setNotificationMethod] = useState<string | null>(null);
+  const [notificationTiming, setNotificationTiming] = useState<string>("1 hour");
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
-  const [showComingSoonTooltip, setShowComingSoonTooltip] = useState<
-    string | null
-  >(null);
+  const [showComingSoonTooltip, setShowComingSoonTooltip] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const [notificationsError, setNotificationsError] = useState<string | null>(
-    null
-  );
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
 
   const disabledItems = [
     "My Progress",
@@ -116,8 +109,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
       try {
         setIsLoading(true);
         const response = await api.get("/users/notification-preferences");
-        const { enabled, methods, timings } =
-          response.data.notificationPreferences;
+        const { enabled, methods, timings } = response.data.notificationPreferences;
         setIsNotificationsEnabled(enabled);
         setShowNotificationOptions(false);
         setNotificationMethod(
@@ -228,7 +220,45 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
     } catch {
       console.error("Failed to mark notification as read:");
       const errorMessage = "Failed to mark notification as read";
-      toast(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const deviceId = localStorage.getItem("deviceId");
+
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const unreadNotifications = notifications.filter((n) => !n.read);
+      await Promise.all(
+        unreadNotifications.map((notification) =>
+          api.put(
+            `/notifications/${notification._id}/read`,
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Device-Id": deviceId,
+              },
+            }
+          )
+        )
+      );
+
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, read: true }))
+      );
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error("Failed to mark notifications as read:", apiError);
+      const errorMessage =
+        apiError.response?.data?.message ||
+        "Failed to mark notifications as read";
+      toast.error(errorMessage);
     }
   };
 
@@ -264,7 +294,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
       />
       <path
         d="M22.0515 8.52295L16.0644 13.1954L9.94043 8.52295V8.52421L9.94783 8.53053V15.0732L15.9954 19.8466L22.0515 15.2575V8.52295Z"
-        fill="#EA4335"
+        fill="#4285F4"
       />
       <path
         d="M23.6231 7.38639L22.0508 8.52292V15.2575L26.9983 11.459V9.17074C26.9983 9.17074 26.3978 5.90258 23.6231 7.38639Z"
@@ -343,7 +373,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
       default:
         return {
           icon: <Info className="w-4 h-4" />,
-          className: "bg-blue-100 text-blue-600",
+          className: "bg-indigo-100 text-indigo-600",
         };
     }
   };
@@ -437,43 +467,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
       toast.error(errors);
     }
   };
-  const markAllNotificationsAsRead = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const deviceId = localStorage.getItem("deviceId");
-  
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-  
-      const unreadNotifications = notifications.filter((n) => !n.read);
-      await Promise.all(
-        unreadNotifications.map((notification) =>
-          api.put(
-            `/notifications/${notification._id}/read`,
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Device-Id": deviceId,
-              },
-            }
-          )
-        )
-      );
-  
-      setNotifications((prev) =>
-        prev.map((notif) => ({ ...notif, read: true }))
-      );
-    } catch (error) {
-      const apiError = error as ApiError;
-      console.error("Failed to mark notifications as read:", apiError);
-      const errorMessage =
-        apiError.response?.data?.message ||
-        "Failed to mark notifications as read";
-      toast.error(errorMessage);
-    }
-  };
 
   const handleRaiseQueryClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -503,19 +496,19 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
       name: "Home",
       icon: <Home className="w-5 h-5" />,
       href: "/teacher",
-      color: "text-blue-500",
+      color: "text-indigo-500",
     },
     {
       name: "Courses",
       icon: <BookOpen className="w-5 h-5" />,
       href: "/teacher/courses",
-      color: "text-green-500",
+      color: "text-purple-500",
     },
     {
       name: "My Students",
       icon: <Users className="w-5 h-5" />,
       href: "/teacher/students",
-      color: "text-purple-500",
+      color: "text-green-500",
     },
     {
       name: "Schedule Demo Classes",
@@ -533,19 +526,19 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
       name: "My Progress",
       icon: <BarChart2 className="w-5 h-5" />,
       href: "/teacher/progress",
-      color: "text-indigo-500",
+      color: "text-yellow-500",
     },
     {
       name: "Summer Camp",
       icon: <Tent className="w-5 h-5" />,
       href: "/teacher/summer-camp",
-      color: "text-yellow-500",
+      color: "text-amber-500",
     },
     {
       name: "Rewards and Coins",
       icon: <Award className="w-5 h-5" />,
       href: "/teacher/rewards",
-      color: "text-amber-500",
+      color: "text-pink-500",
     },
     {
       name: "KlaritiShop",
@@ -557,19 +550,19 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
       name: "Frequently Asked Questions",
       icon: <FileText className="w-5 h-5" />,
       href: "/teacher/faq",
-      color: "text-slate-500",
+      color: "text-teal-500",
     },
     {
       name: "Refer a Friend",
       icon: <Users2 className="w-5 h-5" />,
       href: "/teacher/refer",
-      color: "text-teal-500",
+      color: "text-violet-500",
     },
     {
       name: "Parents Corner",
       icon: <BookUser className="w-5 h-5" />,
       href: "/teacher/parents",
-      color: "text-violet-500",
+      color: "text-rose-500",
     },
   ];
 
@@ -577,7 +570,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
           <p className="text-sm text-gray-500">Loading...</p>
         </div>
       </div>
@@ -615,9 +608,9 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
   return (
     <TooltipProvider>
       <style>{styles}</style>
-      <div className="flex min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100">
+      <div className="flex min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
         <motion.aside
-          className="bg-white/80 backdrop-blur-lg border-r border-slate-200/50 shadow-md flex flex-col fixed top-[60px] left-0 h-[calc(100vh-60px)] z-40"
+          className="bg-white/80 backdrop-blur-lg border-r border-indigo-200/50 shadow-md flex flex-col fixed top-[60px] left-0 h-[calc(100vh-60px)] z-40"
           initial={{ width: "80px" }}
           animate={{ width: isSidebarCollapsed ? "80px" : "320px" }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
@@ -631,19 +624,17 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
           }}
         >
           {/* Header Section */}
-          <div className="p-6 border-b border-slate-200/60">
+          <div className="p-6 border-b border-indigo-200/60">
             {isSidebarCollapsed ? (
               <div className="flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-blue-500/20 bg-gray-100 flex-shrink-0">
-                  <div className="w-full h-full rounded-full overflow-hidden">
-                    <Image
-                      src={userDetails?.profileImage || profile}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                      width={48}
-                      height={48}
-                    />
-                  </div>
+                <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 bg-gray-100 flex-shrink-0">
+                  <Image
+                    src={userDetails?.profileImage || profile}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    width={48}
+                    height={48}
+                  />
                 </div>
               </div>
             ) : (
@@ -655,7 +646,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-blue-500/20">
+                    <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-indigo-500/20">
                       <Image
                         src={userDetails?.profileImage || profile}
                         alt="Profile"
@@ -665,12 +656,12 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                       />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-800 text-lg">
+                      <h3 className="font-semibold text-gray-800 text-lg">
                         {userDetails?.name || user?.name}
                       </h3>
                       <Badge
                         variant="secondary"
-                        className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                        className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200"
                       >
                         {userDetails?.role?.roleName || user?.role?.roleName}
                       </Badge>
@@ -686,11 +677,11 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                             setShowNotifications(true);
                             markAllNotificationsAsRead();
                           }}
-                          className="h-8 w-8 cursor-pointer rounded-xl transition-all duration-200 hover:bg-slate-100 text-slate-500 relative"
+                          className="h-8 w-8 cursor-pointer rounded-xl transition-all duration-200 hover:bg-indigo-100 text-gray-600 relative"
                         >
                           <Bell className="w-4 h-4" />
                           {notifications.filter((n) => !n.read).length > 0 && (
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+                            <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full text-sm text-white flex items-center justify-center font-bold shadow-lg border-2 border-white">
                               {notifications.filter((n) => !n.read).length > 9
                                 ? "9+"
                                 : notifications.filter((n) => !n.read).length}
@@ -710,8 +701,8 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                           onClick={toggleSidebarPin}
                           className={`h-8 w-8 rounded-xl transition-all cursor-pointer duration-200 ${
                             isSidebarPinned
-                              ? "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                              : "hover:bg-slate-100 text-slate-500"
+                              ? "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+                              : "hover:bg-gray-100 text-gray-600"
                           }`}
                         >
                           <Pin
@@ -733,7 +724,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                     <Link href="/teacher/profile">
                       <Button
                         size="sm"
-                        className="bg-blue-600 cursor-pointer hover:bg-blue-700 text-white rounded-xl"
+                        className="bg-indigo-600 cursor-pointer hover:bg-indigo-700 text-white rounded-xl"
                       >
                         <Settings className="w-3 h-3 mr-1" />
                         View Details
@@ -763,7 +754,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                             disabled={isLoading}
                           />
                           <div
-                            className={`w-11 h-6 rounded-full peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                            className={`w-11 h-6 rounded-full peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
                               isLoading
                                 ? "bg-gray-300 cursor-not-allowed"
                                 : "bg-gray-200 peer-checked:bg-green-500"
@@ -780,7 +771,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                   </div>
                 </div>
 
-                {/* Enhanced Notification Options */}
+                {/* Notification Options */}
                 <AnimatePresence>
                   {showNotificationOptions && (
                     <motion.div
@@ -788,16 +779,16 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -20, scale: 0.95 }}
                       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                      className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-200/50 shadow-lg"
+                      className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-200/50 shadow-lg"
                     >
-                      <h4 className="font-semibold text-slate-800 mb-4 flex items-center">
-                        <Bell className="w-4 h-4 mr-2 text-blue-600" />
+                      <h4 className="font-semibold text-gray-800 mb-4 flex items-center">
+                        <Bell className="w-4 h-4 mr-2 text-indigo-600" />
                         Notification Settings
                       </h4>
 
                       <div className="space-y-4">
                         <div>
-                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">
                             Method
                           </label>
                           <div className="grid gap-2">
@@ -807,8 +798,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                                 icon: EmailIcon,
                                 desc: "Email notifications",
                               },
-                              // { key: "WhatsApp", icon: "💬", desc: "WhatsApp messages" },
-                              // { key: "Both", icon: "🔔", desc: "Email + WhatsApp" },
                             ].map((method) => (
                               <button
                                 key={method.key}
@@ -817,21 +806,21 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                                 }
                                 className={`flex items-center cursor-pointer gap-3 p-3 rounded-xl border-2 transition-all duration-200 ${
                                   notificationMethod === method.key
-                                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                                    : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                                 }`}
                               >
                                 <span className="text-lg">{method.icon}</span>
                                 <div className="text-left">
-                                  <div className="font-medium cursor-pointer text-sm">
+                                  <div className="font-medium text-sm">
                                     {method.key}
                                   </div>
-                                  <div className="text-xs cursor-pointer text-slate-500">
+                                  <div className="text-xs text-gray-500">
                                     {method.desc}
                                   </div>
                                 </div>
                                 {notificationMethod === method.key && (
-                                  <ChevronRight className="w-4 h-4 ml-auto text-blue-500" />
+                                  <ChevronRight className="w-4 h-4 ml-auto text-indigo-500" />
                                 )}
                               </button>
                             ))}
@@ -844,7 +833,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                             animate={{ opacity: 1, height: "auto" }}
                             className="space-y-2"
                           >
-                            <label className="text-sm font-medium text-slate-700 block">
+                            <label className="text-sm font-medium text-gray-700 block">
                               Timing
                             </label>
                             <div className="grid grid-cols-2 gap-2">
@@ -862,7 +851,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                                   className={`flex items-center cursor-pointer justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                                     notificationTiming === timing.key
                                       ? "bg-green-500 text-white shadow-md"
-                                      : "bg-white border border-slate-200 hover:border-slate-300 text-slate-700"
+                                      : "bg-white border border-gray-200 hover:border-gray-300 text-gray-700"
                                   }`}
                                 >
                                   <span>{timing.icon}</span>
@@ -908,10 +897,10 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                 >
                   {isDisabled ? (
                     <div
-                      className={`group flex items-center p-3 rounded-xl transition-all duration-200 cursor-not-allowed ${"text-slate-400"}`}
+                      className={`group flex items-center p-3 rounded-xl transition-all duration-200 cursor-not-allowed text-gray-400 opacity-50`}
                     >
                       <span
-                        className={`text-slate-400 transition-colors duration-200`}
+                        className={`text-gray-400 transition-colors duration-200`}
                       >
                         {item.icon}
                       </span>
@@ -922,20 +911,18 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -10 }}
                             transition={{ duration: 0.2 }}
-                            className="ml-3 font-medium text-sm text-slate-400"
+                            className="ml-3 font-medium text-sm text-gray-400"
                           >
                             {item.name}
                           </motion.span>
                         )}
                       </AnimatePresence>
                       {!isSidebarCollapsed && (
-                        <div className="ml-auto px-3 py-1 bg-orange-100 text-orange-600 text-xs rounded-full font-medium">
+                        <span className="ml-auto text-xs bg-yellow-100 text-yellow-600 px-2 py-1 rounded-full">
                           Soon
-                        </div>
+                        </span>
                       )}
-
-                      {/* Coming Soon Tooltip */}
-                      {showComingSoonTooltip === item.name &&
+                     {showComingSoonTooltip === item.name &&
                         !isSidebarCollapsed && (
                           <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-white border border-orange-200 shadow-lg rounded-lg px-3 py-2 z-50 flex items-center whitespace-nowrap">
                             <div className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45 w-2 h-2 bg-white border-l border-t border-orange-200"></div>
@@ -949,10 +936,10 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                   ) : (
                     <Link href={item.href}>
                       <div
-                        className={`group flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-slate-100 ${
+                        className={`group flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-gray-100 ${
                           pathname === item.href
-                            ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
-                            : "text-slate-700 hover:text-slate-900"
+                            ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg"
+                            : "text-gray-700 hover:text-gray-900"
                         }`}
                       >
                         <span
@@ -1000,11 +987,11 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
               transition={{ delay: sidebarItems.length * 0.05 }}
             >
               <div
-                className={`group flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-slate-100 cursor-pointer ${
+                className={`group flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-gray-100 cursor-pointer ${
                   pathname === "/teacher/support" ||
                   pathname === "/teacher/raise-query"
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
-                    : "text-slate-700 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg"
+                    : "text-gray-700 hover:text-gray-900"
                 }`}
                 onClick={() => setIsHelpMenuOpen(!isHelpMenuOpen)}
               >
@@ -1013,7 +1000,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                     pathname === "/teacher/support" ||
                     pathname === "/teacher/raise-query"
                       ? "text-white"
-                      : "text-pink-500"
+                      : "text-emerald-500"
                   } transition-colors duration-200`}
                 >
                   <HelpCircle className="w-5 h-5" />
@@ -1042,7 +1029,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                         pathname === "/teacher/support" ||
                         pathname === "/teacher/raise-query"
                           ? "text-white"
-                          : "text-slate-500"
+                          : "text-gray-500"
                       }`}
                     >
                       {isHelpMenuOpen ? (
@@ -1059,8 +1046,8 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
+                   exit={{ height: 0, opacity: 0 }}
+                   transition={{ duration: 0.2 }}
                     className="ml-6 mt-2"
                   >
                     <Link
@@ -1068,10 +1055,10 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                       onClick={handleRaiseQueryClick}
                     >
                       <div
-                        className={`flex items-center p-2 rounded-lg transition-all duration-200 hover:bg-slate-100 ${
+                        className={`flex items-center p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 ${
                           pathname === "/teacher/raise-query"
-                            ? "bg-blue-100 text-blue-700"
-                            : "text-slate-600 hover:text-slate-900"
+                            ? "bg-indigo-100 text-indigo-700"
+                            : "text-gray-600 hover:text-gray-900"
                         }`}
                       >
                         <span className="text-sm font-medium">
@@ -1092,7 +1079,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="p-4 border-t border-slate-200/60"
+                className="p-4 border-t border-indigo-200/60"
               >
                 <Button className="w-full bg-gradient-to-r cursor-pointer from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl shadow-md">
                   🚀 Renew Now
@@ -1111,7 +1098,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
 
-        {/* Enhanced FAQ Modal */}
+        {/* FAQ Modal */}
         <AnimatePresence>
           {isModalOpen && (
             <motion.div
@@ -1131,15 +1118,15 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
               >
                 <Card className="bg-white border-0 rounded-3xl max-w-md w-full shadow-2xl">
                   <CardHeader className="text-center pb-4">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <div className="text-2xl font-bold text-blue-600">i</div>
+                    <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <HelpCircle className="w-8 h-8 text-indigo-500" />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-slate-800">
+                    <CardTitle className="text-2xl font-bold text-gray-800">
                       NEW FAQs AVAILABLE!
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="text-center space-y-6">
-                    <p className="text-slate-600 leading-relaxed">
+                    <p className="text-gray-600 leading-relaxed">
                       We&apos;ve added a new FAQs section to help you find
                       answers to common questions. Click below to check it out
                       instead of raising tickets.
@@ -1147,7 +1134,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                     <div className="flex gap-3">
                       <Button
                         onClick={handleCheckFAQs}
-                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white rounded-xl cursor-pointer"
+                        className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl cursor-pointer"
                         disabled={true}
                       >
                         Check FAQs
@@ -1155,7 +1142,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                       <Button
                         onClick={handleRaiseTicket}
                         variant="outline"
-                        className="flex-1 border-2 border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl cursor-pointer"
+                        className="flex-1 border-2 border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl cursor-pointer"
                       >
                         Raise a Ticket
                       </Button>
@@ -1167,7 +1154,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
           )}
         </AnimatePresence>
 
-        {/* Enhanced Disable Confirmation Modal */}
+        {/* Disable Confirmation Modal */}
         <AnimatePresence>
           {showDisableConfirm && (
             <motion.div
@@ -1189,19 +1176,19 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                     <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Bell className="w-8 h-8 text-red-500" />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-slate-800">
+                    <CardTitle className="text-2xl font-bold text-gray-800">
                       Disable Notifications?
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="text-center space-y-6">
-                    <p className="text-slate-600 leading-relaxed">
+                    <p className="text-gray-600 leading-relaxed">
                       You&apos;ll no longer receive important updates about your
                       classes, schedules, and platform activities.
                     </p>
                     <div className="flex gap-3">
                       <Button
                         variant="outline"
-                        className="flex-1 border-2 border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl"
+                        className="flex-1 border-2 border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl"
                         onClick={() => setShowDisableConfirm(false)}
                       >
                         Keep Enabled
@@ -1238,27 +1225,27 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                 onClick={(e) => e.stopPropagation()}
               >
                 <Card className="bg-white border-0 rounded-3xl max-w-md w-full shadow-2xl max-h-[80vh] overflow-hidden">
-                  <CardHeader className="pb-4 border-b border-slate-100">
+                  <CardHeader className="pb-4 border-b border-indigo-100">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl font-bold text-slate-800">
+                      <CardTitle className="text-xl font-bold text-gray-800">
                         Notifications
                       </CardTitle>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setShowNotifications(false)}
-                        className="h-8 w-8 rounded-xl hover:bg-slate-100 cursor-pointer"
+                        className="h-8 w-8 rounded-xl hover:bg-gray-100 cursor-pointer"
                       >
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0 max-h-96 overflow-y-auto custom-notifications">
-                  <div className="pt-1 p-6 space-y-6">
+                    <div className="pt-1 p-6 space-y-6">
                       {notificationsLoading ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="flex flex-col items-center gap-3">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
                             <p className="text-sm text-gray-500">
                               Loading notifications...
                             </p>
@@ -1280,7 +1267,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                         <div className="space-y-4">
                           <div>
                             <div className="flex items-center justify-between mb-4">
-                              <h3 className="font-semibold text-slate-800">
+                              <h3 className="font-semibold text-gray-800">
                                 Recent Notifications
                               </h3>
                             </div>
@@ -1297,8 +1284,8 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                                     key={notification._id}
                                     className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
                                       notification.read
-                                        ? "bg-slate-50 hover:bg-slate-100"
-                                        : "bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-500"
+                                        ? "bg-gray-50 hover:bg-gray-100"
+                                        : "bg-indigo-50 hover:bg-indigo-100 border-l-4 border-indigo-500"
                                     }`}
                                     onClick={() =>
                                       !notification.read &&
@@ -1314,14 +1301,14 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                                       <p
                                         className={`text-sm ${
                                           notification.read
-                                            ? "font-medium text-slate-700"
-                                            : "font-semibold text-slate-900"
+                                            ? "font-medium text-gray-700"
+                                            : "font-semibold text-gray-900"
                                         }`}
                                       >
                                         {notification.message}
                                       </p>
 
-                                      <p className="text-xs text-slate-500 mt-2 flex items-center">
+                                      <p className="text-xs text-gray-500 mt-2 flex items-center">
                                         <Clock className="w-3 h-3 mr-1" />
                                         {formatNotificationTime(
                                           notification.createdAt
@@ -1329,7 +1316,7 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                                       </p>
                                     </div>
                                     {!notification.read && (
-                                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 animate-pulse"></div>
+                                      <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2 animate-pulse"></div>
                                     )}
                                   </div>
                                 );

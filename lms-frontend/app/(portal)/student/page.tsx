@@ -472,10 +472,13 @@ export default function StudentDashboard() {
                 <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
                   <Star className="w-6 h-6 text-yellow-300" />
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold">Welcome back, {user?.name}!</h1>
+                <h1 className="text-3xl md:text-4xl font-bold">
+                  Welcome back, {user?.name}!
+                </h1>
               </div>
               <p className="text-blue-100 text-lg">
-                Ready to continue your learning journey? Track your progress and join your classes seamlessly.
+                Ready to continue your learning journey? Track your progress and
+                join your classes seamlessly.
               </p>
             </div>
             <div className="hidden md:flex items-center gap-4">
@@ -490,27 +493,27 @@ export default function StudentDashboard() {
         </motion.div>
 
         {/* Navigation Tabs */}
-<div className="flex align-center justify-center flex-wrap gap-3 mb-8">
-  {["Overview", "Schedule"].map((tab) => (
-    <button
-      key={tab}
-      onClick={() => setActiveTab(tab)}
-      className={`flex items-center px-6 py-3 cursor-pointer rounded-2xl font-medium transition-all transform hover:scale-105 ${
-        activeTab === tab
-          ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-          : "bg-white text-gray-800 hover:bg-gray-100 shadow-md hover:shadow-lg shadow-gray-200"
-      }`}
-    >
-      {tab === "Overview" && (
-        <BarChart3 className="w-4 h-4 inline-block mr-2 text-amber-400" />
-      )}
-      {tab === "Schedule" && (
-        <Calendar className="w-4 h-4 inline-block mr-2 text-cyan-500" />
-      )}
-      {tab}
-    </button>
-  ))}
-</div>
+        <div className="flex align-center justify-center flex-wrap gap-3 mb-8">
+          {["Overview", "Schedule"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex items-center px-6 py-3 cursor-pointer rounded-2xl font-medium transition-all transform hover:scale-105 ${
+                activeTab === tab
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                  : "bg-white text-gray-800 hover:bg-gray-100 shadow-md hover:shadow-lg shadow-gray-200"
+              }`}
+            >
+              {tab === "Overview" && (
+                <BarChart3 className="w-4 h-4 inline-block mr-2 text-amber-400" />
+              )}
+              {tab === "Schedule" && (
+                <Calendar className="w-4 h-4 inline-block mr-2 text-cyan-500" />
+              )}
+              {tab}
+            </button>
+          ))}
+        </div>
 
         {activeTab === "Overview" && (
           <>
@@ -563,7 +566,9 @@ export default function StudentDashboard() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-gray-600 font-semibold">Upcoming Classes</p>
+                    <p className="text-gray-600 font-semibold">
+                      Upcoming Classes
+                    </p>
                     <p className="text-3xl font-bold text-gray-900">
                       {callsLoading ? (
                         <span className="inline-block w-12 h-8 bg-teal-200 animate-pulse rounded"></span>
@@ -595,7 +600,9 @@ export default function StudentDashboard() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-gray-600 font-semibold">Completed Classes</p>
+                    <p className="text-gray-600 font-semibold">
+                      Completed Classes
+                    </p>
                     <p className="text-3xl font-bold text-gray-900">
                       {callsLoading ? (
                         <span className="inline-block w-12 h-8 bg-indigo-200 animate-pulse rounded"></span>
@@ -627,7 +634,9 @@ export default function StudentDashboard() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-gray-600 font-semibold">Support Tickets</p>
+                    <p className="text-gray-600 font-semibold">
+                      Support Tickets
+                    </p>
                     <p className="text-3xl font-bold text-gray-900">
                       {ticketsLoading ? (
                         <span className="inline-block w-12 h-8 bg-yellow-200 animate-pulse rounded"></span>
@@ -829,9 +838,7 @@ export default function StudentDashboard() {
                       <div className="p-2 bg-purple-500 rounded-xl">
                         <Settings className="w-5 h-5 text-white" />
                       </div>
-                      <span className="text-blue-600">
-                        Quick Actions
-                      </span>
+                      <span className="text-blue-600">Quick Actions</span>
                     </CardTitle>
                     <Badge className="bg-blue-100 text-blue-700 border border-blue-200 font-bold">
                       🎯 Student Tools

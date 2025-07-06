@@ -14,12 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TicketSlash } from "lucide-react";
 
 const CreateTicketPage = () => {
   const { user, loading: authLoading, deviceId } = useAuth();
   const router = useRouter();
-  const [issueRelatedTo, setIssueRelatedTo] =
-    useState<string>("Customer Support");
+  const [issueRelatedTo, setIssueRelatedTo] = useState<string>("Customer Support");
   const [subject, setSubject] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [descriptionError, setDescriptionError] = useState<string>("");
@@ -29,16 +29,12 @@ const CreateTicketPage = () => {
   const [isBold, setIsBold] = useState<boolean>(false);
   const [isItalic, setIsItalic] = useState<boolean>(false);
   const [isUnderline, setIsUnderline] = useState<boolean>(false);
-  const [isSubjectChangeModalOpen, setIsSubjectChangeModalOpen] =
-    useState<boolean>(false);
-  const [isTimeChangeModalOpen, setIsTimeChangeModalOpen] =
-    useState<boolean>(false);
-  const [selectedSubjectReason, setSelectedSubjectReason] =
-    useState<string>("");
+  const [isSubjectChangeModalOpen, setIsSubjectChangeModalOpen] = useState<boolean>(false);
+  const [isTimeChangeModalOpen, setIsTimeChangeModalOpen] = useState<boolean>(false);
+  const [selectedSubjectReason, setSelectedSubjectReason] = useState<string>("");
   const [selectedTimeReason, setSelectedTimeReason] = useState<string>("");
   const [modalDescription, setModalDescription] = useState<string>("");
-  const [modalDescriptionError, setModalDescriptionError] =
-    useState<string>("");
+  const [modalDescriptionError, setModalDescriptionError] = useState<string>("");
   const [currentSubject, setCurrentSubject] = useState<string>("");
   const [currentSubjectError, setCurrentSubjectError] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -71,9 +67,16 @@ const CreateTicketPage = () => {
   }, [user, authLoading, router, handleUnauthorized]);
 
   const updateFormattingState = () => {
-    setIsBold(document.queryCommandState("bold"));
-    setIsItalic(document.queryCommandState("italic"));
-    setIsUnderline(document.queryCommandState("underline"));
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const parent = range.commonAncestorContainer.parentElement;
+      if (parent && editorRef.current?.contains(parent)) {
+        setIsBold(document.queryCommandState("bold"));
+        setIsItalic(document.queryCommandState("italic"));
+        setIsUnderline(document.queryCommandState("underline"));
+      }
+    }
   };
 
   const getPlainText = (html: string) => {
@@ -145,10 +148,7 @@ const CreateTicketPage = () => {
     if (!token || !deviceId) {
       console.debug(
         "[CreateTicketPage] Missing token or deviceId in handleSubmit",
-        {
-          token,
-          deviceId,
-        }
+        { token, deviceId }
       );
       handleUnauthorized();
       return;
@@ -173,7 +173,13 @@ const CreateTicketPage = () => {
     }
 
     try {
-      await api.post("/tickets/raise", formData);
+      await api.post("/tickets/raise", formData, {
+        headers: {
+          "Device-Id": deviceId,
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
       toast.success("Ticket raised successfully!");
       router.push("/teacher/raise-query?success=true");
     } catch (error) {
@@ -216,52 +222,66 @@ const CreateTicketPage = () => {
     }
   };
 
-  const selectAllContent = () => {
-    if (editorRef.current) {
-      const range = document.createRange();
-      range.selectNodeContents(editorRef.current);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    }
-  };
-
   const applyFormatting = (format: "bold" | "italic" | "underline") => {
     if (editorRef.current) {
-      selectAllContent();
-      document.execCommand(format, false, undefined);
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        document.execCommand(format, false, undefined);
+      } else {
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        document.execCommand(format, false, undefined);
+        selection?.removeAllRanges();
+      }
       editorRef.current.focus();
       setDescription(editorRef.current.innerHTML);
       updateFormattingState();
-      window.getSelection()?.removeAllRanges();
     }
   };
 
   const applyFont = (font: string) => {
     if (editorRef.current) {
-      selectAllContent();
-      document.execCommand("fontName", false, font);
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        document.execCommand("fontName", false, font);
+      } else {
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        document.execCommand("fontName", false, font);
+        selection?.removeAllRanges();
+      }
       setCurrentFont(font);
       editorRef.current.focus();
       setDescription(editorRef.current.innerHTML);
-      window.getSelection()?.removeAllRanges();
     }
   };
 
   const applyFontSize = (size: string) => {
     if (editorRef.current) {
-      selectAllContent();
+      const selection = window.getSelection();
       const sizeMap: { [key: string]: string } = {
         "12": "2",
         "14": "3",
         "16": "4",
       };
       const mappedSize = sizeMap[size] || "3";
-      document.execCommand("fontSize", false, mappedSize);
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        document.execCommand("fontSize", false, mappedSize);
+      } else {
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        document.execCommand("fontSize", false, mappedSize);
+        selection?.removeAllRanges();
+      }
       setCurrentFontSize(size);
       editorRef.current.focus();
       setDescription(editorRef.current.innerHTML);
-      window.getSelection()?.removeAllRanges();
     }
   };
 
@@ -290,10 +310,7 @@ const CreateTicketPage = () => {
     if (!token || !deviceId) {
       console.debug(
         "[CreateTicketPage] Missing token or deviceId in handleSubjectChangeSubmit",
-        {
-          token,
-          deviceId,
-        }
+        { token, deviceId }
       );
       handleUnauthorized();
       return;
@@ -310,10 +327,16 @@ const CreateTicketPage = () => {
     }
 
     try {
-      await api.post("/tickets/raise-subject-change", {
-        description: descriptionText,
-        currentSubject,
-      });
+      await api.post(
+        "/tickets/raise-subject-change",
+        { description: descriptionText, currentSubject },
+        {
+          headers: {
+            "Device-Id": deviceId,
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       toast.success("Subject change request raised successfully!");
       setIsSubjectChangeModalOpen(false);
       setSelectedSubjectReason("");
@@ -352,10 +375,7 @@ const CreateTicketPage = () => {
     if (!token || !deviceId) {
       console.debug(
         "[CreateTicketPage] Missing token or deviceId in handleTimeChangeSubmit",
-        {
-          token,
-          deviceId,
-        }
+        { token, deviceId }
       );
       handleUnauthorized();
       return;
@@ -372,10 +392,16 @@ const CreateTicketPage = () => {
     }
 
     try {
-      await api.post("/tickets/raise-timezone-change", {
-        description: descriptionText,
-        visibleToTeacher: false,
-      });
+      await api.post(
+        "/tickets/raise-timezone-change",
+        { description: descriptionText, visibleToTeacher: false },
+        {
+          headers: {
+            "Device-Id": deviceId,
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       toast.success("Time change request raised successfully!");
       setIsTimeChangeModalOpen(false);
       setSelectedTimeReason("");
@@ -413,12 +439,25 @@ const CreateTicketPage = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen mt-10 font-sans ml-20">
+    <div className="p-4 sm:p-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen pt-20 font-sans">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center space-x-3 mb-6">
+        {/* Header matching student's design */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mt-6 overflow-hidden rounded-2xl bg-blue-600 p-8 text-white shadow-xl flex items-center gap-4"
+        >
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute top-4 right-4 opacity-30">
+            <div className="flex gap-2">
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse delay-75"></div>
+              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse delay-150"></div>
+            </div>
+          </div>
           <button
             onClick={() => router.push("/teacher/raise-query")}
-            className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="p-2 text-white hover:bg-blue-700 rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer z-10"
             aria-label="Go back"
           >
             <svg
@@ -436,18 +475,26 @@ const CreateTicketPage = () => {
               />
             </svg>
           </button>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-            Raise a Ticket
-          </h1>
-        </div>
+          <div className="relative flex flex-col">
+            <div className="flex items-center gap-3">
+              <TicketSlash className="w-10 h-10 text-white-400" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-white">
+                Raise a New Ticket
+              </h1>
+            </div>
+            <p className="text-lg text-gray-300 mt-2">
+              Submit your support requests and track their progress
+            </p>
+          </div>
+        </motion.div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg shadow-sm animate-slide-in">
+          <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg shadow-sm animate-slide-in">
             {error}
           </div>
         )}
 
-        <div className="flex flex-col items-center mb-6">
+        <div className="flex flex-col items-center mt-6 mb-6">
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             <span className="text-md font-semibold text-sky-600 mr-2 mt-1 sm:mr-4">
               Quick Actions:
