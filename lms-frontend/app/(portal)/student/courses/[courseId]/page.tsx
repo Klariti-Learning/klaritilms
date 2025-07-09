@@ -314,7 +314,6 @@ export default function StudentCourseDetails() {
     });
   };
 
-  // ORIGINAL LOGIC: Keep exact same meeting join logic
   const canJoinMeeting = (call: ScheduledCall): boolean => {
     try {
       const now = new Date();
@@ -330,7 +329,6 @@ export default function StudentCourseDetails() {
     }
   };
 
-  // ORIGINAL LOGIC: Keep exact same meeting handler
   const handleJoinMeeting = (call: ScheduledCall) => {
     if (!canJoinMeeting(call)) {
       toast.error(
