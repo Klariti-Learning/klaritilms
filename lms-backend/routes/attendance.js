@@ -200,7 +200,7 @@ router.get(
 
 // Export Attendance as Excel
 router.get("/export", authenticate, async (req, res) => {
-  const { fromDate, toDate, batchId, studentId } = req.query;
+  const { fromDate, toDate, batchId, studentId, callId } = req.query;
   const userId = req.user.userId;
 
   try {
@@ -211,6 +211,7 @@ router.get("/export", authenticate, async (req, res) => {
     }
 
     let query = {};
+
     if (fromDate || toDate) {
       query.date = {};
       if (fromDate) query.date.$gte = new Date(fromDate);
@@ -223,6 +224,10 @@ router.get("/export", authenticate, async (req, res) => {
 
     if (studentId) {
       query["attendances.studentId"] = studentId;
+    }
+
+    if (callId) {
+      query.callId = callId;
     }
 
     if (user.role.roleName === "Teacher") {
@@ -266,13 +271,16 @@ router.get("/export", authenticate, async (req, res) => {
     worksheet["!cols"] = [
       { wch: 15 }, 
       { wch: 20 }, 
-      { wch: 20 },
+      { wch: 20 }, 
       { wch: 20 }, 
       { wch: 20 }, 
       { wch: 15 }, 
     ];
 
-    const excelBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    const excelBuffer = XLSX.write(workbook, {
+      type: "buffer",
+      bookType: "xlsx",
+    });
 
     res.setHeader(
       "Content-Type",
@@ -290,5 +298,6 @@ router.get("/export", authenticate, async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
+
 
 module.exports = router;
