@@ -5,6 +5,7 @@ const attendanceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "ScheduledCall",
     required: true,
+    unique: true, 
   },
   batchId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -21,28 +22,28 @@ const attendanceSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-attendances: [
-  {
-    studentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+  attendances: [
+    {
+      studentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ["Present", "Absent"],
+        default: "Present",
+      },
+      markedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      markedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User", 
+      },
     },
-    status: {
-      type: String,
-      enum: ["Present", "Absent"],
-      default: "Present",
-    },
-    markedAt: {
-      type: Date,
-      default: Date.now,
-    },
-    markedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // assuming teacher marks it
-    },
-  },
-],
+  ],
   date: {
     type: Date,
     required: true,
@@ -52,6 +53,11 @@ attendances: [
     ref: "User",
     required: true,
   },
+  idempotencyKey: {
+    type: String,
+    unique: true, 
+    sparse: true, 
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -60,6 +66,11 @@ attendances: [
     type: Date,
     default: Date.now,
   },
+});
+
+attendanceSchema.pre("save", function (next) {
+  this.updatedAt = new Date();
+  next();
 });
 
 module.exports = mongoose.model("Attendance", attendanceSchema);

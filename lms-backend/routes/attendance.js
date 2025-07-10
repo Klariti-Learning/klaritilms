@@ -31,6 +31,9 @@ router.post(
       .withMessage(
         "Each attendance must have a valid studentId and status (Present/Absent)"
       ),
+    check("idempotencyKey")
+      .notEmpty()
+      .withMessage("Idempotency key is required"),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -39,12 +42,15 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { callId, attendances } = req.body;
+    const { callId, attendances, idempotencyKey } = req.body;
     const userId = req.user.userId;
 
     try {
       const user = await User.findById(userId).populate("role");
-      if (!user || !["Teacher", "Admin", "Super Admin"].includes(user.role.roleName)) {
+      if (
+        !user ||
+        !["Teacher", "Admin", "Super Admin"].includes(user.role.roleName)
+      ) {
         logger.warn(`Unauthorized attendance marking attempt by user: ${userId}`);
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -55,9 +61,14 @@ router.post(
         return res.status(404).json({ message: "Scheduled call not found" });
       }
 
-      if (user.role.roleName === "Teacher" && call.teacherId.toString() !== userId) {
+      if (
+        user.role.roleName === "Teacher" &&
+        call.teacherId.toString() !== userId
+      ) {
         logger.warn(`Teacher ${userId} not assigned to call: ${callId}`);
-        return res.status(403).json({ message: "Not authorized to mark attendance for this call" });
+        return res
+          .status(403)
+          .json({ message: "Not authorized to mark attendance for this call" });
       }
 
       const batch = await Batch.findById(call.batchId);
@@ -66,27 +77,52 @@ router.post(
         return res.status(404).json({ message: "Batch not found" });
       }
 
-      const existingAttendance = await Attendance.findOne({ callId });
-      if (existingAttendance) {
-        existingAttendance.attendances = attendances;
-        existingAttendance.updatedAt = new Date();
-        await existingAttendance.save();
-      } else {
-        const newAttendance = new Attendance({
-          callId,
-          batchId: call.batchId,
-          courseId: call.courseId,
-          teacherId: call.teacherId,
-          attendances,
-          date: call.date,
-          createdBy: userId,
+      const existingByIdempotency = await Attendance.findOne({ idempotencyKey });
+      if (existingByIdempotency) {
+        logger.info(
+          `Duplicate request with idempotency key: ${idempotencyKey} for callId: ${callId}`
+        );
+        return res.json({
+          message: "Attendance already marked",
+          attendance: existingByIdempotency,
         });
-        await newAttendance.save();
       }
 
-      logger.info(`Attendance marked for call ${callId} by user ${userId}`);
-      res.json({ message: "Attendance marked successfully" });
+      const updatedAttendance = await Attendance.findOneAndUpdate(
+        { callId },
+        {
+          $set: {
+            batchId: call.batchId,
+            courseId: call.courseId,
+            teacherId: call.teacherId,
+            attendances,
+            date: call.date,
+            createdBy: userId,
+            idempotencyKey,
+            updatedAt: new Date(),
+          },
+        },
+        {
+          upsert: true,
+          new: true,
+          setDefaultsOnInsert: true,
+        }
+      );
+
+      logger.info(
+        `Attendance marked for call ${callId} by user ${userId} with idempotencyKey: ${idempotencyKey}`
+      );
+      res.json({
+        message: "Attendance marked successfully",
+        attendance: updatedAttendance,
+      });
     } catch (error) {
+      if (error.code === 11000) {
+        logger.warn(`Duplicate attendance record for callId: ${callId}`);
+        return res
+          .status(400)
+          .json({ message: "Attendance record already exists for this call" });
+      }
       logger.error("Mark attendance error:", error);
       res.status(500).json({ message: "Server error", error: error.message });
     }
