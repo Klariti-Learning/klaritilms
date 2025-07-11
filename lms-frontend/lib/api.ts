@@ -7,7 +7,7 @@ interface PendingRequest {
 }
 
 const api = axios.create({
-  baseURL:"https://klaritilmstest-39565511862.asia-south2.run.app/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -19,10 +19,8 @@ let pendingRequests: PendingRequest[] = [];
 const QUEUE_TIMEOUT = 10000;
 
 export const setSessionRestored = (value: boolean) => {
-  console.debug("[API] Setting isSessionRestored:", value);
   isSessionRestored = value;
   if (value && pendingRequests.length > 0) {
-    console.debug("[API] Resolving", pendingRequests.length, "pending requests");
     pendingRequests.forEach(({ resolve, config }) => resolve(config));
     pendingRequests = [];
   }
@@ -35,12 +33,10 @@ api.interceptors.request.use(
     config.headers = config.headers || ({} as AxiosRequestHeaders);
 
     if (config.url?.includes("/auth/direct-login") || config.url?.includes("/auth/verify-login-otp")) {
-      console.debug("[API] Bypassing interceptor for:", config.url);
       return config;
     }
 
     if (!isSessionRestored) {
-      console.debug("[API] Session not restored, queuing request:", config.url);
       return new Promise(
         (resolve: (config: InternalAxiosRequestConfig) => void, reject) => {
           pendingRequests.push({ resolve, config });
@@ -76,11 +72,6 @@ api.interceptors.request.use(
     } else {
       console.warn("[API] No deviceId found for request:", config.url);
     }
-    console.debug("[API] Sending request:", {
-      url: config.url,
-      method: config.method,
-      token: token ? `${token.slice(0, 10)}...` : "none",
-    });
     return config;
   },
   (error) => {
@@ -91,10 +82,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    console.debug("[API] Response received:", {
-      url: response.config.url,
-      status: response.status,
-    });
+
     if (response.data.token && (response.config.url?.includes("/auth/verify-login-otp") || response.config.url?.includes("/auth/direct-login"))) {
       const currentToken = localStorage.getItem("token");
       if (response.data.token !== currentToken) {
@@ -131,7 +119,6 @@ api.interceptors.response.use(
           const response = await api.post("/auth/renew-token", { userId, deviceId });
           const newToken = response.data.token;
           localStorage.setItem("token", newToken);
-          console.debug("[API] Token renewed successfully");
 
           error.config.headers.Authorization = `Bearer ${newToken}`;
           return api(error.config);

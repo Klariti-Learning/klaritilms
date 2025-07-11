@@ -61,6 +61,7 @@ const userSchema = new mongoose.Schema(
         default: "Active",
       },
       academicYear: { type: String },
+      grade: { type: String, default: "" },
       experience: [
         {
           title: String,

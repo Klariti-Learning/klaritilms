@@ -17,6 +17,11 @@ import {
   Check,
   X,
   Bolt,
+  GraduationCap,
+  School,
+  CalendarRange,
+  ShieldUser,
+  Bookmark,
 } from "lucide-react";
 import profile from "../../../../public/Assests/small.png";
 import api from "@/lib/api";
@@ -181,6 +186,7 @@ export default function StudentProfile() {
         : null,
       details.profile?.enrollmentStatus,
       details.profile?.academicYear,
+      details.profile?.grade,
       details.joinDate,
       details.teacherId,
     ];
@@ -258,6 +264,7 @@ export default function StudentProfile() {
           qualifications: [],
           enrollmentStatus: "Active",
           academicYear: "",
+          grade: "",
           experience: [],
         },
       });
@@ -654,6 +661,9 @@ export default function StudentProfile() {
     }
     if (!/^\+\d{10,15}$/.test(data.phone)) {
       errors.phone = "Invalid phone number format";
+    }
+    if (data.profile?.grade && !/^[A-Za-z0-9\s-]+$/.test(data.profile.grade)) {
+      errors.grade = "Invalid grade format (e.g., 9th)";
     }
     return errors;
   };
@@ -1183,7 +1193,7 @@ export default function StudentProfile() {
                 transition={{ duration: 0.3 }}
                 className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
               >
-                <Book
+                <CalendarRange
                   className={`w-6 h-6 ${
                     isEditing ? "text-indigo-600" : "text-indigo-500"
                   }`}
@@ -1209,7 +1219,7 @@ export default function StudentProfile() {
                 transition={{ duration: 0.3, delay: 0.1 }}
                 className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
               >
-                <Book
+                <ShieldUser
                   className={`w-6 h-6 ${
                     isEditing ? "text-indigo-600" : "text-indigo-500"
                   }`}
@@ -1257,7 +1267,7 @@ export default function StudentProfile() {
                 transition={{ duration: 0.3, delay: 0.3 }}
                 className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
               >
-                <Book
+                <Bookmark
                   className={`w-6 h-6 ${
                     isEditing ? "text-indigo-600" : "text-indigo-500"
                   }`}
@@ -1337,7 +1347,7 @@ export default function StudentProfile() {
                 transition={{ duration: 0.3, delay: 0.4 }}
                 className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
               >
-                <Book
+                <School
                   className={`w-6 h-6 ${
                     isEditing ? "text-indigo-600" : "text-indigo-500"
                   }`}
@@ -1362,6 +1372,96 @@ export default function StudentProfile() {
                   ) : (
                     <p className="mt-1 text-gray-800 text-lg font-medium">
                       {userDetails.profile?.academicYear || "Not set"}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+                className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+              >
+                <GraduationCap
+                  className={`w-6 h-6 ${
+                    isEditing ? "text-indigo-600" : "text-indigo-500"
+                  }`}
+                />
+                <div className="flex-1 ml-4">
+                  <Label
+                    className={`text-sm font-medium ${
+                      isEditing ? "text-indigo-600" : "text-gray-600"
+                    }`}
+                  >
+                    Grade
+                  </Label>
+                  {isEditing ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Select
+                        value={formData.profile?.grade || ""}
+                        onValueChange={(value) =>
+                          setFormData((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  profile: {
+                                    ...prev.profile,
+                                    grade: value,
+                                  },
+                                }
+                              : prev
+                          )
+                        }
+                      >
+                        <SelectTrigger
+                          className={`mt-1 border-indigo-300 bg-white text-gray-800 rounded-xl focus:ring-2 focus:ring-indigo-400 hover:bg-indigo-50 transition-all duration-300 hover:scale-[1.01] cursor-pointer shadow-sm ${
+                            isEditing ? "ring-1 ring-indigo-200" : ""
+                          }`}
+                        >
+                          <SelectValue
+                            placeholder="Select grade"
+                            className="text-gray-600"
+                          />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-indigo-200 rounded-xl shadow-lg">
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            {[
+                              "1st",
+                              "2nd",
+                              "3rd",
+                              "4th",
+                              "5th",
+                              "6th",
+                              "7th",
+                              "8th",
+                              "9th",
+                              "10th",
+                              "11th",
+                              "12th",
+                            ].map((grade) => (
+                              <SelectItem
+                                key={grade}
+                                value={grade}
+                                className="hover:bg-indigo-50 text-gray-800 transition-colors duration-200 cursor-pointer"
+                              >
+                                {grade}
+                              </SelectItem>
+                            ))}
+                          </motion.div>
+                        </SelectContent>
+                      </Select>
+                    </motion.div>
+                  ) : (
+                    <p className="mt-1 text-gray-800 text-lg font-medium">
+                      {userDetails.profile?.grade || "Not set"}
                     </p>
                   )}
                 </div>

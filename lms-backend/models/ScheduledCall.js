@@ -67,10 +67,12 @@ const scheduledCallSchema = new mongoose.Schema(
     previousDate: { type: Date, default: null },
     previousStartTime: { type: String, default: null },
     previousEndTime: { type: String, default: null },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
 scheduledCallSchema.index({ status: 1, date: 1 });
+scheduledCallSchema.index({ studentIds: 1, isDeleted: 1 });
 
 module.exports = mongoose.model("ScheduledCall", scheduledCallSchema);

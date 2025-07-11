@@ -1113,20 +1113,22 @@ router.delete(
 
       const course = batch.courseId;
 
-      await batch.deleteOne();
+      // Permanently delete the batch and related scheduled calls
+      await Batch.findByIdAndDelete(batchId);
+      await ScheduledCall.deleteMany({ batchId: batchId });
 
-      const notifications = batch.studentIds.map((studentId) =>
+      const notifications = batch.studentIds.map((student) =>
         new Notification({
-          userId: studentId,
+          userId: student.studentId,
           message: `Batch "${batch.name}" for course "${
-            course && course.title ? course.title : "N/A"
+            course?.title || "N/A"
           }" has been deleted by ${teacher.name}`,
           link: `${process.env.BASE_URL}/student/batches`,
         }).save()
       );
 
       const students = await User.find({
-        _id: { $in: batch.studentIds },
+        _id: { $in: batch.studentIds.map((s) => s.studentId) },
       }).populate("role");
 
       const emailNotifications = students.map((student) =>
@@ -1135,32 +1137,33 @@ router.delete(
           student.name,
           batch._id,
           `Batch "${batch.name}" for course "${
-            course && course.title ? course.title : "N/A"
+            course?.title || "N/A"
           }" has been deleted by ${teacher.name}`
         )
       );
 
       await Promise.all([...notifications, ...emailNotifications]);
 
-      batch.studentIds.forEach((studentId) => {
+      batch.studentIds.forEach((student) => {
         getIO()
-          .to(studentId.toString())
+          .to(student.studentId.toString())
           .emit("notification", {
             message: `Batch "${batch.name}" for course "${
-              course && course.title ? course.title : "N/A"
+              course?.title || "N/A"
             }" has been deleted by ${teacher.name}`,
             link: `${process.env.BASE_URL}/student/batches`,
           });
       });
 
-      logger.info(`Batch ${batchId} deleted by teacher ${teacherId}`);
-      res.json({ message: "Batch deleted successfully" });
+      logger.info(`Batch ${batchId} permanently deleted by teacher ${teacherId}`);
+      res.json({ message: "Batch permanently deleted successfully" });
     } catch (error) {
       logger.error("Delete batch error:", error);
       res.status(500).json({ message: "Server error", error: error.message });
     }
   }
 );
+
 
 // Teacher: Delete Lesson from Batch
 router.post(
@@ -2488,6 +2491,7 @@ router.post(
   authenticate,
   [
     check("batchId").isMongoId().withMessage("Valid batch ID is required"),
+    check("courseId").isMongoId().withMessage("Valid course ID is required"),
     check("studentIds")
       .optional()
       .isArray()
@@ -2507,7 +2511,7 @@ router.post(
 
     try {
       const teacher = await User.findById(teacherId).populate("role");
-      if (!teacher || teacher.role.roleName !== "Teacher") {
+      if (!teacher || !teacher.role || teacher.role.roleName !== "Teacher") {
         logger.warn(`Unauthorized batch assignment attempt by user: ${teacherId}`);
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -2539,17 +2543,91 @@ router.post(
       }
 
       if (studentIds.length > 0) {
-        const students = await User.find({
-          _id: { $in: studentIds },
-        }).populate('role');
-        
-        if (students.length !== studentIds.length) {
-          logger.warn(`Invalid student IDs provided: ${studentIds}`);
-          return res
-            .status(400)
-            .json({ message: "One or more student IDs are invalid" });
+        const otherBatches = await Batch.find({
+          courseId,
+          _id: { $ne: batchId }, 
+          isDeleted: false,
+        }).lean();
+
+        const alreadyAssignedStudents = [];
+        otherBatches.forEach((otherBatch) => {
+          otherBatch.studentIds.forEach((student) => {
+            if (
+              student.isInThisBatch &&
+              studentIds.includes(student.studentId.toString())
+            ) {
+              alreadyAssignedStudents.push({
+                studentId: student.studentId.toString(),
+                batchName: otherBatch.name,
+              });
+            }
+          });
+        });
+
+        if (alreadyAssignedStudents.length > 0) {
+          const errorMessage = alreadyAssignedStudents
+            .map(
+              (entry) =>
+                `Student ${entry.studentId} is already assigned to this course in batch: ${entry.batchName}`
+            )
+            .join("; ");
+          logger.warn(
+            `Students already assigned to course ${courseId} in other batches: ${JSON.stringify(
+              alreadyAssignedStudents
+            )}`
+          );
+          return res.status(400).json({ message: errorMessage });
         }
-       studentIds.forEach((studentId) => {
+
+        const users = await User.find({ _id: { $in: studentIds } }).populate({
+          path: "role",
+          select: "roleName",
+        });
+        logger.debug(
+          `Raw user data for studentIds ${studentIds}: ${JSON.stringify(
+            users.map((u) => ({ _id: u._id, role: u.role ? u.role.roleName : "null" }))
+          )}`
+        );
+
+        const students = users.filter(
+          (user) =>
+            user.role && user.role.roleName.toLowerCase() === "student"
+        );
+        const foundStudentIds = students.map((student) => student._id.toString());
+        const invalidStudentIds = studentIds.filter(
+          (id) => !foundStudentIds.includes(id)
+        );
+
+        if (students.length !== studentIds.length) {
+          const nonExistentIds = [];
+          const nonStudentIds = [];
+          for (const id of invalidStudentIds) {
+            const user = users.find((u) => u._id.toString() === id);
+            if (!user) {
+              nonExistentIds.push(id);
+            } else {
+              nonStudentIds.push(id);
+            }
+          }
+
+          const errorMessages = [];
+          if (nonExistentIds.length > 0) {
+            errorMessages.push(
+              `The following student IDs do not exist: ${nonExistentIds.join(", ")}`
+            );
+          }
+          if (nonStudentIds.length > 0) {
+            errorMessages.push(
+              `The following IDs are not students: ${nonStudentIds.join(", ")}`
+            );
+          }
+          logger.warn(`Invalid student IDs provided: ${invalidStudentIds}`);
+          return res.status(400).json({
+            message: errorMessages.join("; "),
+          });
+        }
+
+        studentIds.forEach((studentId) => {
           const existingStudent = batch.studentIds.find(
             (s) => s.studentId.toString() === studentId
           );
@@ -2564,18 +2642,21 @@ router.post(
       batch.courseId = courseId;
       await batch.save();
 
-      const notifications = batch.studentIds.map((studentId) =>
-        new Notification({
-          userId: studentId,
-          message: `Batch "${batch.name}" has been assigned to course "${course.title}" by ${teacher.name}`,
-          link: `${process.env.BASE_URL}/student/batches/${batch._id}`,
-        }).save()
-      );
+      const notifications = batch.studentIds
+        .filter((s) => s.isInThisBatch)
+        .map((s) =>
+          new Notification({
+            userId: s.studentId,
+            message: `Batch "${batch.name}" has been assigned to course "${course.title}" by ${teacher.name}`,
+            link: `${process.env.BASE_URL}/student/batches/${batch._id}`,
+          }).save()
+        );
 
       const students = await User.find({
-        _id: { $in: batch.studentIds },
+        _id: { $in: batch.studentIds.filter((s) => s.isInThisBatch).map((s) => s.studentId) },
         "role.roleName": "Student",
       });
+
       const emailNotifications = students.map((student) =>
         sendBatchCreatedEmail(
           student.email,
@@ -2587,12 +2668,12 @@ router.post(
 
       await Promise.all([...notifications, ...emailNotifications]);
 
-     batch.studentIds
-        .filter((s) => s.isInThisBatch === true)
+      batch.studentIds
+        .filter((s) => s.isInThisBatch)
         .forEach((s) => {
           getIO()
             .to(s.studentId.toString())
-            .emit('notification', {
+            .emit("notification", {
               message: `Batch "${batch.name}" has been assigned to course "${course.title}" by ${teacher.name}`,
               link: `${process.env.BASE_URL}/student/batches/${batch._id}`,
             });
@@ -2886,6 +2967,102 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
   }
 });
 
+// Get Batches assigned to a Student
+router.get("/batches/student", authenticate, async (req, res) => {
+  try {
+    const studentId = req.user.userId;
+    const student = await User.findById(studentId).populate("role");
+
+    if (!student || student.role.roleName !== "Student") {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const batches = await Batch.find({ "studentIds.studentId": studentId })
+      .populate({
+        path: "courseId",
+        populate: [
+          { path: "createdBy", select: "name" },
+          { path: "assignedTeachers", select: "name _id" },
+          { path: "lastUpdatedBy", select: "name" },
+        ],
+      })
+      .populate({
+        path: "studentIds.studentId",
+        select: "name email phone profileImage subjects profile.grade", // Select profile.grade instead of grade
+      });
+
+    const formattedBatches = batches.map((batch) => {
+      const studentData = batch.studentIds.find(
+        (s) => String(s.studentId._id) === String(studentId) && s.isInThisBatch
+      );
+
+      console.log(studentData);
+
+      return {
+        _id: batch._id,
+        name: batch.name,
+        courseId: batch.courseId?._id,
+        courseTitle: batch.courseId?.title,
+        courseDetails: batch.courseId
+          ? {
+              courseId: batch.courseId._id,
+              title: batch.courseId.title,
+              chapters: batch.courseId.chapters.map((chapter) => ({
+                chapterId: chapter._id,
+                title: chapter.title,
+                order: chapter.order,
+                lessons: chapter.lessons.map((lesson) => ({
+                  lessonId: lesson._id,
+                  title: lesson.title,
+                  format: lesson.format,
+                  learningGoals: lesson.learningGoals,
+                  resources: lesson.resources,
+                  order: lesson.order,
+                })),
+              })),
+              targetAudience: batch.courseId.targetAudience,
+              duration: batch.courseId.duration,
+              createdBy: {
+                _id: batch.courseId.createdBy?._id,
+                name: batch.courseId.createdBy?.name,
+              },
+              assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
+                _id: teacher._id,
+                name: teacher.name,
+              })),
+              lastUpdatedBy: {
+                _id: batch.courseId.lastUpdatedBy?._id,
+                name: batch.courseId.lastUpdatedBy?.name,
+              },
+              lastUpdatedAt: batch.courseId.lastUpdatedAt,
+              driveFolderId: batch.courseId.driveFolderId,
+              createdAt: batch.courseId.createdAt,
+            }
+          : null,
+        studentDetails: studentData
+          ? {
+              _id: studentData.studentId._id,
+              name: studentData.studentId.name,
+              email: studentData.studentId.email,
+              phone: studentData.studentId.phone,
+              profileImage: studentData.studentId.profileImage,
+              subjects: studentData.studentId.subjects,
+              grade: studentData.studentId.profile?.grade, // Access profile.grade
+            }
+          : null,
+        createdAt: batch.createdAt,
+      };
+    });
+
+    const studentBatches = formattedBatches.filter((b) => b.studentDetails);
+
+    res.json({ batches: studentBatches });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+
 // Get all batches for Admin and Super Admin
 router.get("/batches/admin", authenticate, async (req, res) => {
   try {
@@ -2972,6 +3149,7 @@ router.get("/batches/admin", authenticate, async (req, res) => {
   }
 });
 
+
 // Get all courses
 router.get("/all", authenticate, async (req, res) => {
   const userId = req.user.userId;
@@ -2987,9 +3165,10 @@ router.get("/all", authenticate, async (req, res) => {
 
     let courses = [];
     if (user.role.roleName === "Super Admin") {
-      courses = await Course.find({}).populate("createdBy", "name").populate("assignedTeachers", "name _id");
-    }
-    if (["Admin"].includes(user.role.roleName)) {
+      courses = await Course.find({})
+        .populate("createdBy", "name")
+        .populate("assignedTeachers", "name _id");
+    } else if (["Admin"].includes(user.role.roleName)) {
       courses = await Course.find({ createdBy: userId })
         .populate("createdBy", "name")
         .populate("assignedTeachers", "name");
@@ -2997,16 +3176,16 @@ router.get("/all", authenticate, async (req, res) => {
       const teacherCourses = await Course.find({ assignedTeachers: userId })
         .populate("createdBy", "name")
         .populate("assignedTeachers", "name")
-        .lean(); 
+        .lean();
 
-      const batches = await Batch.find({ teacherId: userId, courseId: { $ne: null } }).lean();
+      const batches = await Batch.find({ teacherId: userId, courseId: { $ne: null }, isDeleted: false }).lean();
 
       courses = await Promise.all(
         teacherCourses.map(async (course) => {
           try {
             if (!course?._id) {
               logger.warn(`Invalid course document for teacher ${userId}: ${JSON.stringify(course)}`);
-              return null; 
+              return null;
             }
 
             const batch = batches.find((b) => b.courseId?.toString() === course._id.toString());
@@ -3035,15 +3214,29 @@ router.get("/all", authenticate, async (req, res) => {
             return course;
           } catch (error) {
             logger.error(`Error processing course ${course?._id} for teacher ${userId}:`, error.message);
-            return null; 
+            return null;
           }
         })
       );
 
       courses = courses.filter((course) => course !== null);
     } else if (user.role.roleName === "Student") {
-      const scheduledCalls = await ScheduledCall.find({ studentIds: userId }).distinct('courseId');
-      courses = await Course.find({ _id: { $in: scheduledCalls } })
+      const scheduledCalls = await ScheduledCall.find({
+        studentIds: userId,
+        isDeleted: { $ne: true }, 
+      })
+        .populate({
+          path: "batchId",
+          match: { isDeleted: { $ne: true } },
+          select: "_id",
+        })
+        .lean();
+
+      const validCourseIds = scheduledCalls
+        .filter((call) => call.batchId)
+        .map((call) => call.courseId);
+
+      courses = await Course.find({ _id: { $in: validCourseIds } })
         .populate("createdBy", "name")
         .populate("assignedTeachers", "name");
     }
@@ -3062,7 +3255,7 @@ router.get("/all", authenticate, async (req, res) => {
             ? course.chapters.map((chapter) => ({
                 chapterId: chapter._id || null,
                 title: chapter.title || '',
-                order: 0,
+                order: chapter.order || 0,
                 lessons: Array.isArray(chapter.lessons)
                   ? chapter.lessons.map((lesson) => ({
                       lessonId: lesson._id || '',
@@ -3081,7 +3274,7 @@ router.get("/all", authenticate, async (req, res) => {
                         : [],
                       worksheets: Array.isArray(lesson.worksheets)
                         ? lesson.worksheets.map((worksheet) => ({
-                            type: worksheet.type || '',
+                           小: worksheet.type || '',
                             url: worksheet.url || '',
                             fileId: worksheet.fileId || '',
                             name: worksheet.name || '',
@@ -3105,7 +3298,7 @@ router.get("/all", authenticate, async (req, res) => {
         };
       } catch (error) {
         logger.error(`Error formatting course ${course?._id} for user ${userId}:`, error.message);
-        return null; 
+        return null;
       }
     });
 
