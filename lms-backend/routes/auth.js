@@ -852,6 +852,11 @@ router.put(
       .optional()
       .isString()
       .withMessage("Academic year must be a string"),
+    check("profile.grade")
+      .optional()
+      .isString()
+      .matches(/^[A-Za-z0-9\s-]+$/)
+      .withMessage("Grade must be a valid string (e.g., 9th)"),
     check("profile.experience")
       .optional()
       .isArray()
@@ -912,6 +917,7 @@ router.put(
             user.profile.enrollmentStatus,
           academicYear:
             updateData.profile?.academicYear || user.profile.academicYear,
+          grade: updateData.profile?.grade || user.profile.grade,
           experience: updateData.profile?.experience || user.profile.experience,
         },
       });

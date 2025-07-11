@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
@@ -30,6 +30,7 @@ import moment from "moment-timezone";
 import type { ScheduledCall, ApiError, Ticket } from "@/types";
 import Loader from "@/components/Loader";
 import { motion } from "framer-motion";
+import ClassTeachers from "@/components/ClassTeachers";
 
 interface DashboardStats {
   totalScheduledCalls: number;
@@ -387,7 +388,7 @@ export default function StudentDashboard() {
   };
 
   const getCurrentDate = () => {
-    return moment().format("MMM DD, YYYY");
+    return moment().tz("Asia/Kolkata").format("MMM DD, YYYY");
   };
 
   if (authLoading || (!user && callsLoading)) {
@@ -451,8 +452,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-blue-50 pt-20 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Header with welcome banner */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -492,7 +492,6 @@ export default function StudentDashboard() {
           <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
         </motion.div>
 
-        {/* Navigation Tabs */}
         <div className="flex align-center justify-center flex-wrap gap-3 mb-8">
           {["Overview", "Schedule"].map((tab) => (
             <button
@@ -518,145 +517,153 @@ export default function StudentDashboard() {
         {activeTab === "Overview" && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {/* Total Classes */}
               <Card
-                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer"
+                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-48 flex flex-col justify-between relative px-2"
                 onClick={() => router.push("/student/schedule")}
               >
-                <div className="absolute inset-0 bg-blue-50 opacity-50"></div>
-                <CardContent className="relative p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-blue-500 rounded-2xl shadow-lg">
-                      <BookOpen className="w-6 h-6 text-white" />
+                <div className="absolute inset-0 bg-blue-50 rounded-2xl"></div>
+                <CardContent className="relative p-2 flex flex-col justify-between h-full z-10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-gray-600 font-semibold">
+                        Total Classes
+                      </h3>
+                      <p className="text-2xl font-bold text-gray-900 mb-0">
+                        {callsLoading ? (
+                          <span className="inline-block w-10 h-6 bg-blue-200 animate-pulse rounded"></span>
+                        ) : (
+                          dashboardStats.totalScheduledCalls
+                        )}
+                      </p>
                     </div>
-                    <div className="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full border border-blue-200">
-                      ALL TIME
+                    <div className="p-1 bg-blue-500 rounded-lg">
+                      <BookOpen className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-gray-600 font-semibold">Total Classes</p>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {callsLoading ? (
-                        <span className="inline-block w-12 h-8 bg-blue-200 animate-pulse rounded"></span>
-                      ) : (
-                        dashboardStats.totalScheduledCalls
-                      )}
-                    </p>
+                  <div className="flex items-center justify-between mt-0">
                     <div className="flex items-center text-gray-600 text-sm font-medium">
                       <TrendingUp className="w-4 h-4 mr-1 text-blue-500" />
                       <span>Scheduled</span>
                     </div>
+                    <div className="text-blue-700 text-xs font-bold bg-blue-100 p-1 px-2 rounded">
+                      All Time
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Upcoming Classes */}
               <Card
-                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer"
+                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-48 flex flex-col justify-between relative px-2"
                 onClick={() => router.push("/student/schedule")}
               >
-                <div className="absolute inset-0 bg-teal-50 opacity-50"></div>
-                <CardContent className="relative p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-teal-500 rounded-2xl shadow-lg">
-                      <Clock className="w-6 h-6 text-white" />
+                <div className="absolute inset-0 bg-teal-50 rounded-2xl"></div>
+                <CardContent className="relative p-2 flex flex-col justify-between h-full z-10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-gray-600 font-semibold">
+                        Upcoming Classes
+                      </h3>
+                      <p className="text-2xl font-bold text-gray-900 mb-0">
+                        {callsLoading ? (
+                          <span className="inline-block w-10 h-6 bg-teal-200 animate-pulse rounded"></span>
+                        ) : (
+                          dashboardStats.upcomingCalls
+                        )}
+                      </p>
                     </div>
-                    <div className="bg-teal-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full border border-teal-200">
-                      THIS WEEK
+                    <div className="p-1 bg-teal-500 rounded-lg">
+                      <Clock className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-gray-600 font-semibold">
-                      Upcoming Classes
-                    </p>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {callsLoading ? (
-                        <span className="inline-block w-12 h-8 bg-teal-200 animate-pulse rounded"></span>
-                      ) : (
-                        dashboardStats.upcomingCalls
-                      )}
-                    </p>
+                  <div className="flex items-center justify-between mt-0">
                     <div className="flex items-center text-gray-600 text-sm font-medium">
                       <Clock className="w-4 h-4 mr-1 text-teal-500" />
-                      <span>Scheduled soon</span>
+                      <span>Scheduled Soon</span>
+                    </div>
+                    <div className="text-teal-700 text-xs font-bold bg-teal-100 p-1 px-2 rounded">
+                      This Week
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Completed Classes */}
               <Card
-                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer"
+                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-48 flex flex-col justify-between relative px-2"
                 onClick={() => router.push("/student/schedule")}
               >
-                <div className="absolute inset-0 bg-indigo-50 opacity-50"></div>
-                <CardContent className="relative p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-indigo-500 rounded-2xl shadow-lg">
-                      <Users className="w-6 h-6 text-white" />
+                <div className="absolute inset-0 bg-indigo-50 rounded-2xl"></div>
+                <CardContent className="relative p-2 flex flex-col justify-between h-full z-10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-gray-600 font-semibold">
+                        Completed Classes
+                      </h3>
+                      <p className="text-2xl font-bold text-gray-900 mb-0">
+                        {callsLoading ? (
+                          <span className="inline-block w-10 h-6 bg-indigo-200 animate-pulse rounded"></span>
+                        ) : (
+                          dashboardStats.completedCalls
+                        )}
+                      </p>
                     </div>
-                    <div className="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
-                      COMPLETED
+                    <div className="p-1 bg-indigo-500 rounded-lg">
+                      <Users className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-gray-600 font-semibold">
-                      Completed Classes
-                    </p>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {callsLoading ? (
-                        <span className="inline-block w-12 h-8 bg-indigo-200 animate-pulse rounded"></span>
-                      ) : (
-                        dashboardStats.completedCalls
-                      )}
-                    </p>
+                  <div className="flex items-center justify-between mt-0">
                     <div className="flex items-center text-gray-600 text-sm font-medium">
                       <TrendingUp className="w-4 h-4 mr-1 text-indigo-500" />
-                      <span>Total completed</span>
+                      <span>Total Completed</span>
+                    </div>
+                    <div className="text-indigo-700 text-xs font-bold bg-indigo-100 p-1 px-2 rounded">
+                      Completed
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Support Tickets */}
               <Card
-                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer"
+                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-48 flex flex-col justify-between relative px-2"
                 onClick={() => router.push("/student/raise-query")}
               >
-                <div className="absolute inset-0 bg-yellow-50 opacity-50"></div>
-                <CardContent className="relative p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-yellow-500 rounded-2xl shadow-lg">
-                      <FileText className="w-6 h-6 text-white" />
+                <div className="absolute inset-0 bg-yellow-50 rounded-2xl"></div>
+                <CardContent className="relative p-2 flex flex-col justify-between h-full z-10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-gray-600 font-semibold">
+                        Support Tickets
+                      </h3>
+                      <p className="text-2xl font-bold text-gray-900 mb-0">
+                        {ticketsLoading ? (
+                          <span className="inline-block w-10 h-6 bg-yellow-200 animate-pulse rounded"></span>
+                        ) : (
+                          `${dashboardStats.resolvedTickets}/${dashboardStats.openTickets}`
+                        )}
+                      </p>
                     </div>
-                    <div className="bg-yellow-100 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full border border-yellow-200">
-                      SUPPORT
+                    <div className="p-1 bg-yellow-500 rounded-lg">
+                      <FileText className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-gray-600 font-semibold">
-                      Support Tickets
-                    </p>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {ticketsLoading ? (
-                        <span className="inline-block w-12 h-8 bg-yellow-200 animate-pulse rounded"></span>
-                      ) : (
-                        `${dashboardStats.openTickets}/${dashboardStats.resolvedTickets}`
-                      )}
-                    </p>
+                  <div className="flex items-center justify-between mt-0">
                     <div className="flex items-center text-gray-600 text-sm font-medium">
                       <MessageSquare className="w-4 h-4 mr-1 text-yellow-500" />
-                      <span>Open/Resolved</span>
+                      <span>Resolved / Open</span>
+                    </div>
+                    <div className="text-yellow-700 text-xs font-bold bg-yellow-100 p-1 px-2 rounded">
+                      Support
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Ongoing/Upcoming Classes */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+              <div className="lg:col-span-2">
+                <ClassTeachers />
+              </div>
+
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all overflow-hidden lg:col-span-3 h-fit">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
@@ -754,7 +761,7 @@ export default function StudentDashboard() {
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-100">
-                      {upcomingCalls.slice(0, 4).map((call, index) => (
+                      {upcomingCalls.slice(0, 3).map((call, index) => (
                         <div
                           key={call._id}
                           className="p-6 hover:bg-blue-50 transition-all"
@@ -830,8 +837,7 @@ export default function StudentDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Quick Actions */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all overflow-hidden">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all overflow-hidden lg:col-span-5 h-fit">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
@@ -846,81 +852,82 @@ export default function StudentDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 grid gap-4">
-                  <Link href="/student/schedule">
-                    <div className="group flex items-center justify-between p-5 bg-blue-50 rounded-2xl hover:bg-blue-100 transition-all cursor-pointer border border-gray-200 transform hover:scale-105 shadow-md hover:shadow-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-teal-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
-                          <Calendar className="w-6 h-6 text-white" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Link href="/student/schedule">
+                      <div className="group flex items-center justify-between p-5 bg-blue-50 rounded-2xl hover:bg-blue-100 transition-all cursor-pointer border border-gray-200 transform hover:scale-105 shadow-md hover:shadow-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-teal-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
+                            <Calendar className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900">
+                              📅 View Schedule
+                            </h3>
+                            <p className="text-sm text-gray-600 font-medium">
+                              See all your upcoming classes
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">
-                            📅 View Schedule
-                          </h3>
-                          <p className="text-sm text-gray-600 font-medium">
-                            See all your upcoming classes
-                          </p>
-                        </div>
+                        <ArrowUpRight className="w-5 h-5 text-gray-600 opacity-70 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <ArrowUpRight className="w-5 h-5 text-gray-600 opacity-70 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </Link>
-
-                  <Link href="/student/profile">
-                    <div className="group flex items-center justify-between p-5 bg-indigo-50 rounded-2xl hover:bg-indigo-100 transition-all cursor-pointer border border-gray-200 transform hover:scale-105 shadow-md hover:shadow-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
-                          <User className="w-6 h-6 text-white" />
+                    </Link>
+                    <Link href="/student/profile">
+                      <div className="group flex items-center justify-between p-5 bg-indigo-50 rounded-2xl hover:bg-indigo-100 transition-all cursor-pointer border border-gray-200 transform hover:scale-105 shadow-md hover:shadow-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-blue-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
+                            <User className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900">
+                              👤 My Profile
+                            </h3>
+                            <p className="text-sm text-gray-600 font-medium">
+                              Update your information
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">
-                            👤 My Profile
-                          </h3>
-                          <p className="text-sm text-gray-600 font-medium">
-                            Update your information
-                          </p>
-                        </div>
+                        <ArrowUpRight className="w-5 h-5 text-gray-600 opacity-70 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <ArrowUpRight className="w-5 h-5 text-gray-600 opacity-70 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </Link>
-
-                  <Link href="/student/raise-query">
-                    <div className="group flex items-center justify-between p-5 bg-purple-50 rounded-2xl hover:bg-purple-100 transition-all cursor-pointer border border-gray-200 transform hover:scale-105 shadow-md hover:shadow-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-indigo-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
-                          <MessageSquare className="w-6 h-6 text-white" />
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Link href="/student/raise-query">
+                      <div className="group flex items-center justify-between p-5 bg-purple-50 rounded-2xl hover:bg-purple-100 transition-all cursor-pointer border border-gray-200 transform hover:scale-105 shadow-md hover:shadow-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-indigo-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
+                            <MessageSquare className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900">
+                              💬 Support Tickets
+                            </h3>
+                            <p className="text-sm text-gray-600 font-medium">
+                              View your support requests
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">
-                            💬 Support Tickets
-                          </h3>
-                          <p className="text-sm text-gray-600 font-medium">
-                            View your support requests
-                          </p>
-                        </div>
+                        <ArrowUpRight className="w-5 h-5 text-gray-600 opacity-70 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <ArrowUpRight className="w-5 h-5 text-gray-600 opacity-70 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </Link>
-
-                  <Link href="/student/raise-query/new">
-                    <div className="group flex items-center justify-between p-5 bg-yellow-50 rounded-2xl hover:bg-yellow-100 transition-all cursor-pointer border border-gray-200 transform hover:scale-105 shadow-md hover:shadow-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-amber-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
-                          <Bell className="w-6 h-6 text-white" />
+                    </Link>
+                    <Link href="/student/raise-query/new">
+                      <div className="group flex items-center justify-between p-5 bg-yellow-50 rounded-2xl hover:bg-yellow-100 transition-all cursor-pointer border border-gray-200 transform hover:scale-105 shadow-md hover:shadow-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-amber-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
+                            <Bell className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900">
+                              🎫 Raise Query
+                            </h3>
+                            <p className="text-sm text-gray-600 font-medium">
+                              Create new support ticket
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">
-                            🎫 Raise Query
-                          </h3>
-                          <p className="text-sm text-gray-600 font-medium">
-                            Create new support ticket
-                          </p>
-                        </div>
+                        <ArrowUpRight className="w-5 h-5 text-gray-600 opacity-70 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <ArrowUpRight className="w-5 h-5 text-gray-600 opacity-70 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             </div>

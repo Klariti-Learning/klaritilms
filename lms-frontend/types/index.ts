@@ -106,6 +106,7 @@ export interface ApiUserResponse {
   isFirstLogin: boolean;
   preferredTimeSlots: string[];
   profile: {
+    grade: undefined;
     bio: string;
     hobbies: string[];
     skills: string[];
@@ -352,6 +353,7 @@ export interface Profile {
   qualifications?: string[];
   enrollmentStatus?: "Active" | "Inactive";
   academicYear?: string;
+  grade?:string;
   experience: { title: string; institution: string; duration: string }[];
   [key: string]: string | string[] | { title: string; institution: string; duration: string }[] | undefined;
 }

@@ -23,6 +23,7 @@ import {
   AlertCircle,
   XCircle,
   RotateCcw,
+  BookCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -85,6 +86,7 @@ interface ScheduledCall {
   previousEndTime?: string | null;
   callDuration?: string | null;
   updatedAt: string;
+  _id: string
 }
 
 interface ScheduleResponse {
@@ -230,8 +232,8 @@ export default function BatchDetails() {
         const filteredCalls = Array.isArray(scheduleData.calls)
           ? validLessonIds.length > 0
             ? scheduleData.calls.filter((call: ScheduledCall) =>
-                call.lessonId ? validLessonIds.includes(call.lessonId) : false
-              )
+              call.lessonId ? validLessonIds.includes(call.lessonId) : false
+            )
             : scheduleData.calls
           : [];
 
@@ -366,6 +368,7 @@ export default function BatchDetails() {
     }
   };
 
+
   const isScheduled =
     scheduledCalls?.calls &&
     Array.isArray(scheduledCalls.calls) &&
@@ -474,10 +477,16 @@ export default function BatchDetails() {
               </div>
             </div>
             {isScheduled && (
-              <Badge className="bg-gradient-to-r from-green-400 to-green-600 text-white px-6 py-3 rounded-full text-sm font-semibold shadow-lg">
-                <Calendar className="w-4 h-4 mr-2" />
-                {scheduledCalls?.schedule?.scheduleStatus}
-              </Badge>
+              <div className="flex gap-4">
+                <Button onClick={() => router.push(`/teacher/attendance/batches/${batchId}`)} className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-700 hover:to-amber-900 text-white rounded-full p-6 flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
+                  <BookCheck className="w-4 h-4" />
+                  Batch Attendance
+                </Button>
+                <Badge className="bg-gradient-to-r from-green-400 to-green-600 text-white px-6 py-3 rounded-full text-sm font-semibold shadow-lg">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  {scheduledCalls?.schedule?.scheduleStatus}
+                </Badge>
+              </div>
             )}
           </div>
         </motion.div>
@@ -753,6 +762,12 @@ export default function BatchDetails() {
                               Status
                             </div>
                           </th>
+                          <th className="px-8 py-6 text-left font-bold text-sm uppercase tracking-wider">
+                            <div className="flex items-center gap-2">
+                              <BookCheck className="w-4 h-4" />
+                              Attendance
+                            </div>
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-100">
@@ -776,7 +791,7 @@ export default function BatchDetails() {
                                 className="bg-gradient-to-r from-blue-50 to-blue-100"
                               >
                                 <td
-                                  colSpan={4}
+                                  colSpan={5}
                                   className="px-8 py-4 font-bold text-lg text-blue-700 border-l-4 border-blue-500"
                                 >
                                   <div className="flex items-center gap-3">
@@ -805,10 +820,9 @@ export default function BatchDetails() {
                                     className={`
                                       transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-blue-100/50 hover:shadow-sm
                                       ${isCancelled ? "opacity-60" : ""}
-                                      ${
-                                        callIndex % 2 === 0
-                                          ? "bg-gray-50/30"
-                                          : "bg-white"
+                                      ${callIndex % 2 === 0
+                                        ? "bg-gray-50/30"
+                                        : "bg-white"
                                       }
                                     `}
                                   >
@@ -817,19 +831,18 @@ export default function BatchDetails() {
                                         <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex-shrink-0"></div>
                                         <div>
                                           <p
-                                            className={`font-medium ${
-                                              isCancelled
-                                                ? "line-through text-gray-500"
-                                                : "text-gray-900"
-                                            }`}
+                                            className={`font-medium ${isCancelled
+                                              ? "line-through text-gray-500"
+                                              : "text-gray-900"
+                                              }`}
                                           >
                                             {call.lessonTitle ===
-                                            "Unknown Lesson"
+                                              "Unknown Lesson"
                                               ? `Lesson ${callIndex + 1}`
                                               : truncateText(
-                                                  call.lessonTitle,
-                                                  30
-                                                )}
+                                                call.lessonTitle,
+                                                30
+                                              )}
                                           </p>
                                           <p className="text-sm text-gray-500 mt-1">
                                             Duration: {call.callDuration}
@@ -845,11 +858,10 @@ export default function BatchDetails() {
                                           </div>
                                         )}
                                         <div
-                                          className={`font-medium ${
-                                            isCancelled
-                                              ? "line-through text-gray-500"
-                                              : "text-gray-900"
-                                          }`}
+                                          className={`font-medium ${isCancelled
+                                            ? "line-through text-gray-500"
+                                            : "text-gray-900"
+                                            }`}
                                         >
                                           {formatDate(call.date)}
                                         </div>
@@ -869,11 +881,10 @@ export default function BatchDetails() {
                                             </div>
                                           )}
                                         <div
-                                          className={`font-medium ${
-                                            isCancelled
-                                              ? "line-through text-gray-500"
-                                              : "text-gray-900"
-                                          }`}
+                                          className={`font-medium ${isCancelled
+                                            ? "line-through text-gray-500"
+                                            : "text-gray-900"
+                                            }`}
                                         >
                                           {formatTime(call.startTime)} -{" "}
                                           {formatTime(call.endTime)}
@@ -890,6 +901,13 @@ export default function BatchDetails() {
                                         >
                                           {call.status}
                                         </Badge>
+                                      </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                      <div className="flex items-center gap-2">
+                                        {call.status === "Completed" && (
+                                          <Button onClick={() => router.push(`/teacher/attendance/calls/${call?._id}?chapter=${call.chapterTitle}&lesson=${call.lessonTitle}`)} className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-700 hover:to-amber-900 text-white rounded-full p-3 flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">Call Attendance</Button>
+                                        )}
                                       </div>
                                     </td>
                                   </motion.tr>
@@ -976,26 +994,26 @@ export default function BatchDetails() {
                       </div>
                       {(previewModal.targetAudience ||
                         previewModal.duration) && (
-                        <div className="flex justify-center gap-4 mt-4">
-                          {previewModal.targetAudience && (
-                            <Badge className="bg-blue-100 text-blue-700 px-4 py-2 rounded-full border-0">
-                              <Target className="w-3 h-3 mr-2" />
-                              {previewModal.targetAudience}
-                            </Badge>
-                          )}
-                          {previewModal.duration && (
-                            <Badge className="bg-green-100 text-green-700 px-4 py-2 rounded-full border-0">
-                              <Clock className="w-3 h-3 mr-2" />
-                              {previewModal.duration}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
+                          <div className="flex justify-center gap-4 mt-4">
+                            {previewModal.targetAudience && (
+                              <Badge className="bg-blue-100 text-blue-700 px-4 py-2 rounded-full border-0">
+                                <Target className="w-3 h-3 mr-2" />
+                                {previewModal.targetAudience}
+                              </Badge>
+                            )}
+                            {previewModal.duration && (
+                              <Badge className="bg-green-100 text-green-700 px-4 py-2 rounded-full border-0">
+                                <Clock className="w-3 h-3 mr-2" />
+                                {previewModal.duration}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                     </motion.div>
 
                     {/* Table of Contents */}
                     {previewModal.chapters &&
-                    previewModal.chapters.length > 0 ? (
+                      previewModal.chapters.length > 0 ? (
                       <div>
                         <div className="text-center mb-8">
                           <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2">
@@ -1069,105 +1087,105 @@ export default function BatchDetails() {
                                             {openLessons[
                                               `${chapterIndex}-${lessonIndex}`
                                             ] && (
-                                              <motion.div
-                                                initial={{
-                                                  height: 0,
-                                                  opacity: 0,
-                                                }}
-                                                animate={{
-                                                  height: "auto",
-                                                  opacity: 1,
-                                                }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                transition={{ duration: 0.3 }}
-                                                className="mt-4 pt-4 border-t border-gray-200"
-                                              >
-                                                {lesson.learningGoals?.length >
-                                                  0 && (
-                                                  <div className="mb-4">
-                                                    <h5 className="font-medium text-gray-700 mb-2">
-                                                      🎯 Learning Goals
-                                                    </h5>
-                                                    <ul className="space-y-1">
-                                                      {lesson.learningGoals.map(
-                                                        (
-                                                          goal: string,
-                                                          index: number
-                                                        ) =>
-                                                          goal?.trim() ? (
-                                                            <li
-                                                              key={index}
-                                                              className="flex items-start gap-2 text-sm text-gray-600"
-                                                            >
-                                                              <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0"></span>
-                                                              {goal}
-                                                            </li>
-                                                          ) : null
-                                                      )}
-                                                    </ul>
-                                                  </div>
-                                                )}
-                                                {Array.isArray(
-                                                  lesson.resources
-                                                ) &&
-                                                  lesson.resources.length >
+                                                <motion.div
+                                                  initial={{
+                                                    height: 0,
+                                                    opacity: 0,
+                                                  }}
+                                                  animate={{
+                                                    height: "auto",
+                                                    opacity: 1,
+                                                  }}
+                                                  exit={{ height: 0, opacity: 0 }}
+                                                  transition={{ duration: 0.3 }}
+                                                  className="mt-4 pt-4 border-t border-gray-200"
+                                                >
+                                                  {lesson.learningGoals?.length >
                                                     0 && (
-                                                    <div className="mb-4">
-                                                      <h5 className="font-medium text-gray-700 mb-2">
-                                                        📎 Resources
-                                                      </h5>
-                                                      <div className="grid gap-2">
-                                                        {lesson.resources.map(
-                                                          (file, fileIndex) => (
-                                                            <div
-                                                              key={fileIndex}
-                                                              className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
-                                                            >
-                                                              {getFileIcon(
-                                                                lesson.format
-                                                              )}
-                                                              <span className="text-sm text-gray-600 truncate">
-                                                                {file.name}
-                                                              </span>
-                                                            </div>
-                                                          )
-                                                        )}
+                                                      <div className="mb-4">
+                                                        <h5 className="font-medium text-gray-700 mb-2">
+                                                          🎯 Learning Goals
+                                                        </h5>
+                                                        <ul className="space-y-1">
+                                                          {lesson.learningGoals.map(
+                                                            (
+                                                              goal: string,
+                                                              index: number
+                                                            ) =>
+                                                              goal?.trim() ? (
+                                                                <li
+                                                                  key={index}
+                                                                  className="flex items-start gap-2 text-sm text-gray-600"
+                                                                >
+                                                                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0"></span>
+                                                                  {goal}
+                                                                </li>
+                                                              ) : null
+                                                          )}
+                                                        </ul>
                                                       </div>
-                                                    </div>
-                                                  )}
-                                                {Array.isArray(
-                                                  lesson.worksheets
-                                                ) &&
-                                                  lesson.worksheets.length >
+                                                    )}
+                                                  {Array.isArray(
+                                                    lesson.resources
+                                                  ) &&
+                                                    lesson.resources.length >
                                                     0 && (
-                                                    <div>
-                                                      <h5 className="font-medium text-gray-700 mb-2">
-                                                        📝 Worksheets
-                                                      </h5>
-                                                      <div className="grid gap-2">
-                                                        {lesson.worksheets.map(
-                                                          (
-                                                            worksheet,
-                                                            fileIndex
-                                                          ) => (
-                                                            <div
-                                                              key={fileIndex}
-                                                              className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
-                                                            >
-                                                              {getFileIcon(
-                                                                lesson.format
-                                                              )}
-                                                              <span className="text-sm text-gray-600 truncate">
-                                                                {worksheet.name}
-                                                              </span>
-                                                            </div>
-                                                          )
-                                                        )}
+                                                      <div className="mb-4">
+                                                        <h5 className="font-medium text-gray-700 mb-2">
+                                                          📎 Resources
+                                                        </h5>
+                                                        <div className="grid gap-2">
+                                                          {lesson.resources.map(
+                                                            (file, fileIndex) => (
+                                                              <div
+                                                                key={fileIndex}
+                                                                className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
+                                                              >
+                                                                {getFileIcon(
+                                                                  lesson.format
+                                                                )}
+                                                                <span className="text-sm text-gray-600 truncate">
+                                                                  {file.name}
+                                                                </span>
+                                                              </div>
+                                                            )
+                                                          )}
+                                                        </div>
                                                       </div>
-                                                    </div>
-                                                  )}
-                                              </motion.div>
-                                            )}
+                                                    )}
+                                                  {Array.isArray(
+                                                    lesson.worksheets
+                                                  ) &&
+                                                    lesson.worksheets.length >
+                                                    0 && (
+                                                      <div>
+                                                        <h5 className="font-medium text-gray-700 mb-2">
+                                                          📝 Worksheets
+                                                        </h5>
+                                                        <div className="grid gap-2">
+                                                          {lesson.worksheets.map(
+                                                            (
+                                                              worksheet,
+                                                              fileIndex
+                                                            ) => (
+                                                              <div
+                                                                key={fileIndex}
+                                                                className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
+                                                              >
+                                                                {getFileIcon(
+                                                                  lesson.format
+                                                                )}
+                                                                <span className="text-sm text-gray-600 truncate">
+                                                                  {worksheet.name}
+                                                                </span>
+                                                              </div>
+                                                            )
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                </motion.div>
+                                              )}
                                           </AnimatePresence>
                                         </motion.div>
                                       )

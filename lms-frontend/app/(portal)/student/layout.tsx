@@ -133,7 +133,10 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
         );
       } catch (error) {
         const errorMsg = error as ApiError;
-        console.error("Failed to fetch notification preferences:", errorMsg.response?.data?.message);
+        console.error(
+          "Failed to fetch notification preferences:",
+          errorMsg.response?.data?.message
+        );
         toast.error("Failed to load notification preferences");
       } finally {
         setIsLoading(false);
@@ -148,7 +151,10 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
         console.log("fetchedCourses", fetchedCourses);
       } catch (error) {
         const errorMsg = error as ApiError;
-        console.error("Failed to fetch courses:", errorMsg.response?.data?.message);
+        console.error(
+          "Failed to fetch courses:",
+          errorMsg.response?.data?.message
+        );
         toast.error("Failed to fetch courses");
       }
     };
@@ -195,7 +201,10 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       toast.success("Notifications disabled");
     } catch (error) {
       const errorMsg = error as ApiError;
-      console.error("Failed to disable notifications:", errorMsg.response?.data?.message);
+      console.error(
+        "Failed to disable notifications:",
+        errorMsg.response?.data?.message
+      );
       toast.error("Failed to disable notifications");
     }
   };
@@ -233,7 +242,10 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       );
     } catch (error) {
       const errorMsg = error as ApiError;
-      console.error("Failed to save notification preferences:", errorMsg.response?.data?.message);
+      console.error(
+        "Failed to save notification preferences:",
+        errorMsg.response?.data?.message
+      );
       toast.error("Failed to save notification preferences");
     }
   };
@@ -404,7 +416,6 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
 
       const { notifications: notificationsData } = response.data;
       setNotifications(notificationsData || []);
-
     } catch (error) {
       const apiError = error as ApiError;
       const errorMessage =
@@ -493,7 +504,10 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       toast.success("Notification marked as read");
     } catch (error) {
       const errorMsg = error as ApiError;
-      console.error("Failed to mark notification as read:", errorMsg.response?.data?.message);
+      console.error(
+        "Failed to mark notification as read:",
+        errorMsg.response?.data?.message
+      );
       toast.error("Failed to mark notification as read");
     }
   };
@@ -636,8 +650,8 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
         >
           <div className="p-6 border-b border-indigo-200/60">
             {isSidebarCollapsed ? (
-              <div className="flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 bg-gray-100 flex-shrink-0">
+              <div className="flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 bg-gray-100 flex-shrink-0 mb-2">
                   <Image
                     src={userDetails?.profileImage || profile}
                     alt="Profile"
@@ -645,6 +659,17 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                     width={48}
                     height={48}
                   />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-gray-800">
+                    {userDetails?.name?.split(" ")[0] || user?.name?.split(" ")[0] || "Student"}
+                  </p>
+                  <Badge
+                    variant="secondary"
+                    className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 px-2.5 py-0.5 rounded-full mt-1"
+                  >
+                    {userDetails?.role?.roleName || user?.role?.roleName || "Student"}
+                  </Badge>
                 </div>
               </div>
             ) : (
@@ -669,12 +694,22 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                       <h3 className="font-semibold text-gray-800 text-lg">
                         {userDetails?.name || user?.name}
                       </h3>
-                      <Badge
-                        variant="secondary"
-                        className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200"
-                      >
-                        {userDetails?.role?.roleName || user?.role?.roleName}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 px-2.5 py-0.5 rounded-full"
+                        >
+                          {userDetails?.role?.roleName || user?.role?.roleName}
+                        </Badge>
+                        {userDetails?.profile?.grade && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-green-50 text-green-700 border-green-200 px-2.5 py-0.5 rounded-full"
+                          >
+                            Grade: {userDetails.profile.grade}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

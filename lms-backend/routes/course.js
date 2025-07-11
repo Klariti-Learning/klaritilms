@@ -2967,6 +2967,102 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
   }
 });
 
+// Get Batches assigned to a Student
+router.get("/batches/student", authenticate, async (req, res) => {
+  try {
+    const studentId = req.user.userId;
+    const student = await User.findById(studentId).populate("role");
+
+    if (!student || student.role.roleName !== "Student") {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const batches = await Batch.find({ "studentIds.studentId": studentId })
+      .populate({
+        path: "courseId",
+        populate: [
+          { path: "createdBy", select: "name" },
+          { path: "assignedTeachers", select: "name _id" },
+          { path: "lastUpdatedBy", select: "name" },
+        ],
+      })
+      .populate({
+        path: "studentIds.studentId",
+        select: "name email phone profileImage subjects profile.grade", // Select profile.grade instead of grade
+      });
+
+    const formattedBatches = batches.map((batch) => {
+      const studentData = batch.studentIds.find(
+        (s) => String(s.studentId._id) === String(studentId) && s.isInThisBatch
+      );
+
+      console.log(studentData);
+
+      return {
+        _id: batch._id,
+        name: batch.name,
+        courseId: batch.courseId?._id,
+        courseTitle: batch.courseId?.title,
+        courseDetails: batch.courseId
+          ? {
+              courseId: batch.courseId._id,
+              title: batch.courseId.title,
+              chapters: batch.courseId.chapters.map((chapter) => ({
+                chapterId: chapter._id,
+                title: chapter.title,
+                order: chapter.order,
+                lessons: chapter.lessons.map((lesson) => ({
+                  lessonId: lesson._id,
+                  title: lesson.title,
+                  format: lesson.format,
+                  learningGoals: lesson.learningGoals,
+                  resources: lesson.resources,
+                  order: lesson.order,
+                })),
+              })),
+              targetAudience: batch.courseId.targetAudience,
+              duration: batch.courseId.duration,
+              createdBy: {
+                _id: batch.courseId.createdBy?._id,
+                name: batch.courseId.createdBy?.name,
+              },
+              assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
+                _id: teacher._id,
+                name: teacher.name,
+              })),
+              lastUpdatedBy: {
+                _id: batch.courseId.lastUpdatedBy?._id,
+                name: batch.courseId.lastUpdatedBy?.name,
+              },
+              lastUpdatedAt: batch.courseId.lastUpdatedAt,
+              driveFolderId: batch.courseId.driveFolderId,
+              createdAt: batch.courseId.createdAt,
+            }
+          : null,
+        studentDetails: studentData
+          ? {
+              _id: studentData.studentId._id,
+              name: studentData.studentId.name,
+              email: studentData.studentId.email,
+              phone: studentData.studentId.phone,
+              profileImage: studentData.studentId.profileImage,
+              subjects: studentData.studentId.subjects,
+              grade: studentData.studentId.profile?.grade, // Access profile.grade
+            }
+          : null,
+        createdAt: batch.createdAt,
+      };
+    });
+
+    const studentBatches = formattedBatches.filter((b) => b.studentDetails);
+
+    res.json({ batches: studentBatches });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+
 // Get all batches for Admin and Super Admin
 router.get("/batches/admin", authenticate, async (req, res) => {
   try {

@@ -160,15 +160,25 @@ router.get(
       let query = {};
       if (fromDate || toDate) {
         query.date = {};
-        if (fromDate) query.date.$gte = new Date(fromDate);
-        if (toDate) query.date.$lte = new Date(toDate);
+        if (fromDate) {
+          query.date.$gte = new Date(fromDate);
+        }
+        if (toDate) {
+          const endOfDay = new Date(toDate);
+          endOfDay.setUTCHours(23, 59, 59, 999); // ensures full day is included
+          query.date.$lte = endOfDay;
+        }
       }
 
       if (batchId) query.batchId = batchId;
       if (studentId) query["attendances.studentId"] = studentId;
       if (callId) query.callId = callId;
-      if (user.role.roleName === "Student") query["attendances.studentId"] = userId;
-      else if (user.role.roleName === "Teacher") query.teacherId = userId;
+
+      if (user.role.roleName === "Student") {
+        query["attendances.studentId"] = userId;
+      } else if (user.role.roleName === "Teacher") {
+        query.teacherId = userId;
+      }
 
       const attendanceRecordsRaw = await Attendance.find(query)
         .populate("batchId", "name")
@@ -179,51 +189,49 @@ router.get(
         .populate("callId", "startTime endTime")
         .lean();
 
-      const attendanceRecords = attendanceRecordsRaw.map(record => {
-        return {
-          attendanceId: record._id,
-          callId: record.callId?._id || record.callId,
-          batch: record.batchId
-            ? {
-                batchId: record.batchId._id,
-                name: record.batchId.name,
-              }
-            : null,
-          course: record.courseId
-            ? {
-                courseId: record.courseId._id,
-                title: record.courseId.title,
-              }
-            : null,
-          teacher: record.teacherId
+      const attendanceRecords = attendanceRecordsRaw.map(record => ({
+        attendanceId: record._id,
+        callId: record.callId?._id || record.callId,
+        batch: record.batchId
+          ? {
+              batchId: record.batchId._id,
+              name: record.batchId.name,
+            }
+          : null,
+        course: record.courseId
+          ? {
+              courseId: record.courseId._id,
+              title: record.courseId.title,
+            }
+          : null,
+        teacher: record.teacherId
+          ? {
+              teacherId: record.teacherId._id,
+              name: record.teacherId.name,
+            }
+          : null,
+        date: record.date || record.classDate,
+        startTime: record.callId?.startTime || record.classStartTime || record.startTime || null,
+        endTime: record.callId?.endTime || record.classEndTime || record.endTime || null,
+        timezone: record.timezone || "Asia/Calcutta",
+        students: (record.attendances || record.studentAttendance || []).map(student => ({
+          studentId: student.studentId?._id || student.studentId,
+          name: student.studentId?.name || "N/A",
+          status: student.status,
+          markedAt: record.callId?.endTime || record.classEndTime || record.endTime || null,
+          markedBy: record.teacherId
             ? {
                 teacherId: record.teacherId._id,
                 name: record.teacherId.name,
               }
-            : null,
-          date: record.date || record.classDate,
-          startTime: record.callId?.startTime || record.classStartTime || record.startTime || null,
-          endTime: record.callId?.endTime || record.classEndTime || record.endTime || null,
-          timezone: record.timezone || "Asia/Calcutta",
-          students: (record.attendances || record.studentAttendance || []).map(student => ({
-            studentId: student.studentId?._id || student.studentId,
-            name: student.studentId?.name || "N/A",
-            status: student.status,
-            markedAt: record.callId?.endTime || record.classEndTime || record.endTime || null, 
-            markedBy: record.teacherId
-              ? {
-                  teacherId: record.teacherId._id,
-                  name: record.teacherId.name,
-                }
-              : {
-                  teacherId: student.markedBy?._id || student.markedBy,
-                  name: student.markedBy?.name || "N/A",
-                },
-          })),
-          createdAt: record.createdAt,
-          updatedAt: record.updatedAt,
-        };
-      });
+            : {
+                teacherId: student.markedBy?._id || student.markedBy,
+                name: student.markedBy?.name || "N/A",
+              },
+        })),
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+      }));
 
       res.json({ attendanceRecords });
     } catch (error) {
