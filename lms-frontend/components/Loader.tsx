@@ -29,7 +29,6 @@ const Loader: React.FC<LoaderProps> = ({
         fullScreen ? "min-h-screen bg-gray-100" : "bg-white"
       }`}
       style={{
-        backgroundColor: fullScreen ? "#f3f4f6" : "#ffffff",
         position: fullScreen ? "fixed" : "relative",
         top: fullScreen ? "0" : "auto",
         left: fullScreen ? "0" : "auto",

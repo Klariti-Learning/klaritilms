@@ -22,7 +22,6 @@ initializeSocket(server);
 
 const allowedOrigin = process.env.BASE_URL;
 
-
 app.use(helmet());
 app.use(
   cors({
@@ -58,7 +57,7 @@ const initializeRoutesAndJobs = () => {
   const courseRoutes = require("./routes/course");
   const driveRoutes = require("./routes/drive");
   const demoClassRoutes = require("./routes/democlass");
-
+  const attendanceRoutes = require("./routes/attendance"); 
   const { startPreCallNotifications } = require("./jobs/preCallNotifications");
   const { startScheduler } = require("./jobs/scheduler");
 
@@ -72,6 +71,7 @@ const initializeRoutesAndJobs = () => {
   app.use("/api/courses", courseRoutes);
   app.use("/api/drive", driveRoutes);
   app.use("/api/demo-class", demoClassRoutes);
+  app.use("/api/attendance", attendanceRoutes); 
 
   startPreCallNotifications();
   startScheduler();
@@ -79,16 +79,13 @@ const initializeRoutesAndJobs = () => {
 
 initializeRoutesAndJobs();
 
-
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "OK", message: "Server is healthy" });
 });
 
-
 app.get("/debug-sentry", function mainHandler(req, res) {
   throw new Error("My first Sentry error!");
 });
-
 
 app.use((err, req, res, next) => {
   logger.error("Server error:", err);

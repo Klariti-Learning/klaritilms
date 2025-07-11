@@ -641,12 +641,12 @@ export function TeacherCoursesContent() {
                 >
                   <GraduationCap className="w-6 h-6 text-white" />
                 </motion.div>
-                <Sparkles className="w-6 h-6 text-yellow-500" />
-              </div>
 
-              <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-3">
-                Teaching Dashboard
-              </h1>
+                <h1 className="ml-2 text-3xl md:text-4xl font-black bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-3">
+                  Teaching Dashboard
+                </h1>
+                <Sparkles className="ml-2 w-6 h-6 text-yellow-500" />
+              </div>
 
               <div className="glass-light rounded-2xl p-4 max-w-2xl mx-auto shadow-lg">
                 <p className="text-gray-700 mb-3 font-medium">

@@ -13,7 +13,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@sentry/node": "^9.35.0",
+    "@sentry/node": "^9.34.0",
     "axios": "^1.9.0",
     "base-64": "^1.0.0",
     "cloudinary": "^2.6.0",
@@ -37,6 +37,7 @@
     "redis": "^4.7.0",
     "socket.io": "^4.8.1",
     "twilio": "^5.5.2",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "xlsx": "^0.18.5"
   }
 }
