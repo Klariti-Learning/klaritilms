@@ -2,9 +2,17 @@ const { createClient } = require("redis");
 const logger = require("../utils/logger");
 require("dotenv").config();
 
+let redisUrl;
+if (process.env.REDIS_USERNAME && process.env.REDIS_PASSWORD) {
+  redisUrl = `redis://${process.env.REDIS_USERNAME}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`;
+} else {
+  redisUrl = `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`;
+}
+console.log("Redis connection URL:", redisUrl);
+
 const redisClient = createClient({
-  url: `redis://${process.env.REDIS_USERNAME}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
- 
+  url: redisUrl,
+
   socket: {
     reconnectStrategy: (retries) => {
       logger.info(`Redis reconnect attempt ${retries}`);
@@ -49,7 +57,10 @@ const connectRedis = async () => {
       return;
     } catch (err) {
       retries++;
-      logger.error(`Failed to connect to Redis (attempt ${retries}/${maxRetries}):`, err);
+      logger.error(
+        `Failed to connect to Redis (attempt ${retries}/${maxRetries}):`,
+        err
+      );
       if (retries === maxRetries) {
         throw new Error("Failed to connect to Redis after maximum retries");
       }
