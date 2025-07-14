@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button";
-import { ArrowUpFromLine, Calendar, CalendarCheck2, ChartNoAxesColumn, Clock, Sparkles, Target, User } from "lucide-react";
+import { Calendar, CalendarCheck2, ChartNoAxesColumn, Clock, Download, Sparkles, Target, User } from "lucide-react";
 import api from "@/lib/api";
 import { ApiError } from "@/types";
 import toast from "react-hot-toast";
@@ -19,6 +19,7 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination"
+import { format, parseISO } from "date-fns";
 
 export interface AttendanceRecord {
     attendanceId: string;
@@ -60,6 +61,7 @@ export interface StudentAttendance {
 
 
 export default function CallAttendanceDetails() {
+    const { user } = useAuth();
     const { loading: authLoading, deviceId } = useAuth();
     const router = useRouter();
     const { callId } = useParams();
@@ -76,6 +78,7 @@ export default function CallAttendanceDetails() {
 
     const students = attendanceResponse?.[0]?.students || [];
 
+    // Calculation of pagination values
     const totalPages = Math.ceil(students.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
@@ -98,6 +101,61 @@ export default function CallAttendanceDetails() {
         }
     }
 
+    const exportToCSV = async () => {
+        if (!callId) {
+            setError("No batch ID provided");
+            setLoading(false);
+            return;
+        }
+        try {
+            const params: { callId: string, teacherId?: string } = {
+                callId: Array.isArray(callId) ? callId[0] : callId,
+                teacherId: user?._id
+            }
+
+            const response = await api.get('/attendance/data', { params });
+            const records: AttendanceRecord[] = response.data.attendanceRecords || [];
+
+            if (records.length === 0) {
+                setError('No attendace records to export');
+                return;
+            }
+
+            const escapeCSV = (val: string) => `"${val?.replace(/"/g, '""') || "N/A"}"`;
+
+            const headers = ['Date', 'Course', 'Batch', 'Chapter', 'Lesson', 'Teacher', 'Student', 'Status'];
+
+            const csvRows = [
+                headers.join(','),
+                ...records.flatMap((record: AttendanceRecord) => {
+                    const date = format(parseISO(record.date), 'dd-MMM-yyyy');
+                    const course = escapeCSV(record.course?.title);
+                    const batch = escapeCSV(record.batch?.name);
+                    const teacher = escapeCSV(record.teacher?.name);
+
+                    return record.students.map((student) => {
+                        const studentName = escapeCSV(student?.name);
+                        const status = escapeCSV(student?.status);
+                        return [date, course, batch, chapterTitle, lessonName, teacher, studentName, status].join(',');
+                    });
+                }),
+            ];
+
+
+            const batchName = records[0].batch?.name || "Batch";
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${batchName}_${chapterTitle}_attendance.csv`;
+            link.click();
+        } catch (error) {
+            console.log("[ExportError] Error exporting Call Attendance", error);
+            setError("Failed to export Call Attendance data");
+        }
+
+    }
     const getPageNumbers = () => {
         const pages = [];
         const maxVisiblePages = 5;
@@ -118,6 +176,7 @@ export default function CallAttendanceDetails() {
                 pages.push('ellipsis-end');
             }
 
+            // Show last page
             if (totalPages > 1) {
                 pages.push(totalPages);
             }
@@ -138,6 +197,7 @@ export default function CallAttendanceDetails() {
     };
 
     const handleUnauthorized = useCallback(() => {
+        console.debug("[CourseDetails] Handling unauthorized access");
         localStorage.removeItem("token");
         localStorage.removeItem("userId");
         localStorage.removeItem("isLoggedIn");
@@ -158,14 +218,23 @@ export default function CallAttendanceDetails() {
         try {
             const token = localStorage.getItem("token");
             if (!token || !deviceId) {
-
+                console.debug(
+                    "[CourseDetails] Missing token or deviceId in fetchCourseAndSchedule",
+                    { token, deviceId }
+                );
                 handleUnauthorized();
                 return;
             }
 
+            const params: { callId: string; teacherId?: string } = {
+                callId: Array.isArray(callId) ? callId[0] : callId,
+                teacherId: user?._id
+            }
+
             const CallAttendnaceResponse = await api.get(
-                `/attendance/data?callId=${callId}`,
+                `/attendance/data`,
                 {
+                    params,
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                         "Device-Id": deviceId,
@@ -195,7 +264,7 @@ export default function CallAttendanceDetails() {
         } finally {
             setLoading(false);
         }
-    }, [callId, deviceId, handleUnauthorized]);
+    }, [callId, deviceId, handleUnauthorized, user?._id]);
 
     useEffect(() => {
         fetchCallAttendance();
@@ -255,6 +324,7 @@ export default function CallAttendanceDetails() {
             </div>
         );
     }
+    console.log(attendanceResponse)
     const lastIdx = attendanceResponse.length - 1;
     const showPagination = students.length > 5;
     return (
@@ -461,12 +531,13 @@ export default function CallAttendanceDetails() {
                             ← Back to Courses
                         </Button>
 
-                        <Button onClick={() => alert("This is the export Button")} className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white rounded-xl px-6 py-3 flex items-center gap-2 shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
-                            <ArrowUpFromLine className="h-4 w-4" />
+                        <Button onClick={exportToCSV} className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white rounded-xl px-6 py-3 flex items-center gap-2 shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
+                            <Download className="h-4 w-4" />
                             Export
                         </Button>
                     </div>
 
+                    {/* Header with Icon */}
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                             <Sparkles className="w-6 h-6 text-white" />
@@ -499,6 +570,7 @@ export default function CallAttendanceDetails() {
                     </div>
                 </motion.div>
 
+                {/* Titles */}
                 <div className="m-2 mb-8">
                     <div className="text-xl font-bold text-blue-600">
                         {chapterTitle}
@@ -508,6 +580,7 @@ export default function CallAttendanceDetails() {
                     </div>
                 </div>
 
+                {/* Students Data */}
                 <div className="space-y-6">
                     {attendanceResponse && attendanceResponse.length > 0 ? (
                         <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-lg">
@@ -536,6 +609,7 @@ export default function CallAttendanceDetails() {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-100">
+                                        {/* Get unique students from the first record */}
                                         {currentStudents?.map((student) => (
                                             <tr key={`student-${student.studentId}`}>
                                                 <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-700">
@@ -560,6 +634,7 @@ export default function CallAttendanceDetails() {
 
                                 </table>
 
+                                {/* Pagination Tab */}
                                 {showPagination && (
                                     <div className="mt-6 flex justify-center">
                                         <Pagination>
@@ -601,6 +676,7 @@ export default function CallAttendanceDetails() {
                                     </div>
                                 )}
 
+                                {/* Show current page info */}
                                 {showPagination && (
                                     <div className="mt-4 text-center text-sm text-gray-500">
                                         Showing {startIdx + 1} to {Math.min(endIdx, students.length)} of {students.length} entries
