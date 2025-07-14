@@ -29,6 +29,7 @@ import {
   CheckCircle,
   Info,
   XCircle,
+  NotebookTabs,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -511,6 +512,13 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
       disabled: false,
     },
     {
+      name: "Attendance",
+      icon: <NotebookTabs className="w-5 h-5" />,
+      href: "/admin/attendance",
+      color: "text-rose-500",
+      disabled: false,
+    },
+    {
       name: "Recordings",
       icon: <Video className="w-5 h-5" />,
       href: "/admin/recordings",
@@ -584,7 +592,7 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
       name: "Parents Corner",
       icon: <BookUser className="w-5 h-5" />,
       href: "/admin/parents",
-      color: "text-rose-500",
+      color: "text-amber-500",
       disabled: true,
     },
   ];
@@ -645,7 +653,6 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
             }
           }}
         >
-          {/* Header Section */}
           <div className="p-6 border-b border-indigo-200/60 mt-17">
             {isSidebarCollapsed ? (
               <div className="flex items-center justify-center">
@@ -898,7 +905,6 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
             )}
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-2 custom-sidebar">
             {sidebarItems.map((item, index) => (
               <motion.div
@@ -1022,7 +1028,6 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
             ))}
           </nav>
 
-          {/* Footer */}
           <AnimatePresence>
             {!isSidebarCollapsed && (
               <motion.div
@@ -1039,7 +1044,6 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
           </AnimatePresence>
         </motion.aside>
 
-        {/* Main Content */}
         <main
           className={`flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ${
             isSidebarCollapsed ? "ml-20" : "ml-80"
@@ -1048,7 +1052,6 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
 
-        {/* Enhanced Disable Confirmation Modal */}
         <AnimatePresence>
           {showDisableConfirm && (
             <motion.div

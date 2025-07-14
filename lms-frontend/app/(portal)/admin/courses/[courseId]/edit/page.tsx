@@ -247,7 +247,6 @@ export default function EditCourse() {
   } | null>(null)
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[EditCourse] Handling unauthorized access")
     localStorage.removeItem("token")
     localStorage.removeItem("userId")
     localStorage.removeItem("isLoggedIn")
@@ -259,11 +258,6 @@ export default function EditCourse() {
   useEffect(() => {
     if (authLoading) return
     if (!user || !["Admin", "Super Admin"].includes(user.role?.roleName || "")) {
-      console.debug("[EditCourse] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      })
       handleUnauthorized()
       return
     }
@@ -274,10 +268,6 @@ export default function EditCourse() {
         const token = localStorage.getItem("token")
         const deviceId = localStorage.getItem("deviceId")
         if (!token || !deviceId) {
-          console.debug("[EditCourse] Missing token or deviceId", {
-            token,
-            deviceId,
-          })
           handleUnauthorized()
           return
         }
@@ -396,10 +386,6 @@ export default function EditCourse() {
       const token = localStorage.getItem("token")
       const deviceId = localStorage.getItem("deviceId")
       if (!token || !deviceId) {
-        console.debug("[EditCourse] Missing token or deviceId for drive files", {
-          token,
-          deviceId,
-        })
         handleUnauthorized()
         return
       }
@@ -676,10 +662,6 @@ export default function EditCourse() {
       const token = localStorage.getItem("token")
       const deviceId = localStorage.getItem("deviceId")
       if (!token || !deviceId) {
-        console.debug("[EditCourse] Missing token or deviceId for submit", {
-          token,
-          deviceId,
-        })
         handleUnauthorized()
         return
       }
@@ -1017,7 +999,6 @@ export default function EditCourse() {
     <TooltipProvider>
       <DndProvider backend={HTML5Backend}>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-indigo-50 p-4 md:p-8 mt-10 relative overflow-hidden">
-          {/* Enhanced animated background */}
           <div className="absolute inset-0 overflow-hidden opacity-20">
             <motion.div
               className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-indigo-200/40 to-purple-200/40 rounded-full blur-3xl"
@@ -1366,7 +1347,6 @@ export default function EditCourse() {
                                     </motion.p>
                                   )}
                                   <div className="space-y-4">
-                                    {/* Resources Section */}
                                     <div>
                                       <div className="flex items-center justify-between">
                                         <h5 className="text-sm font-semibold text-gray-700 mb-2 flex items-center space-x-2">
@@ -1575,7 +1555,6 @@ export default function EditCourse() {
                                       )}
                                     </div>
 
-                                    {/* Worksheets Section */}
                                     <div>
                                       <div className="flex items-center justify-between">
                                         <h5 className="text-sm font-semibold text-gray-700 mb-2 flex items-center space-x-2">
@@ -1789,7 +1768,6 @@ export default function EditCourse() {
                                       )}
                                     </div>
 
-                                    {/* Learning Goals Section */}
                                     <div className="mt-4">
                                       <button
                                         type="button"
@@ -2192,7 +2170,6 @@ export default function EditCourse() {
           </div>
         </div>
 
-        {/* Google Drive Modal - Full Screen Overlay */}
         <AnimatePresence>
           {isDriveFilesModalOpen && currentSelectionContext && (
             <motion.div

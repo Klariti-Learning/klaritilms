@@ -230,7 +230,6 @@ export default function CourseDetails() {
   const [selectionMode, setSelectionMode] = useState<SelectionMode>(undefined);
 
 const handleUnauthorized = useCallback(() => {
-    console.debug("[CourseDetails] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -243,11 +242,6 @@ const handleUnauthorized = useCallback(() => {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug("[CourseDetails] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
       handleUnauthorized();
       return;
     }
@@ -258,7 +252,6 @@ const handleUnauthorized = useCallback(() => {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[CourseDetails] Missing token or deviceId for fetchDriveFiles", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -286,7 +279,6 @@ const handleUnauthorized = useCallback(() => {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[CourseDetails] Missing token or deviceId for handleSelectDriveFile", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -350,7 +342,6 @@ const handleUnauthorized = useCallback(() => {
     try {
       const token = localStorage.getItem("token");
 if (!token || !deviceId) {
-        console.debug("[CourseDetails] Missing token or deviceId", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -551,7 +542,6 @@ if (!token || !deviceId) {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[CourseDetails] Missing token or deviceId for fetchWorksheets", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -601,7 +591,6 @@ if (!token || !deviceId) {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[CourseDetails] Missing token or deviceId for handleWorksheetUpload", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -642,7 +631,6 @@ if (!token || !deviceId) {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[CourseDetails] Missing token or deviceId for handleDeleteWorksheet", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -749,7 +737,6 @@ if (!token || !deviceId) {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[CourseDetails] Missing token or deviceId for handleConfirmCancel", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -879,7 +866,6 @@ if (!token || !deviceId) {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[CourseDetails] Missing token or deviceId for handleRescheduleSubmit", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -1660,7 +1646,6 @@ if (!token || !deviceId) {
                   </div>
                 </div>
 
-                {/* Selection Mode Toggle (Only shown after file type is selected) */}
                 {selectedFileType && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -1723,7 +1708,6 @@ if (!token || !deviceId) {
                   </motion.div>
                 )}
 
-                {/* Local Upload Section */}
                 <AnimatePresence>
                   {selectionMode === "local" && selectedFileType && (
                     <motion.div
@@ -1875,7 +1859,6 @@ if (!token || !deviceId) {
                   )}
                 </AnimatePresence>
 
-                {/* Action Buttons */}
                 <div className="flex justify-end gap-4">
                   <Button
                     type="button"
@@ -1953,7 +1936,6 @@ if (!token || !deviceId) {
                 </Button>
               </motion.div>
 
-              {/* Display Selected File */}
               {selectedDriveFile && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -1995,7 +1977,6 @@ if (!token || !deviceId) {
                 </motion.div>
               )}
 
-              {/* File List */}
               {isFetchingDriveFiles ? (
                 <div className="flex items-center justify-center py-8">
                   <motion.div

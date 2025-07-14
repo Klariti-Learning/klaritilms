@@ -46,7 +46,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const restoreSession = useCallback(async () => {
     if (isRestoring || localStorage.getItem("sessionLock") === "true") {
-      console.debug("[AuthProvider] Skipping restoreSession, already in progress or locked");
       return;
     }
     setIsRestoring(true);
@@ -59,7 +58,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const lastPath = localStorage.getItem("lastPath") || "/my-learnings";
 
     if (!token || !userId || isLoggedIn !== "true" || !deviceId) {
-      console.debug("[AuthProvider] Invalid session data, clearing session");
       clearSession();
       setLoading(false);
       setSessionRestored(true);
@@ -81,7 +79,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (newToken && newToken !== token) {
         localStorage.setItem("token", newToken);
-        console.debug("[AuthProvider] Updated token in localStorage");
       }
 
       localStorage.setItem("userId", restoredUser._id);
@@ -138,7 +135,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     if (isLoggingOut) {
-      console.debug("[AuthProvider] Logout already in progress, skipping");
       return;
     }
     isLoggingOut = true;
@@ -174,7 +170,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         event.newValue === "false" &&
         event.storageArea === localStorage
       ) {
-        console.debug("[AuthProvider] Detected isLoggedIn set to false, proceeding with logout");
         logout();
       }
     };

@@ -21,7 +21,6 @@ const { user, loading: authLoading, deviceId } = useAuth();
   const studentId = params.studentId as string;
 
 const handleUnauthorized = useCallback(() => {
-    console.debug("[StudentPeerProfile] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -33,7 +32,6 @@ const handleUnauthorized = useCallback(() => {
   useEffect(() => {
     if (authLoading) return;
     if (!studentId) {
-  console.debug("[StudentPeerProfile] Invalid studentId", { studentId });
   toast.error("Invalid student ID");
   router.push("/"); 
   return;

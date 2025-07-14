@@ -70,7 +70,6 @@ const RaiseQueryPage = () => {
   const limit = 10;
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[RaiseQueryPage] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -82,14 +81,6 @@ const RaiseQueryPage = () => {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug(
-        "[RaiseQueryPage] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
       handleUnauthorized();
     }
   }, [user, authLoading, router, handleUnauthorized]);
@@ -100,10 +91,7 @@ const RaiseQueryPage = () => {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug(
-            "[RaiseQueryPage] Missing token or deviceId in fetchTickets",
-            { token, deviceId }
-          );
+  
           handleUnauthorized();
           return;
         }
@@ -132,10 +120,7 @@ const RaiseQueryPage = () => {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug(
-            "[RaiseQueryPage] Missing token or deviceId in submitRating",
-            { token, deviceId }
-          );
+
           handleUnauthorized();
           return;
         }
@@ -291,7 +276,6 @@ const RaiseQueryPage = () => {
   return (
     <div className="min-h-screen bg-blue-50 p-4 md:p-6 lg:p-8 ">
       <div className="max-w-7xl mx-auto">
-        {/* Header with welcome banner */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

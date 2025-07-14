@@ -42,7 +42,6 @@ const CreateTicketPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[CreateTicketPage] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -54,14 +53,6 @@ const CreateTicketPage = () => {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug(
-        "[CreateTicketPage] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
       handleUnauthorized();
     }
   }, [user, authLoading, router, handleUnauthorized]);
@@ -146,10 +137,7 @@ const CreateTicketPage = () => {
 
     const token = localStorage.getItem("token");
     if (!token || !deviceId) {
-      console.debug(
-        "[CreateTicketPage] Missing token or deviceId in handleSubmit",
-        { token, deviceId }
-      );
+
       handleUnauthorized();
       return;
     }
@@ -308,10 +296,7 @@ const CreateTicketPage = () => {
 
     const token = localStorage.getItem("token");
     if (!token || !deviceId) {
-      console.debug(
-        "[CreateTicketPage] Missing token or deviceId in handleSubjectChangeSubmit",
-        { token, deviceId }
-      );
+
       handleUnauthorized();
       return;
     }
@@ -373,10 +358,7 @@ const CreateTicketPage = () => {
 
     const token = localStorage.getItem("token");
     if (!token || !deviceId) {
-      console.debug(
-        "[CreateTicketPage] Missing token or deviceId in handleTimeChangeSubmit",
-        { token, deviceId }
-      );
+
       handleUnauthorized();
       return;
     }
@@ -441,7 +423,6 @@ const CreateTicketPage = () => {
   return (
     <div className="p-4 sm:p-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen pt-20 font-sans">
       <div className="max-w-4xl mx-auto">
-        {/* Header matching student's design */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

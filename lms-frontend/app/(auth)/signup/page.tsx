@@ -30,7 +30,7 @@ const validateInputs = (
   if (!name.match(/^[A-Za-z\s]+$/)) {
     errors.name = "Name must contain only letters and spaces";
   }
-  const cleanEmail = email.replace(/\s+/g, "").toLowerCase(); // Normalize email to lowercase
+  const cleanEmail = email.replace(/\s+/g, "").toLowerCase();
   if (!cleanEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
     errors.email = "Invalid email format";
   }
@@ -102,7 +102,7 @@ export default function Signup() {
     e.preventDefault();
     setState((prev) => ({ ...prev, errors: {}, loading: true }));
 
-    const normalizedEmail = email.replace(/\s+/g, "").toLowerCase(); // Normalize email to lowercase
+    const normalizedEmail = email.replace(/\s+/g, "").toLowerCase(); 
     const validationErrors = validateInputs(name, normalizedEmail, phone, gender);
     if (Object.keys(validationErrors).length > 0) {
       setState((prev) => ({

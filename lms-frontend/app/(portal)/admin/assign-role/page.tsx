@@ -62,7 +62,6 @@ export default function AssignRole() {
   };
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[UserProfile] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -81,10 +80,6 @@ export default function AssignRole() {
       const deviceId = localStorage.getItem("deviceId");
       const token = localStorage.getItem("token");
       if (!deviceId || !token) {
-        console.debug("[AssignRole] Missing deviceId or token", {
-          deviceId,
-          token,
-        });
         handleUnauthorized();
         return;
       }
@@ -162,11 +157,6 @@ export default function AssignRole() {
       !user ||
       !["Admin", "Super Admin"].includes(user.role?.roleName || "")
     ) {
-      console.debug("[AssignRole] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
       handleUnauthorized();
       return;
     }
@@ -209,13 +199,6 @@ export default function AssignRole() {
       const deviceId = localStorage.getItem("deviceId");
       const token = localStorage.getItem("token");
       if (!deviceId || !token) {
-        console.debug(
-          "[AssignRole] Missing deviceId or token in fetchTeachers",
-          {
-            deviceId,
-            token,
-          }
-        );
         handleUnauthorized();
         return;
       }
@@ -333,10 +316,7 @@ export default function AssignRole() {
       const deviceId = localStorage.getItem("deviceId");
       const token = localStorage.getItem("token");
       if (!deviceId || !token) {
-        console.debug("[AssignRole] Missing deviceId or token", {
-          deviceId,
-          token,
-        });
+       
         handleUnauthorized();
         return;
       }

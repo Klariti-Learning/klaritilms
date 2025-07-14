@@ -93,7 +93,6 @@ export default function CoursePreview() {
   const [openLessons, setOpenLessons] = useState<{ [key: string]: boolean }>({});
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[CoursePreview] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -105,14 +104,6 @@ export default function CoursePreview() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Admin") {
-      console.debug(
-        "[CoursePreview] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
       handleUnauthorized();
       return;
     }
@@ -126,10 +117,6 @@ export default function CoursePreview() {
         const token = localStorage.getItem("token");
         const deviceId = localStorage.getItem("deviceId");
         if (!token || !deviceId) {
-          console.debug("[CoursePreview] Missing token or deviceId", {
-            token,
-            deviceId,
-          });
           handleUnauthorized();
           return;
         }

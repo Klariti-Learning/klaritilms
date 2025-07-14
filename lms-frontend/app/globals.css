@@ -34,7 +34,6 @@ html {
   cursor: pointer !important;
 }
 
-/* Prevent black screen during loading */
 #__next {
   background-color: #f9fafb;
   min-height: 100vh;

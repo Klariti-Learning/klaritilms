@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom"; // Import createPortal
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Document, Page } from "react-pdf";
 import Image from "next/image";
@@ -31,10 +31,8 @@ export default function DocumentPopup({
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showControls, setShowControls] = useState(false);
 
-  // Create a ref for the portal container
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize portal container on mount
   useEffect(() => {
     portalContainerRef.current = document.createElement("div");
     portalContainerRef.current.setAttribute("id", "document-popup-portal");
@@ -300,7 +298,6 @@ export default function DocumentPopup({
 
   if (!isOpen) return null;
 
-  // Render the popup using a portal
   return portalContainerRef.current
     ? createPortal(
         <div

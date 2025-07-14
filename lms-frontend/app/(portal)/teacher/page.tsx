@@ -224,7 +224,6 @@ export default function TeacherPortal() {
   const [attendance, setAttendance] = useState<AttendanceState[]>([]);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[TeacherPortal] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -283,10 +282,7 @@ export default function TeacherPortal() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[TeacherPortal] Missing token or deviceId", {
-          token,
-          deviceId,
-        });
+
         handleUnauthorized();
         return;
       }
@@ -424,14 +420,7 @@ export default function TeacherPortal() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug(
-        "[TeacherPortal] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
+
       handleUnauthorized();
       return;
     }
@@ -443,10 +432,7 @@ export default function TeacherPortal() {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug("[TeacherPortal] Missing token or deviceId", {
-            token,
-            deviceId,
-          });
+
           handleUnauthorized();
           return;
         }
@@ -594,13 +580,6 @@ export default function TeacherPortal() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[TeacherPortal] Missing token or deviceId for join call",
-          {
-            token,
-            deviceId,
-          }
-        );
         handleUnauthorized();
         return;
       }
@@ -717,7 +696,6 @@ export default function TeacherPortal() {
   return (
     <div className="min-h-screen bg-blue-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-white shadow-xl">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative flex items-center justify-between">
@@ -750,7 +728,6 @@ export default function TeacherPortal() {
           <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {statCards.map((stat, index) => (
             <Card
@@ -786,9 +763,7 @@ export default function TeacherPortal() {
           ))}
         </div>
 
-        {/* Top Grid: Upcoming Classes and Attendance */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Upcoming Classes Section */}
           <div className="lg:col-span-2">
             <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -971,7 +946,6 @@ export default function TeacherPortal() {
             </Card>
           </div>
 
-          {/* Attendance Tracking */}
           <div className="lg:col-span-1">
             <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm max-h-[400px] overflow-y-auto">
               <CardHeader className="pb-4">
@@ -1100,9 +1074,7 @@ export default function TeacherPortal() {
           </div>
         </div>
 
-        {/* Bottom Grid: Quick Actions and Notifications */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quick Actions */}
           <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm lg:col-span-1">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
@@ -1147,7 +1119,6 @@ export default function TeacherPortal() {
             </CardContent>
           </Card>
 
-          {/* Latest Notifications */}
           <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm lg:col-span-2">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">

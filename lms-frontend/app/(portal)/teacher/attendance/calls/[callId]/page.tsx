@@ -76,7 +76,6 @@ export default function CallAttendanceDetails() {
 
     const students = attendanceResponse?.[0]?.students || [];
 
-    // Calculation of pagination values
     const totalPages = Math.ceil(students.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
@@ -119,7 +118,6 @@ export default function CallAttendanceDetails() {
                 pages.push('ellipsis-end');
             }
 
-            // Show last page
             if (totalPages > 1) {
                 pages.push(totalPages);
             }
@@ -140,7 +138,6 @@ export default function CallAttendanceDetails() {
     };
 
     const handleUnauthorized = useCallback(() => {
-        console.debug("[CourseDetails] Handling unauthorized access");
         localStorage.removeItem("token");
         localStorage.removeItem("userId");
         localStorage.removeItem("isLoggedIn");
@@ -161,10 +158,7 @@ export default function CallAttendanceDetails() {
         try {
             const token = localStorage.getItem("token");
             if (!token || !deviceId) {
-                console.debug(
-                    "[CourseDetails] Missing token or deviceId in fetchCourseAndSchedule",
-                    { token, deviceId }
-                );
+
                 handleUnauthorized();
                 return;
             }
@@ -261,7 +255,6 @@ export default function CallAttendanceDetails() {
             </div>
         );
     }
-    console.log(attendanceResponse)
     const lastIdx = attendanceResponse.length - 1;
     const showPagination = students.length > 5;
     return (
@@ -474,7 +467,6 @@ export default function CallAttendanceDetails() {
                         </Button>
                     </div>
 
-                    {/* Header with Icon */}
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                             <Sparkles className="w-6 h-6 text-white" />
@@ -507,7 +499,6 @@ export default function CallAttendanceDetails() {
                     </div>
                 </motion.div>
 
-                {/* Titles */}
                 <div className="m-2 mb-8">
                     <div className="text-xl font-bold text-blue-600">
                         {chapterTitle}
@@ -517,7 +508,6 @@ export default function CallAttendanceDetails() {
                     </div>
                 </div>
 
-                {/* Students Data */}
                 <div className="space-y-6">
                     {attendanceResponse && attendanceResponse.length > 0 ? (
                         <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-lg">
@@ -546,7 +536,6 @@ export default function CallAttendanceDetails() {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-100">
-                                        {/* Get unique students from the first record */}
                                         {currentStudents?.map((student) => (
                                             <tr key={`student-${student.studentId}`}>
                                                 <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-700">
@@ -571,7 +560,6 @@ export default function CallAttendanceDetails() {
 
                                 </table>
 
-                                {/* Pagination Tab */}
                                 {showPagination && (
                                     <div className="mt-6 flex justify-center">
                                         <Pagination>
@@ -613,7 +601,6 @@ export default function CallAttendanceDetails() {
                                     </div>
                                 )}
 
-                                {/* Show current page info */}
                                 {showPagination && (
                                     <div className="mt-4 text-center text-sm text-gray-500">
                                         Showing {startIdx + 1} to {Math.min(endIdx, students.length)} of {students.length} entries

@@ -1113,7 +1113,6 @@ router.delete(
 
       const course = batch.courseId;
 
-      // Permanently delete the batch and related scheduled calls
       await Batch.findByIdAndDelete(batchId);
       await ScheduledCall.deleteMany({ batchId: batchId });
 
@@ -2988,15 +2987,13 @@ router.get("/batches/student", authenticate, async (req, res) => {
       })
       .populate({
         path: "studentIds.studentId",
-        select: "name email phone profileImage subjects profile.grade", // Select profile.grade instead of grade
+        select: "name email phone profileImage subjects profile.grade",
       });
 
     const formattedBatches = batches.map((batch) => {
       const studentData = batch.studentIds.find(
         (s) => String(s.studentId._id) === String(studentId) && s.isInThisBatch
       );
-
-      console.log(studentData);
 
       return {
         _id: batch._id,
@@ -3047,7 +3044,7 @@ router.get("/batches/student", authenticate, async (req, res) => {
               phone: studentData.studentId.phone,
               profileImage: studentData.studentId.profileImage,
               subjects: studentData.studentId.subjects,
-              grade: studentData.studentId.profile?.grade, // Access profile.grade
+              grade: studentData.studentId.profile?.grade,
             }
           : null,
         createdAt: batch.createdAt,
@@ -3069,12 +3066,10 @@ router.get("/batches/admin", authenticate, async (req, res) => {
     const userId = req.user.userId;
     const user = await User.findById(userId).populate("role");
     
-    // Check if the user is Admin or Super Admin
     if (!user || !["Admin", "Super Admin"].includes(user.role.roleName)) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Fetch all batches, regardless of teacherId
     const batches = await Batch.find({})
       .populate({
         path: "courseId",
@@ -3274,7 +3269,7 @@ router.get("/all", authenticate, async (req, res) => {
                         : [],
                       worksheets: Array.isArray(lesson.worksheets)
                         ? lesson.worksheets.map((worksheet) => ({
-                           小: worksheet.type || '',
+                           type: worksheet.type || '',
                             url: worksheet.url || '',
                             fileId: worksheet.fileId || '',
                             name: worksheet.name || '',
@@ -3584,7 +3579,6 @@ router.put(
         newWorksheets.push(worksheet);
       }
 
-      // Handle worksheet removal
       const removedWorksheets = [];
       if (worksheetIds.length > 0) {
         worksheetIds.forEach((worksheetId) => {

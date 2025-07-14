@@ -208,7 +208,6 @@ export default function CreateCourse() {
   const durationOptions = ["1 Week", "2 Weeks", "3 Weeks", "4 Weeks", "1 Month", "2 Months", "3 Months", "6 Months"]
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[CreateCourse] Handling unauthorized access")
     localStorage.removeItem("token")
     localStorage.removeItem("userId")
     localStorage.removeItem("isLoggedIn")
@@ -344,19 +343,16 @@ export default function CreateCourse() {
     if (formState.chapters.length === 0) {
       newErrors.chapters = "Please add at least one chapter"
     } else {
-      // Check for empty chapter titles
       if (formState.chapters.some((chapter) => !chapter.title || !chapter.title.trim())) {
         newErrors.chapters = "All chapter titles must be filled"
       }
 
-      // Check for empty lesson titles
       if (
         formState.chapters.some((chapter) => chapter.lessons.some((lesson) => !lesson.title || !lesson.title.trim()))
       ) {
         newErrors.lessons = "All lesson titles must be filled"
       }
 
-      // Check for missing formats
       if (
         formState.chapters.some((chapter) =>
           chapter.lessons.some((lesson) => !lesson.format || !formatOptions.includes(lesson.format)),
@@ -410,10 +406,6 @@ export default function CreateCourse() {
       const deviceId = localStorage.getItem("deviceId")
       const token = localStorage.getItem("token")
       if (!deviceId || !token) {
-        console.debug("[CreateCourse] Missing deviceId or token", {
-          deviceId,
-          token,
-        })
         handleUnauthorized()
         return
       }
@@ -754,11 +746,7 @@ export default function CreateCourse() {
   useEffect(() => {
     if (authLoading) return
     if (!user || !["Admin", "Super Admin"].includes(user.role?.roleName || "")) {
-      console.debug("[CreateCourse] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      })
+
       handleUnauthorized()
       return
     }
@@ -788,7 +776,6 @@ export default function CreateCourse() {
     <TooltipProvider>
       <DndProvider backend={HTML5Backend}>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pt-16">
-          {/* Header Section */}
           <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-40">
             <div className="max-w-7xl mx-auto px-8 py-6">
               <div className="flex items-center justify-between">
@@ -825,7 +812,6 @@ export default function CreateCourse() {
 
           <div className="max-w-7xl mx-auto px-8 py-8">
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-              {/* Form Section */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -841,7 +827,6 @@ export default function CreateCourse() {
                   </CardHeader>
                   <CardContent className="p-8">
                     <form onSubmit={handleSubmit} className="space-y-8">
-                      {/* Course Title */}
                       <div className="space-y-3">
                         <label
                           htmlFor="title"
@@ -869,7 +854,6 @@ export default function CreateCourse() {
                         )}
                       </div>
 
-                      {/* Target Audience & Duration */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
                           <label className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
@@ -936,7 +920,6 @@ export default function CreateCourse() {
                         </div>
                       </div>
 
-                      {/* Chapters Section */}
                       <div className="space-y-6">
                         <div className="flex items-center justify-between">
                           <label className="text-xl font-bold text-gray-800">Course Structure</label>
@@ -1001,7 +984,6 @@ export default function CreateCourse() {
                                   </motion.p>
                                 )}
 
-                                {/* Lessons */}
                                 <div className="space-y-4">
                                   {chapter.lessons.map((lesson, lessonIndex) => (
                                     <DraggableLesson
@@ -1086,9 +1068,7 @@ export default function CreateCourse() {
                                           </motion.p>
                                         )}
 
-                                        {/* Resources & Worksheets */}
                                         <div className="space-y-6 mb-4">
-                                          {/* Resources */}
                                           <div className="space-y-3">
                                             <div className="flex items-center justify-between">
                                               <h5 className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
@@ -1293,7 +1273,6 @@ export default function CreateCourse() {
                                             )}
                                           </div>
 
-                                          {/* Worksheets */}
                                           <div className="space-y-3">
                                             <div className="flex items-center justify-between">
                                               <h5 className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
@@ -1509,7 +1488,6 @@ export default function CreateCourse() {
                                           </motion.p>
                                         )}
 
-                                        {/* Learning Goals */}
                                         <div className="mt-6 pt-4 border-t border-gray-200">
                                           <button
                                             type="button"
@@ -1595,7 +1573,6 @@ export default function CreateCourse() {
                         </div>
                       </div>
 
-                      {/* Submit Button */}
                       <div className="flex justify-end space-x-4 pt-6">
                         {isSubmitted && errors.submit && (
                           <motion.p
@@ -1629,7 +1606,6 @@ export default function CreateCourse() {
                 </Card>
               </motion.div>
 
-              {/* Preview Section */}
               {formState.title && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
@@ -1754,7 +1730,6 @@ export default function CreateCourse() {
                                                     }}
                                                     className="mt-4 space-y-4"
                                                   >
-                                                    {/* Resources Preview */}
                                                     {lesson.resources.length > 0 && (
                                                       <div className="bg-blue-50 rounded-lg p-4">
                                                         <h6 className="text-sm font-semibold text-blue-800 mb-2 flex items-center space-x-2">
@@ -1791,7 +1766,6 @@ export default function CreateCourse() {
                                                       </div>
                                                     )}
 
-                                                    {/* Worksheets Preview */}
                                                     {lesson.worksheets.length > 0 && (
                                                       <div className="bg-green-50 rounded-lg p-4">
                                                         <h6 className="text-sm font-semibold text-green-800 mb-2 flex items-center space-x-2">
@@ -1828,7 +1802,6 @@ export default function CreateCourse() {
                                                       </div>
                                                     )}
 
-                                                    {/* Learning Goals Preview */}
                                                     {lesson.learningGoals.some((goal) => goal?.trim()) && (
                                                       <div className="bg-purple-50 rounded-lg p-4">
                                                         <button
@@ -1878,7 +1851,6 @@ export default function CreateCourse() {
             </div>
           </div>
 
-          {/* Google Drive Modal */}
           <AnimatePresence>
             {isDriveFilesModalOpen && currentSelectionContext && (
               <motion.div

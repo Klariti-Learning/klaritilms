@@ -21,7 +21,6 @@ export default function Batch() {
   const [error, setError] = useState<string | null>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[Batch] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -66,15 +65,9 @@ export default function Batch() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user?.role?.roleName !== "Student") {
-      console.debug("[Batch] Redirecting to login", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
       handleUnauthorized();
       return;
     }
-    console.debug("[Batch] Fetching batch data", { userId: user._id });
     fetchBatch();
   }, [user, authLoading, router, fetchBatch, handleUnauthorized]);
 
@@ -154,7 +147,6 @@ export default function Batch() {
         <h1 className="text-3xl sm:text-4xl font-extrabold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">
           My Batch
         </h1>
-        {/* Teacher Section */}
         <h3 className="text-2xl font-bold mb-4 text-gray-900">My Teacher</h3>
         {teacher ? (
           <motion.div
@@ -229,7 +221,6 @@ export default function Batch() {
         ) : (
           <p className="mb-8 text-gray-600 font-medium">No teacher assigned</p>
         )}
-        {/* Peers Section */}
         <h3 className="text-2xl font-bold mb-4 text-gray-900">My Peers</h3>
         {peers.length === 0 ? (
           <p className="text-gray-600 font-medium">No peers found</p>

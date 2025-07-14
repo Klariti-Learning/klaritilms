@@ -151,7 +151,6 @@ export default function CourseDetails() {
   const [isTeachersModalOpen, setIsTeachersModalOpen] = useState(false);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[CourseDetails] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -178,10 +177,7 @@ export default function CourseDetails() {
       const deviceId = localStorage.getItem("deviceId");
       const token = localStorage.getItem("token");
       if (!deviceId || !token) {
-        console.debug("[CourseDetails] Missing deviceId or token", {
-          deviceId,
-          token,
-        });
+      
         handleUnauthorized();
         return;
       }
@@ -345,14 +341,7 @@ export default function CourseDetails() {
       !user ||
       !["Admin", "Super Admin"].includes(user.role?.roleName || "")
     ) {
-      console.debug(
-        "[CourseDetails] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
+    
       handleUnauthorized();
       router.push("/my-learnings");
       return;
@@ -579,7 +568,6 @@ export default function CourseDetails() {
       `}</style>
 
       <div className="max-w-6xl mx-auto px-6 py-6">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -609,7 +597,6 @@ export default function CourseDetails() {
             </div>
           </div>
 
-          {/* Course Metadata */}
           <div className="flex flex-wrap gap-2">
             <Badge className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300 px-3 py-1 text-sm shadow-sm">
               <Target className="w-3 h-3 mr-1" />
@@ -641,7 +628,6 @@ export default function CourseDetails() {
         </motion.div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Teachers Sidebar */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -763,7 +749,6 @@ export default function CourseDetails() {
             </Card>
           </motion.div>
 
-          {/* Course Content with Timeline */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -771,7 +756,6 @@ export default function CourseDetails() {
             className="lg:w-2/3"
           >
             <div className="relative">
-              {/* Enhanced Timeline Line */}
               <div className="absolute left-6 top-0 bottom-0 w-1 timeline-line rounded-full"></div>
 
               {course.chapters && course.chapters.length > 0 ? (
@@ -790,7 +774,6 @@ export default function CourseDetails() {
 
                   return (
                     <div key={chapterIndex} className="relative mb-8">
-                      {/* Chapter Header */}
                       <div className="flex items-center gap-4 mb-4">
                         <div
                           className={`relative w-12 h-12 bg-gradient-to-br ${currentGradient} rounded-xl flex items-center justify-center shadow-lg z-10`}
@@ -810,7 +793,6 @@ export default function CourseDetails() {
                         </div>
                       </div>
 
-                      {/* Lessons */}
                       <div className="ml-16">
                         {chapter.lessons.length > 0 ? (
                           <Card className="glass-card shadow-lg border border-purple-200/50">
@@ -855,7 +837,6 @@ export default function CourseDetails() {
                                       className="bg-gradient-to-r from-white to-blue-50/50 rounded-lg border border-blue-200 hover:shadow-md transition-all duration-200"
                                     >
                                       <div className="p-4">
-                                        {/* Status Badge */}
                                         {isScheduled && scheduledCall && (
                                           <div className="flex justify-end mb-2">
                                             <Badge
@@ -871,7 +852,6 @@ export default function CourseDetails() {
                                           </div>
                                         )}
 
-                                        {/* Lesson Header */}
                                         <div className="flex items-center justify-between mb-3">
                                           <div className="flex items-center space-x-3">
                                             <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"></div>
@@ -906,7 +886,6 @@ export default function CourseDetails() {
                                           )}
                                         </div>
 
-                                        {/* Lesson Meta */}
                                         <div className="flex flex-wrap items-center gap-2 mb-3">
                                           {isScheduled && scheduledCall && (
                                             <>
@@ -936,7 +915,6 @@ export default function CourseDetails() {
                                           )}
                                         </div>
 
-                                        {/* Lesson Actions */}
                                         <div className="flex flex-wrap gap-2">
                                           {lesson.resources &&
                                             lesson.resources.length > 0 && (
@@ -983,7 +961,6 @@ export default function CourseDetails() {
                                             )}
                                         </div>
 
-                                        {/* Learning Goals */}
                                         <AnimatePresence>
                                           {hasLearningGoals && isOpen && (
                                             <motion.div
@@ -1065,7 +1042,6 @@ export default function CourseDetails() {
         </div>
       </div>
 
-      {/* Document Popup */}
       <AnimatePresence>
         {selectedDocument && (
           <DocumentPopup
@@ -1078,7 +1054,6 @@ export default function CourseDetails() {
         )}
       </AnimatePresence>
 
-      {/* Teachers Modal */}
       <AnimatePresence>
         {isTeachersModalOpen && (
           <motion.div

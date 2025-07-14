@@ -42,7 +42,6 @@ const CreateTicketPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[CreateTicketPage] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -212,10 +211,8 @@ const CreateTicketPage = () => {
     if (editorRef.current) {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-        // Apply formatting to selected text
         document.execCommand(format, false, undefined);
       } else {
-        // Apply formatting to all content if no selection
         const range = document.createRange();
         range.selectNodeContents(editorRef.current);
         selection?.removeAllRanges();

@@ -121,7 +121,6 @@ export default function BatchDetails() {
   const modalRef = useRef<HTMLDivElement>(null)
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[BatchDetails] Handling unauthorized access")
     localStorage.removeItem("token")
     localStorage.removeItem("userId")
     localStorage.removeItem("isLoggedIn")
@@ -133,11 +132,7 @@ export default function BatchDetails() {
   useEffect(() => {
     if (authLoading) return
     if (!user || user.role?.roleName !== "Super Admin") {
-      console.debug("[BatchDetails] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      })
+
       handleUnauthorized()
       return
     }
@@ -151,12 +146,10 @@ export default function BatchDetails() {
         const deviceId = localStorage.getItem("deviceId")
         const token = localStorage.getItem("token")
         if (!deviceId || !token) {
-          console.debug("[BatchDetails] Missing deviceId or token", { deviceId, token })
           handleUnauthorized()
           return
         }
 
-        // Fetch batch data
         const batchResponse = await api.get("/courses/batches/admin")
         const fetchedBatch = batchResponse.data?.batches?.find((b: Batch) => b._id === batchId)
 
@@ -166,30 +159,20 @@ export default function BatchDetails() {
         setBatch(fetchedBatch)
 
         if (fetchedBatch.courseId) {
-          // Fetch course data
           const courseResponse = await api.get(`/courses/${fetchedBatch.courseId}`)
           const fetchedCourse = courseResponse.data
           if (!fetchedCourse) {
             throw new Error("Course not found")
           }
 
-          console.log("[BatchDetails] Fetched Course:", {
-            courseId: fetchedBatch.courseId,
-            chapters: fetchedCourse.chapters,
-          })
           setCourse(fetchedCourse)
 
-          // Extract valid lesson IDs
           const validLessonIds =
             fetchedCourse.chapters
               ?.flatMap((chapter: Chapter) => chapter.lessons.map((lesson: Lesson) => lesson.lessonId))
               .filter(Boolean) || []
 
-          console.log("[BatchDetails] Valid Lesson IDs:", validLessonIds)
-
-          // Fetch schedule data
           const scheduleResponse = await api.get(`/schedule/batch/${batchId}/calls?_=${Date.now()}`)
-          console.log("[BatchDetails] Schedule Response:", scheduleResponse.data?.batch)
 
           const scheduleData = scheduleResponse.data?.batch || {
             calls: [],
@@ -199,7 +182,6 @@ export default function BatchDetails() {
             },
           }
 
-          // Filter calls by lessonId
           const filteredCalls = Array.isArray(scheduleData.calls)
             ? validLessonIds.length > 0
               ? scheduleData.calls.filter((call: ScheduledCall) =>
@@ -208,7 +190,6 @@ export default function BatchDetails() {
               : scheduleData.calls
             : []
 
-          // Deduplicate calls by lessonId
           const latestCallsMap = new Map<string, ScheduledCall>()
           filteredCalls.forEach((call: ScheduledCall) => {
             if (call.lessonId) {
@@ -337,10 +318,6 @@ export default function BatchDetails() {
 
   const isScheduled = scheduledCalls?.calls && Array.isArray(scheduledCalls.calls) && scheduledCalls.calls.length > 0
 
-  console.log("scheduledCalls", scheduledCalls)
-  console.log("Calls", scheduledCalls?.calls)
-  console.log("isScheduled", isScheduled)
-
   const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
   const activeDaysText = scheduledCalls?.calls?.[0]?.days
     ? weekdays.every((day) => scheduledCalls.calls[0].days.includes(day))
@@ -400,7 +377,6 @@ export default function BatchDetails() {
   return (
     <div className="min-h-screen mt-15 bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -430,7 +406,6 @@ export default function BatchDetails() {
           </div>
         </motion.div>
 
-        {/* Students Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -526,7 +501,6 @@ export default function BatchDetails() {
           </Card>
         </motion.div>
 
-        {/* Schedule Section */}
         {isScheduled && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -554,7 +528,6 @@ export default function BatchDetails() {
                   </Button>
                 </div>
 
-                {/* Stats Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                     <div className="flex items-center gap-3">
@@ -611,7 +584,6 @@ export default function BatchDetails() {
                   </div>
                 </div>
 
-                {/* Schedule Table */}
                 <div className="overflow-hidden rounded-xl border border-gray-200">
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -756,7 +728,6 @@ export default function BatchDetails() {
           </motion.div>
         )}
 
-        {/* Course Preview Modal */}
         <AnimatePresence>
           {previewModal && (
             <motion.div
@@ -797,7 +768,6 @@ export default function BatchDetails() {
                 </div>
 
                 <div className="overflow-y-auto max-h-[calc(90vh-120px)] scrollbar-hide">
-                  {/* Course Title */}
                   <div className="text-center mb-6">
                     <div className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg mb-4">
                       <Sparkles className="w-4 h-4" />
@@ -822,7 +792,6 @@ export default function BatchDetails() {
                     )}
                   </div>
 
-                  {/* Table of Contents */}
                   {previewModal.chapters && previewModal.chapters.length > 0 ? (
                     <div>
                       <div className="text-center mb-6">
