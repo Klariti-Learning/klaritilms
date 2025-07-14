@@ -366,7 +366,7 @@ export default function CoursePreview() {
                           <div className="space-y-4">
                             {chapter.lessons.map((lesson, lessonIndex) => (
                               <motion.div
-                                key={lesson._id}
+                               key={lesson._id || `${chapterIndex}-${lessonIndex}`}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{
