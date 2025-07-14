@@ -95,7 +95,6 @@ export default function AdminPortal() {
   });
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[AdminPortal] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -106,11 +105,6 @@ export default function AdminPortal() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Admin") {
-      console.debug("[AdminPortal] Redirecting to login", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
       handleUnauthorized();
     }
   }, [user, authLoading, router, handleUnauthorized]);
@@ -271,7 +265,6 @@ export default function AdminPortal() {
 
   useEffect(() => {
     if (!authLoading && user && user.role?.roleName === "Admin") {
-      console.debug("[AdminPortal] Fetching data", { userId: user._id });
       fetchData();
     }
   }, [fetchData, authLoading, user]);

@@ -20,7 +20,6 @@ export default function StudentList() {
   const router = useRouter();
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[StudentList] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -32,11 +31,6 @@ export default function StudentList() {
   useEffect(() => {
     if (authLoading) return; 
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug("[StudentList] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
       handleUnauthorized();
       return;
     }
@@ -46,10 +40,6 @@ export default function StudentList() {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug("[StudentList] Missing token or deviceId in fetchStudents", {
-            token,
-            deviceId,
-          });
           handleUnauthorized();
           return;
         }

@@ -52,7 +52,6 @@ export default function UserProfile() {
   const userId = params.id as string;
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[UserProfile] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -70,10 +69,6 @@ export default function UserProfile() {
       const deviceId = localStorage.getItem("deviceId");
       const token = localStorage.getItem("token");
       if (!deviceId || !token) {
-        console.debug("[UserProfile] Missing deviceId or token", {
-          deviceId,
-          token,
-        });
         handleUnauthorized();
         return;
       }
@@ -109,14 +104,7 @@ export default function UserProfile() {
       !user ||
       !["Admin", "Super Admin"].includes(user.role?.roleName || "")
     ) {
-      console.debug(
-        "[UserProfile] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
+
       handleUnauthorized();
       router.push("/my-learnings");
       return;

@@ -189,7 +189,6 @@ export default function StudentDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[StudentDashboard] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -198,11 +197,7 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (!authLoading && (!user || user?.role?.roleName !== "Student")) {
-      console.debug("[StudentDashboard] Redirecting to login", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
+
       handleUnauthorized();
     }
   }, [user, authLoading, router, handleUnauthorized]);

@@ -47,7 +47,6 @@ export default function AssignTeachers() {
   const modalRef = useRef<HTMLDivElement>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[AssignTeachers] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -62,14 +61,6 @@ export default function AssignTeachers() {
       !user ||
       !["Admin", "Super Admin"].includes(user.role?.roleName || "")
     ) {
-      console.debug(
-        "[AssignTeachers] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
       handleUnauthorized();
       return;
     }
@@ -83,10 +74,6 @@ export default function AssignTeachers() {
         const deviceId = localStorage.getItem("deviceId");
         const token = localStorage.getItem("token");
         if (!deviceId || !token) {
-          console.debug("[AssignTeachers] Missing deviceId or token", {
-            deviceId,
-            token,
-          });
           handleUnauthorized();
           return;
         }
@@ -123,10 +110,7 @@ export default function AssignTeachers() {
         const deviceId = localStorage.getItem("deviceId");
         const token = localStorage.getItem("token");
         if (!deviceId || !token) {
-          console.debug("[AssignTeachers] Missing deviceId or token", {
-            deviceId,
-            token,
-          });
+
           handleUnauthorized();
           return;
         }
@@ -220,10 +204,6 @@ export default function AssignTeachers() {
       const deviceId = localStorage.getItem("deviceId");
       const token = localStorage.getItem("token");
       if (!deviceId || !token) {
-        console.debug("[AssignTeachers] Missing deviceId or token", {
-          deviceId,
-          token,
-        });
         handleUnauthorized();
         return;
       }

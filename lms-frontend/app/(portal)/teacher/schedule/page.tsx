@@ -337,7 +337,7 @@ export function ScheduleCallContent() {
     document.body.appendChild(iframe);
 
     const timeout = 2000;
-    let isIframeRemoved = false; // Track if iframe has been removed
+    let isIframeRemoved = false;
 
     const removeIframe = () => {
       if (iframe && document.body.contains(iframe) && !isIframeRemoved) {
@@ -373,7 +373,6 @@ export function ScheduleCallContent() {
   };
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[Courses] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -711,7 +710,6 @@ export function ScheduleCallContent() {
       const response = await api.get(`/demo-class/${callId}`);
       const { documents, zoomLink, meetingLink } = response.data
         .demoClass as CallLinks;
-      console.log("documents", response.data.demoClass.documents);
       if (documents && documents.length > 0) {
         const document = documents[0];
         setState((prev) => ({
@@ -792,9 +790,7 @@ export function ScheduleCallContent() {
       const currentEmails = form.getValues("studentEmails");
       const emailToAdd = currentEmailInput.trim();
 
-      // Check if email already exists
       if (!currentEmails.includes(emailToAdd)) {
-        // Remove any empty strings and add the new email
         const filteredEmails = currentEmails.filter(
           (email) => email.trim() !== ""
         );
@@ -887,14 +883,13 @@ export function ScheduleCallContent() {
         },
       });
 
-      // Assume the API returns the created call in response.data.demoClass
       const newCall: TeacherDemoScheduleCall = response.data.demoClass;
 
       toast.success("Class scheduled successfully");
 
       setState((prev) => ({
         ...prev,
-        scheduledCalls: [...prev.scheduledCalls, newCall], // Append the new call
+        scheduledCalls: [...prev.scheduledCalls, newCall],
         documents: [],
         showScheduleForm: false,
         formLoading: false,
@@ -975,10 +970,9 @@ export function ScheduleCallContent() {
         payload
       );
 
-      // Assume the API returns the updated call in response.data.demoClass
       const updatedCall: TeacherDemoScheduleCall = {
         ...response.data.demoClass,
-        status: "Rescheduled", // Update status to Rescheduled
+        status: "Rescheduled",
       };
 
       toast.success("Class rescheduled successfully");
@@ -987,7 +981,7 @@ export function ScheduleCallContent() {
         ...prev,
         scheduledCalls: prev.scheduledCalls.map((call) =>
           call._id === state.selectedCallId ? updatedCall : call
-        ), // Update the specific call
+        ),
         selectedCallId: "",
         showRescheduleForm: false,
         formLoading: false,
@@ -1020,7 +1014,7 @@ export function ScheduleCallContent() {
         ...prev,
         scheduledCalls: prev.scheduledCalls.map((call) =>
           call._id === callId ? { ...call, status: "Cancelled" } : call
-        ), // Update the specific call's status
+        ),
         showCancelConfirm: false,
         cancelCallId: "",
       }));
@@ -1109,14 +1103,6 @@ export function ScheduleCallContent() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug(
-        "[ScheduleCall] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
       handleUnauthorized();
     }
   }, [user, authLoading, handleUnauthorized]);
@@ -1134,7 +1120,7 @@ export function ScheduleCallContent() {
     const dateB = moment
       .tz(`${b.date} ${b.startTime}`, "YYYY-MM-DD h:mm a", b.timezone || "UTC")
       .valueOf();
-    return dateA - dateB; // Sort in ascending order (earliest first)
+    return dateA - dateB;
   }) as TeacherDemoScheduleCall[];
 
   const todayCalls = sortedCalls.filter((call) => {
@@ -1175,10 +1161,10 @@ export function ScheduleCallContent() {
       const today = moment.tz(call.timezone || "UTC").startOf("day");
       return (
         (call.status === "Scheduled" || call.status === "Rescheduled") &&
-        callDate.isSameOrAfter(today, "day") // Include calls on or after today
+        callDate.isSameOrAfter(today, "day") 
       );
     })
-    .slice(0, 2); // Limit to 2 nearest calls
+    .slice(0, 2);
 
   const displayCalls =
     state.callView === "upcoming"
@@ -1210,7 +1196,6 @@ export function ScheduleCallContent() {
         </defs>
       </svg>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
-        {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div
             className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-200/20 to-pink-200/20 rounded-full blur-3xl"
@@ -1245,7 +1230,6 @@ export function ScheduleCallContent() {
             transition={{ duration: 0.5 }}
             className="w-full max-w-7xl mt-10"
           >
-            {/* Enhanced Header */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1413,7 +1397,7 @@ export function ScheduleCallContent() {
                               transition={{ duration: 0.4, delay: index * 0.1 }}
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
-                              className="w-full flex justify-center" // Ensure motion.div centers its content
+                              className="w-full flex justify-center" 
                             >
                               <Button
                                 variant="ghost"
@@ -1561,31 +1545,29 @@ export function ScheduleCallContent() {
                                       date=""
                                       iconStyle={{
                                         background: (() => {
-                                          // If callView is 'today' or 'week', override the gradient for Scheduled/Rescheduled calls
                                           if (
                                             state.callView === "today" &&
                                             (call.status === "Scheduled" ||
                                               call.status === "Rescheduled")
                                           ) {
-                                            return "linear-gradient(135deg, #fb923c, #f97316)"; // orange-400 to orange-500 for Today's Classes
+                                            return "linear-gradient(135deg, #fb923c, #f97316)";
                                           } else if (
                                             state.callView === "week" &&
                                             (call.status === "Scheduled" ||
                                               call.status === "Rescheduled")
                                           ) {
-                                            return "linear-gradient(135deg, #a5b4fc, #6366f1)"; // indigo-400 to indigo-500 for Weekly Classes
+                                            return "linear-gradient(135deg, #a5b4fc, #6366f1)";
                                           }
-                                          // Fallback to status-based gradients
                                           switch (call.status) {
                                             case "Completed":
-                                              return "linear-gradient(135deg, #10b981, #22c55e)"; // emerald-500 to green-500
+                                              return "linear-gradient(135deg, #10b981, #22c55e)";
                                             case "Cancelled":
-                                              return "linear-gradient(135deg, #ef4444, #f472b6)"; // red-500 to pink-500
+                                              return "linear-gradient(135deg, #ef4444, #f472b6)"; 
                                             case "Rescheduled":
-                                              return "linear-gradient(135deg, #fb923c, #f97316)"; // orange-400 to orange-500
+                                              return "linear-gradient(135deg, #fb923c, #f97316)"; 
                                             case "Scheduled":
                                             default:
-                                              return "linear-gradient(135deg, #3b82f6, #2563eb)"; // blue-500 to blue-600
+                                              return "linear-gradient(135deg, #3b82f6, #2563eb)"; 
                                           }
                                         })(),
                                         color: "#fff",
@@ -2025,7 +2007,6 @@ export function ScheduleCallContent() {
                                       onValueChange={field.onChange}
                                       value={field.value}
                                       onOpenChange={() => {
-                                        // Reset search when dropdown opens
                                         setTimezoneSearch("");
                                       }}
                                     >
@@ -2052,7 +2033,7 @@ export function ScheduleCallContent() {
                                               className="pl-10 h-12 border-2 border-gray-200 focus:ring-2 focus:ring-green-500 rounded-xl"
                                               onKeyDown={(e) =>
                                                 e.stopPropagation()
-                                              } // Prevent key events from bubbling to Select
+                                              }
                                             />
                                             {timezoneSearch && (
                                               <button
@@ -2158,7 +2139,7 @@ export function ScheduleCallContent() {
                                 render={({ field }) => {
                                   const selectedDate = form.watch("date");
                                   const selectedTimezone =
-                                    form.watch("timezone") || moment.tz.guess(); // Default to user's local timezone
+                                    form.watch("timezone") || moment.tz.guess();
                                   const allTimeSlots =
                                     generateTimeSlots(selectedTimezone);
                                   const filteredTimeSlots = filterTimeSlots(
@@ -2327,7 +2308,6 @@ export function ScheduleCallContent() {
                                 Student Emails
                               </FormLabel>
                               <div className="space-y-4">
-                                {/* Email Input Field */}
                                 <div className="flex items-center gap-3">
                                   <div className="relative flex-1">
                                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -2357,7 +2337,6 @@ export function ScheduleCallContent() {
                                   </Button>
                                 </div>
 
-                                {/* Email Tags/Chips */}
                                 {form
                                   .watch("studentEmails")
                                   .filter((email) => email.trim() !== "")
@@ -2403,7 +2382,6 @@ export function ScheduleCallContent() {
                                   </div>
                                 )}
 
-                                {/* Validation Message */}
                                 {form.formState.errors.studentEmails && (
                                   <p className="text-red-600 font-medium bg-red-50/80 p-3 rounded-xl">
                                     {form.formState.errors.studentEmails
@@ -2420,7 +2398,6 @@ export function ScheduleCallContent() {
                               </FormLabel>
                               <FormControl>
                                 <div className="flex flex-col gap-4">
-                                  {/* Drag and Drop Zone */}
                                   <label
                                     htmlFor="documents"
                                     className={cn(
@@ -2463,7 +2440,6 @@ export function ScheduleCallContent() {
                                     </div>
                                   </label>
 
-                                  {/* Uploaded Files List */}
                                   {state.documents.length > 0 && (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                       {state.documents.map((file, index) => (

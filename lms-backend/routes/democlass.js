@@ -337,14 +337,12 @@ router.put(
     const scheduledById = req.user.userId;
 
     try {
-      // Fetch the existing demo class
       const demoClass = await DemoClass.findById(scheduleId);
       if (!demoClass) {
         logger.warn(`Demo class not found: ${scheduleId}`);
         return res.status(404).json({ message: "Demo class not found" });
       }
 
-      // Validate user permissions
       const user = await User.findById(scheduledById).populate("role");
       if (!user || !["Admin", "Super Admin", "Teacher"].includes(user.role.roleName)) {
         logger.warn(`Unauthorized reschedule attempt by user: ${scheduledById}`);
@@ -360,7 +358,6 @@ router.put(
         return res.status(403).json({ message: "Not authorized to reschedule this class" });
       }
 
-      // Validate teacher if assignedTeacherId is provided
       let teacherId = demoClass.assignedTeacherId;
       if (assignedTeacherId && ["Admin", "Super Admin"].includes(user.role.roleName)) {
         const teacher = await User.findById(assignedTeacherId).populate("role");
@@ -371,7 +368,6 @@ router.put(
         teacherId = assignedTeacherId;
       }
 
-      // Use existing values as fallbacks
       const effectiveCallDuration = callDuration || demoClass.callDuration;
       const effectiveMeetingType = meetingType || demoClass.type;
       const effectiveTimezone = timezone || demoClass.timezone;
@@ -380,7 +376,6 @@ router.put(
       const effectiveStudentEmails = studentEmails || demoClass.studentEmails;
       const effectiveClassType = classType || demoClass.classType;
 
-      // Validate call duration
       if (!effectiveCallDuration) {
         logger.warn(
           `No call duration provided and no existing duration found for demo class: ${scheduleId}`
@@ -388,7 +383,6 @@ router.put(
         return res.status(400).json({ message: "Call duration is required" });
       }
 
-      // Calculate end time
       const [hours, minutes] = effectiveStartTime.split(":").map(Number);
       const endDateTime = new Date(effectiveDate);
       endDateTime.setHours(hours, minutes + effectiveCallDuration);
@@ -400,7 +394,6 @@ router.put(
         .toString()
         .padStart(2, "0")}`;
 
-      // Handle meeting details
       const meetingDetails = {
         zoomLink: useExistingLink
           ? demoClass.zoomLink
@@ -417,7 +410,6 @@ router.put(
         passcode: demoClass.passcode,
       };
 
-      // Update demo class with new or existing values
       demoClass.previousDate = demoClass.date;
       demoClass.previousStartTime = demoClass.startTime;
       demoClass.previousEndTime = demoClass.endTime;
@@ -438,7 +430,6 @@ router.put(
       demoClass.assignedTeacherId = teacherId;
       await demoClass.save();
 
-      // Prepare call details for notifications
       const callDetails = {
         classType: demoClass.classType,
         type: effectiveMeetingType,
@@ -454,7 +445,6 @@ router.put(
         teacher: (await User.findById(teacherId))?.name || "Unknown",
       };
 
-      // Create notifications
       const notifications = [
         new Notification({
           userId: teacherId,
@@ -469,7 +459,6 @@ router.put(
         }).save(),
       ];
 
-      // Send email notifications
       const emailNotifications = [
         sendDemoClassRescheduledEmail(
           user.email,
@@ -482,7 +471,6 @@ router.put(
         ),
       ];
 
-      // Emit socket notifications
       getIO()
         .to(teacherId.toString())
         .emit("notification", {
@@ -711,7 +699,7 @@ router.get("/list", authenticate, async (req, res) => {
               role: assignedTeacherId.role?.roleName || "Unknown",
             }
           : null,
-        documents: documents || [], // Ensure documents are included
+        documents: documents || [], 
       };
     });
 
@@ -840,7 +828,7 @@ router.get(
               role: assignedTeacherId.role?.roleName || "Unknown",
             }
           : null,
-        documents: documents || [], // Ensure documents are included
+        documents: documents || [], 
       };
 
       logger.info(`Demo class ${callId} retrieved by ${roleName}: ${userId}`);

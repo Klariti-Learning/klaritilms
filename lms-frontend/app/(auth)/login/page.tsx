@@ -161,7 +161,7 @@ export function LoginContent() {
       loading: true,
     }));
 
-    const normalizedIdentifier = identifier.replace(/\s+/g, "").toLowerCase(); // Normalize identifier to lowercase
+    const normalizedIdentifier = identifier.replace(/\s+/g, "").toLowerCase();
     const validation = validateIdentifier(normalizedIdentifier, countryCode);
     if (!validation.isValid) {
       setState((prev) => ({

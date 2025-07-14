@@ -76,7 +76,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col">
       <div className="container mx-auto px-6 flex-grow pt-20 pb-12">
-        {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -114,7 +113,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Welcome Section */}
           <motion.h1
             className="text-3xl md:text-5xl font-extrabold mb-12 bg-gradient-to-r from-indigo-600 to-teal-500 bg-clip-text text-transparent text-center"
             initial={{ opacity: 0, y: 20 }}
@@ -124,7 +122,6 @@ export default function Home() {
             Welcome to Klariti, {user?.name || "Young Learner"}!
           </motion.h1>
 
-          {/* Stats Section */}
           {user && (
             <motion.div
               className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-16"
@@ -153,7 +150,6 @@ export default function Home() {
             </motion.div>
           )}
 
-          {/* Featured Courses Section */}
           <motion.div
             className="mb-16"
             initial={{ opacity: 0, y: 20 }}
@@ -234,7 +230,6 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Info Cards Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             <InfoCard
               icon={<BookOpen className="w-10 h-10 text-yellow-500" />}
@@ -265,7 +260,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Why Choose Us Section */}
           <motion.div
             className="bg-gradient-to-r from-yellow-50 to-teal-50 backdrop-blur-md p-8 rounded-2xl shadow-lg border border-yellow-100 mb-16"
             initial={{ opacity: 0, y: 20 }}
@@ -306,7 +300,6 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* CTA Section */}
           <motion.div
             className="text-center bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl p-8 text-white"
             initial={{ opacity: 0, y: 20 }}

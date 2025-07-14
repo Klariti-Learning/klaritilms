@@ -78,7 +78,6 @@ export default function AdminProfile() {
   const router = useRouter();
 
   const handleUnauthorized = useCallback(() => {
-  console.debug("[AdminProfile] Handling unauthorized access");
   localStorage.removeItem("token");
   localStorage.removeItem("userId");
   localStorage.removeItem("isLoggedIn");
@@ -97,7 +96,6 @@ export default function AdminProfile() {
       try {
         const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[AdminProfile] Missing token or deviceId", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -202,11 +200,6 @@ export default function AdminProfile() {
 useEffect(() => {
   if (authLoading) return;
   if (!user || !["Admin", "Super Admin"].includes(user.role?.roleName || "")) {
-    console.debug("[AdminProfile] Redirecting due to invalid role or no user", {
-      user: !!user,
-      role: user?.role?.roleName,
-      authLoading,
-    });
     handleUnauthorized();
     return;
   }
@@ -628,7 +621,6 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
     if (!token || !deviceId) {
-      console.debug("[AdminProfile] Missing token or deviceId for save", { token, deviceId });
       handleUnauthorized();
       return;
     }

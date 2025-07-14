@@ -62,7 +62,6 @@ export default function AssignRole() {
   };
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[AssignTeachers] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -82,7 +81,6 @@ const fetchUsers = useCallback(async () => {
     const deviceId = localStorage.getItem("deviceId");
     const token = localStorage.getItem("token");
     if (!deviceId || !token) {
-      console.debug("[AssignRole] Missing deviceId or token", { deviceId, token });
       handleUnauthorized();
       return;
     }
@@ -160,11 +158,7 @@ const fetchUsers = useCallback(async () => {
       !user ||
       !["Admin", "Super Admin"].includes(user.role?.roleName || "")
     ) {
-      console.debug("[AssignRole] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
+
       handleUnauthorized();
       return;
     }
@@ -207,13 +201,7 @@ const fetchUsers = useCallback(async () => {
          const deviceId = localStorage.getItem("deviceId");
       const token = localStorage.getItem("token");
       if (!deviceId || !token) {
-        console.debug(
-          "[AssignRole] Missing deviceId or token in fetchTeachers",
-          {
-            deviceId,
-            token,
-          }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -332,7 +320,6 @@ const handleAssignRole = async (userId: string) => {
     const deviceId = localStorage.getItem("deviceId");
     const token = localStorage.getItem("token");
     if (!deviceId || !token) {
-      console.debug("[AssignRole] Missing deviceId or token", { deviceId, token });
       handleUnauthorized();
       return;
     }

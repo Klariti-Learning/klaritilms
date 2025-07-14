@@ -84,7 +84,6 @@ export default function CoursePreview() {
   const [openLessons, setOpenLessons] = useState<{ [key: string]: boolean }>({});
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[CoursePreview] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -97,14 +96,7 @@ export default function CoursePreview() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug(
-        "[CoursePreview] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
+
       handleUnauthorized();
       return;
     }
@@ -118,10 +110,6 @@ export default function CoursePreview() {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug("[CoursePreview] Missing token or deviceId", {
-            token,
-            deviceId,
-          });
           handleUnauthorized();
           return;
         }
@@ -292,7 +280,6 @@ export default function CoursePreview() {
           ← Back to Courses
         </Button>
 
-        {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -305,7 +292,6 @@ export default function CoursePreview() {
             <Sparkles className="w-5 h-5" />
           </div>
 
-          {/* Course Metadata Badges */}
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-2 rounded-full text-sm font-medium border-0">
               🎯 {course.targetAudience || "Beginner"}
@@ -322,7 +308,6 @@ export default function CoursePreview() {
           </div>
         </motion.div>
 
-        {/* Main Content Card */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -330,14 +315,12 @@ export default function CoursePreview() {
           className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden"
         >
           <div className="p-8 md:p-12">
-            {/* Course Title */}
             <div className="text-center mb-12">
               <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-4">
                 {course.title}
               </h1>
             </div>
 
-            {/* Table of Contents */}
             {course.chapters && course.chapters.length > 0 && (
               <div className="mb-16">
                 <div className="text-center mb-10">
@@ -528,7 +511,6 @@ export default function CoursePreview() {
               </div>
             )}
 
-            {/* Assigned Teachers */}
             {course.assignedTeachers && course.assignedTeachers.length > 0 && (
               <div className="mb-16">
                 <div className="text-center mb-10">
@@ -593,7 +575,6 @@ export default function CoursePreview() {
               </div>
             )}
 
-            {/* Assigned Batches */}
             {batches.length > 0 && (
               <div>
                 <div className="text-center mb-10">

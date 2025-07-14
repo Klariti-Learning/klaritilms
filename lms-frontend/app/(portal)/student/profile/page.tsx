@@ -77,7 +77,6 @@ export default function StudentProfile() {
   const router = useRouter();
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[StudentProfile] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");

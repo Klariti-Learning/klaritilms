@@ -78,7 +78,6 @@ export default function TeacherProfile() {
   const router = useRouter();
 
   const handleUnauthorized = useCallback(() => {
-  console.debug("[TeacherProfile] Handling unauthorized access");
   localStorage.removeItem("token");
   localStorage.removeItem("userId");
   localStorage.removeItem("isLoggedIn");
@@ -90,11 +89,7 @@ export default function TeacherProfile() {
 useEffect(() => {
   if (authLoading) return; 
   if (!user || !user.role || user.role.roleName !== "Teacher") {
-    console.debug("[TeacherProfile] Redirecting due to invalid role or no user", {
-      user: !!user,
-      role: user?.role?.roleName,
-      authLoading,
-    });
+
     handleUnauthorized();
   }
 }, [user, authLoading, handleUnauthorized, router]);
@@ -105,10 +100,7 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[TeacherProfile] Missing token or deviceId in fetchUserDetails", {
-          token,
-          deviceId,
-        });
+
         handleUnauthorized();
         return;
       }
@@ -640,10 +632,7 @@ const handleSave = async () => {
   try {
     const token = localStorage.getItem("token");
     if (!token || !deviceId) {
-      console.debug("[TeacherProfile] Missing token or deviceId in handleSave", {
-        token,
-        deviceId,
-      });
+
       handleUnauthorized();
       return;
     }

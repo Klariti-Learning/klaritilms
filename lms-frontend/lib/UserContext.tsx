@@ -38,7 +38,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
       if (newToken && newToken !== token) {
         localStorage.setItem("token", newToken);
-        console.debug("[UserContext] Updated token in localStorage from /auth/me");
       }
 
       setUserDetails({

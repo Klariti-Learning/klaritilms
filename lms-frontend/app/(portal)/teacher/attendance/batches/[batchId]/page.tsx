@@ -86,7 +86,6 @@ export default function BatchAttendanceDetails() {
 
     const records = attendanceResponse.toReversed() || [];
 
-    // Calculation of pagination values
     const totalPages = Math.ceil(records.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
@@ -154,7 +153,6 @@ export default function BatchAttendanceDetails() {
 
 
     const handleUnauthorized = useCallback(() => {
-        console.debug("[CourseDetails] Handling unauthorized access");
         localStorage.removeItem("token");
         localStorage.removeItem("userId");
         localStorage.removeItem("isLoggedIn");
@@ -175,10 +173,7 @@ export default function BatchAttendanceDetails() {
         try {
             const token = localStorage.getItem("token");
             if (!token || !deviceId) {
-                console.debug(
-                    "[CourseDetails] Missing token or deviceId in fetchCourseAndSchedule",
-                    { token, deviceId }
-                );
+
                 handleUnauthorized();
                 return;
             }
@@ -494,7 +489,6 @@ export default function BatchAttendanceDetails() {
                         </Button>
                     </div>
 
-                    {/* Batch Header with Icon */}
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                             <BookOpenText className="w-6 h-6 text-white" />
@@ -527,7 +521,6 @@ export default function BatchAttendanceDetails() {
                     </div>
                 </motion.div>
 
-                {/* Set Date Range */}
                 <div className="flex gap-4 my-6 justify-between mx-2">
                     <div className="flex flex-row gap-3">
                         <Label htmlFor="formDate" className="px-1 font-semibold">
@@ -589,7 +582,6 @@ export default function BatchAttendanceDetails() {
                     </div>
                 </div>
 
-                {/* Students Data */}
                 <div className="space-y-6">
                     {attendanceResponse && attendanceResponse.length > 0 ? (
                         <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-lg">
@@ -616,7 +608,6 @@ export default function BatchAttendanceDetails() {
                                     <tbody className="bg-white divide-y divide-gray-100">
                                         {currentRecords?.map((record) => (
                                             <tr key={record.attendanceId}>
-                                                {/* Date Cell */}
                                                 <td className="px-8 py-6 whitespace-nowrap ">
                                                     {record.date && (
                                                         <div className="text-sm text-gray-400 flex justify-start">
@@ -625,7 +616,6 @@ export default function BatchAttendanceDetails() {
                                                     )}
                                                 </td>
 
-                                                {/* Student Status Cells */}
                                                 {record.students?.map((student, idx) => (
                                                     <td
                                                         key={idx + student.studentId}
@@ -642,7 +632,6 @@ export default function BatchAttendanceDetails() {
 
                                 </table>
 
-                                {/* Pagination Part */}
                                 {showPagination && (
                                     <div className="mt-6 flex justify-center">
                                         <Pagination>
@@ -684,7 +673,6 @@ export default function BatchAttendanceDetails() {
                                     </div>
                                 )}
 
-                                {/* Show current page info */}
                                 {showPagination && (
                                     <div className="mt-4 text-center text-sm text-gray-500">
                                         Showing {startIdx + 1} to {Math.min(endIdx, records.length)} of {records.length} attendance records

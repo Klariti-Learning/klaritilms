@@ -129,7 +129,6 @@ export default function StudentCourseDetails() {
   const [isTeachersModalOpen, setIsTeachersModalOpen] = useState(false);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[StudentCourseDetails] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -265,15 +264,9 @@ export default function StudentCourseDetails() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Student") {
-      console.debug("[StudentCourseDetails] Redirecting to login", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
       handleUnauthorized();
       return;
     }
-    console.debug("[StudentCourseDetails] Fetching course data", { courseId });
     fetchCourseAndSchedule();
   }, [
     user,
@@ -284,7 +277,6 @@ export default function StudentCourseDetails() {
     handleUnauthorized,
   ]);
 
-  // ORIGINAL LOGIC: Keep exact same toggle function
   const toggleLesson = (chapterIndex: number, lessonIndex: number) => {
     const lessonKey = `${chapterIndex}-${lessonIndex}`;
     setOpenLessons((prev) => ({
@@ -293,7 +285,6 @@ export default function StudentCourseDetails() {
     }));
   };
 
-  // ORIGINAL LOGIC: Keep exact same date formatting
   const formatDate = (date: string): string => {
     return new Date(date).toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -302,7 +293,6 @@ export default function StudentCourseDetails() {
     });
   };
 
-  // ORIGINAL LOGIC: Keep exact same time formatting
   const formatTime = (time: string): string => {
     const [hours, minutes] = time.split(":");
     const date = new Date();
@@ -416,7 +406,6 @@ export default function StudentCourseDetails() {
     }
   };
 
-  // ORIGINAL LOGIC: Keep exact same status styling
   const getStatusStyle = (status: string) => {
     switch (status.toLowerCase()) {
       case "scheduled":
@@ -432,9 +421,7 @@ export default function StudentCourseDetails() {
     }
   };
 
-  // ORIGINAL LOGIC: Keep exact same scheduling check
   const isScheduled = scheduledCalls?.calls && scheduledCalls.calls.length > 0;
-  console.log("isScheduled", isScheduled);
 
   if (authLoading || loading) {
     return (
@@ -543,7 +530,6 @@ export default function StudentCourseDetails() {
       `}</style>
 
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
-        {/* Compact Sidebar */}
         <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -679,14 +665,12 @@ export default function StudentCourseDetails() {
           </Card>
         </motion.div>
 
-        {/* Main content */}
         <motion.div
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="md:w-2/3"
         >
-          {/* Compact Course header */}
           <Card className="bg-white/80 backdrop-blur-lg shadow-xl rounded-2xl overflow-hidden border border-violet-100 mb-6">
             <div className="bg-gradient-to-r from-violet-600 to-indigo-600 py-4 px-6">
               <div className="flex items-center gap-3">
@@ -764,7 +748,6 @@ export default function StudentCourseDetails() {
             </CardContent>
           </Card>
 
-          {/* Course content with compact timeline */}
           <div className="relative">
             <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-violet-500 to-indigo-500 rounded-full"></div>
 
@@ -809,10 +792,7 @@ export default function StudentCourseDetails() {
                                   scheduledCalls?.calls.find(
                                     (call) => call.lessonId === lesson.lessonId
                                   );
-                                console.log(
-                                  `Chapter: ${chapter.title}, Lesson: ${lesson.title}, LessonId: ${lesson.lessonId}, ScheduledCall Date:`,
-                                  scheduledCall?.date || "No call found"
-                                );
+                              
                                 const isCompleted =
                                   scheduledCall?.status.toLowerCase() ===
                                   "completed";
@@ -1014,7 +994,6 @@ export default function StudentCourseDetails() {
         </motion.div>
       </div>
 
-      {/* Compact Teachers modal */}
       <AnimatePresence>
         {isTeachersModalOpen && (
           <motion.div

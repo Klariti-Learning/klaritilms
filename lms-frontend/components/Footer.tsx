@@ -137,9 +137,7 @@ export default function Footer() {
           />
         </div>
 
-        {/* Main Footer Content */}
         <div className="grid grid-cols-2 md:grid-cols-[339px,1fr] gap-8">
-          {/* Left Card Section */}
           <div className="relative">
             <div className="bg-white p-6 rounded-lg shadow-md relative">
               <SupportIcon />
@@ -158,9 +156,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Right Sections */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {/* Follow Us On Section */}
             <div>
               <h3 className="font-bold mb-4 text-sm uppercase tracking-wide">
                 Follow Us On
@@ -229,7 +225,6 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Company Section */}
             <div>
               <h3 className="font-bold mb-4 text-sm uppercase tracking-wide">
                 Company
@@ -255,7 +250,6 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Others Section */}
             <div>
               <h3 className="font-bold mb-4 text-sm uppercase tracking-wide">
                 Others
@@ -283,10 +277,8 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Divider */}
         <hr className="my-6 border-gray-300" />
 
-        {/* Footer Bottom Section */}
         <div className="flex flex-col md:flex-row justify-center items-center text-sm ">
           <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-4 mb-2 md:mb-0 ">
             <div className="flex gap-3">

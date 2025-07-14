@@ -136,7 +136,6 @@ export function TeacherCoursesContent() {
   const modalRef = useRef<HTMLDivElement>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[TeacherCoursesContent] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -149,14 +148,7 @@ export function TeacherCoursesContent() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug(
-        "[TeacherCoursesContent] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
+
       handleUnauthorized();
       return;
     }
@@ -173,31 +165,22 @@ export function TeacherCoursesContent() {
 
   useEffect(() => {
     const fetchData = async () => {
-      console.debug("[TeacherCoursesContent] Starting fetchData");
       setFetchLoading(true);
       setError(null);
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug("[TeacherCoursesContent] Missing token or deviceId", {
-            token,
-            deviceId,
-          });
+
           handleUnauthorized();
           return;
         }
 
-        console.debug(
-          "[TeacherCoursesContent] Fetching courses from /courses/all"
-        );
+
         const courseResponse = await api.get("/courses/all");
         const fetchedCourses = courseResponse.data.courses || [];
         setCourses(fetchedCourses);
         setFilteredCourses(fetchedCourses);
 
-        console.debug(
-          "[TeacherCoursesContent] Fetching batches from /courses/batches/teacher"
-        );
         const batchResponse = await api.get("/courses/batches/teacher");
         let fetchedBatches = batchResponse.data.batches || [];
 
@@ -205,9 +188,7 @@ export function TeacherCoursesContent() {
           fetchedBatches.map(async (batch: Batch) => {
             if (batch.courseId) {
               try {
-                console.debug(
-                  `[TeacherCoursesContent] Fetching schedule for batch ${batch._id}`
-                );
+ 
                 const scheduleResponse = await api.get(
                   `/schedule/batch/${batch._id}/calls?_=${Date.now()}`
                 );
@@ -250,10 +231,6 @@ export function TeacherCoursesContent() {
           })
         );
 
-        console.debug("[TeacherCoursesContent] Data fetch completed:", {
-          courses: fetchedCourses.length,
-          batches: fetchedBatches.length,
-        });
         setBatches(fetchedBatches);
         setFilteredBatches(fetchedBatches);
       } catch (error) {
@@ -271,23 +248,15 @@ export function TeacherCoursesContent() {
           toast.error(errorMessage);
         }
       } finally {
-        console.debug("[TeacherCoursesContent] Setting fetchLoading to false");
         setFetchLoading(false);
       }
     };
 
     if (authLoading) {
-      console.debug(
-        "[TeacherCoursesContent] Waiting for authLoading to resolve"
-      );
       return;
     }
 
     if (user && user.role?.roleName === "Teacher") {
-      console.debug("[TeacherCoursesContent] Triggering fetchData:", {
-        userId: user._id,
-        role: user.role?.roleName,
-      });
       fetchData();
     } else {
       console.warn("[TeacherCoursesContent] Cannot fetch data:", {
@@ -383,10 +352,7 @@ export function TeacherCoursesContent() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[TeacherCoursesContent] Missing token or deviceId for delete batch",
-          { token, deviceId }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -422,10 +388,7 @@ export function TeacherCoursesContent() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[TeacherCoursesContent] Missing token or deviceId for assign course",
-          { token, deviceId }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -504,7 +467,6 @@ export function TeacherCoursesContent() {
   };
 
   if (authLoading) {
-    console.debug("[TeacherCoursesContent] Rendering authLoading state");
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <motion.div className="relative">
@@ -528,14 +490,12 @@ export function TeacherCoursesContent() {
   }
 
   if (!user || user.role?.roleName !== "Teacher") {
-    console.debug("[TeacherCoursesContent] User invalid, awaiting redirect");
     return null;
   }
 
   return (
     <TooltipProvider>
       <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
-        {/* Compact Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div
             animate={{
@@ -620,7 +580,6 @@ export function TeacherCoursesContent() {
           `}</style>
 
           <div className="max-w-7xl mx-auto w-full">
-            {/* Compact Header */}
             <motion.div
               initial={{ opacity: 0, y: -30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -688,7 +647,6 @@ export function TeacherCoursesContent() {
               className="w-full"
               onValueChange={(value) => setActiveTab(value)}
             >
-              {/* Centered Tab Navigation */}
               <div className="flex flex-col items-center gap-4 mb-8">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -745,7 +703,6 @@ export function TeacherCoursesContent() {
                 )}
               </div>
 
-              {/* Compact Search Bar */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -868,9 +825,7 @@ export function TeacherCoursesContent() {
                                 )
                               }
                             >
-                              {/* Compact Course Header */}
                               <div className="relative p-4 pb-3 bg-gradient-to-br from-blue-50/60 to-purple-50/60">
-                                {/* Status & Menu */}
                                 <div className="flex justify-between items-start mb-3">
                                   <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm text-xs">
                                     <CheckCircle className="w-3 h-3 mr-1" />
@@ -927,7 +882,6 @@ export function TeacherCoursesContent() {
                                   </div>
                                 </div>
 
-                                {/* Course Icon */}
                                 <div className="flex justify-center mb-3">
                                   <div className="relative">
                                     <motion.div
@@ -944,7 +898,6 @@ export function TeacherCoursesContent() {
                               </div>
 
                               <CardContent className="flex-1 px-4 pb-4">
-                                {/* Title */}
                                 <div className="text-center mb-4">
                                   <h3
                                     className="text-lg font-black text-gray-800 mb-1 group-hover:text-blue-600 transition-colors duration-300 leading-tight"
@@ -955,7 +908,6 @@ export function TeacherCoursesContent() {
                                   <div className="w-12 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto"></div>
                                 </div>
 
-                                {/* Compact Info */}
                                 <div className="space-y-2 mb-4">
                                   <div className="flex items-center gap-2 p-2 bg-blue-50/50 rounded-lg">
                                     <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
@@ -1002,7 +954,6 @@ export function TeacherCoursesContent() {
                                   </div>
                                 </div>
 
-                                {/* Action Button */}
                                 <motion.div
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
@@ -1109,9 +1060,7 @@ export function TeacherCoursesContent() {
                                 router.push(`/teacher/batches/${batch._id}`)
                               }
                             >
-                              {/* Compact Batch Header */}
                               <div className="relative p-4 pb-3 bg-gradient-to-br from-emerald-50/60 to-teal-50/60">
-                                {/* Status & Menu */}
                                 <div className="flex justify-between items-start mb-3">
                                   {batch.courseId ? (
                                     <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 shadow-sm text-xs">
@@ -1190,7 +1139,6 @@ export function TeacherCoursesContent() {
                                   </div>
                                 </div>
 
-                                {/* Batch Icon */}
                                 <div className="flex justify-center mb-3">
                                   <div className="relative">
                                     <motion.div
@@ -1209,7 +1157,6 @@ export function TeacherCoursesContent() {
                               </div>
 
                               <CardContent className="flex-1 px-4 pb-4 flex flex-col">
-                                {/* Title */}
                                 <div className="text-center mb-4">
                                   <h3
                                     className="text-lg font-black text-gray-800 mb-1 group-hover:text-emerald-600 transition-colors duration-300 leading-tight"
@@ -1220,7 +1167,6 @@ export function TeacherCoursesContent() {
                                   <div className="w-12 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full mx-auto"></div>
                                 </div>
 
-                                {/* Compact Info */}
                                 <div className="space-y-2 flex-1 mb-4">
                                   <div className="flex items-center gap-2 p-2 bg-emerald-50/50 rounded-lg">
                                     <div className="w-6 h-6 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
@@ -1271,7 +1217,6 @@ export function TeacherCoursesContent() {
                                   )}
                                 </div>
 
-                                {/* Action Buttons */}
                                 <div className="space-y-2">
                                   {batch.studentIds.length > 0 &&
                                     !batch.courseId && (
@@ -1343,7 +1288,6 @@ export function TeacherCoursesContent() {
                                   )}
                                 </div>
 
-                                {/* View Button */}
                                 <motion.div
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
@@ -1370,8 +1314,6 @@ export function TeacherCoursesContent() {
               </div>
             </Tabs>
 
-            {/* Modals remain the same but with smaller sizes */}
-            {/* Enhanced Edit Course Modal */}
             <AnimatePresence>
               {editCourseModal && (
                 <motion.div
@@ -1607,7 +1549,6 @@ export function TeacherCoursesContent() {
               )}
             </AnimatePresence>
 
-            {/* Enhanced Assign Course Modal */}
             <AnimatePresence>
               {assignCourseModal && (
                 <motion.div
@@ -1766,7 +1707,6 @@ export function TeacherCoursesContent() {
               )}
             </AnimatePresence>
 
-            {/* Enhanced Delete Confirmation Modal */}
             <AnimatePresence>
               {deleteModal && deleteModal.type === "batch" && (
                 <motion.div

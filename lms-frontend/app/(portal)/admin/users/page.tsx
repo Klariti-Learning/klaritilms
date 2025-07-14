@@ -45,7 +45,6 @@ export default function Users() {
   const router = useRouter();
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[Users] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -63,7 +62,6 @@ export default function Users() {
       const deviceId = localStorage.getItem("deviceId");
       const token = localStorage.getItem("token");
       if (!deviceId || !token) {
-        console.debug("[Users] Missing deviceId or token", { deviceId, token });
         handleUnauthorized();
         return;
       }
@@ -94,10 +92,6 @@ export default function Users() {
       !user ||
       !["Admin", "Super Admin"].includes(user.role?.roleName || "")
     ) {
-      console.debug("[Users] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-      });
       handleUnauthorized();
       router.push("/my-learnings");
       return;
@@ -183,7 +177,6 @@ export default function Users() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E6F0FA] via-[#F0F4FF] to-[#DDE7F9] mt-10 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -210,7 +203,6 @@ export default function Users() {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Stats Cards */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -249,7 +241,6 @@ export default function Users() {
               </div>
             </motion.div>
 
-            {/* Admins Section */}
             {admins.length > 0 && (
               <motion.section
                 initial={{ opacity: 0, y: 20 }}
@@ -335,7 +326,6 @@ export default function Users() {
               </motion.section>
             )}
 
-            {/* Teachers Section */}
             {teachers.length > 0 && (
               <motion.section
                 initial={{ opacity: 0, y: 20 }}
@@ -424,7 +414,6 @@ export default function Users() {
               </motion.section>
             )}
 
-            {/* Students Section */}
             {students.length > 0 && (
               <motion.section
                 initial={{ opacity: 0, y: 20 }}
@@ -513,7 +502,6 @@ export default function Users() {
               </motion.section>
             )}
 
-            {/* No Role Section */}
             {noRole.length > 0 && (
               <motion.section
                 initial={{ opacity: 0, y: 20 }}
@@ -547,7 +535,6 @@ export default function Users() {
                             onClick={() => handleCardClick(u._id)}
                           ></div>
 
-                          {/* Clickable area for card navigation - excludes button */}
                           <div
                             className="p-4 pb-2 relative z-10"
                             onClick={() => handleCardClick(u._id)}
@@ -590,7 +577,6 @@ export default function Users() {
                             </div>
                           </div>
 
-                          {/* Button area - positioned above overlay */}
                           {u._id !== user?._id && (
                             <div className="px-4 pb-4 relative z-20">
                               <Button
