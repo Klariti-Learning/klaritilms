@@ -10,7 +10,7 @@ import {
 import ReactCountryFlag from "react-country-flag";
 import countryList from "react-select-country-list";
 import { getCountryCallingCode, CountryCode } from "libphonenumber-js";
-import {CountryDropdownProps} from "@/types";
+import { CountryDropdownProps } from "@/types";
 
 export function CountryDropdown({
   value,
@@ -32,7 +32,9 @@ export function CountryDropdown({
       }}
     >
       <SelectTrigger
-        className={`${slim ? "w-12 p-1" : "w-44"} border-0 focus:ring-0 cursor-pointer`}
+        className={`${
+          slim ? "w-12 p-1" : "w-44"
+        } border-0 focus:ring-0 cursor-pointer`}
       >
         <SelectValue>
           {value && (
