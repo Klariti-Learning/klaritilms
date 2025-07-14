@@ -5,13 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button";
-import { ArrowUpFromLine, BookOpenText, CalendarIcon, Clock, Target, User } from "lucide-react";
+import { BookOpenText, CalendarIcon, Clock, Download, Target, User } from "lucide-react";
 import api from "@/lib/api";
 import { ApiError } from "@/types";
 import toast from "react-hot-toast";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon, Calendar as CalendarPick } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import {
     Popover,
@@ -28,6 +28,8 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination"
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export interface AttendanceRecord {
     attendanceId: string;
@@ -72,6 +74,7 @@ export default function BatchAttendanceDetails() {
     const { loading: authLoading, deviceId } = useAuth();
     const router = useRouter();
     const { batchId } = useParams();
+    const { user } = useAuth()
 
     const [attendanceResponse, setAttendanceResponse] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(false);
@@ -86,6 +89,7 @@ export default function BatchAttendanceDetails() {
 
     const records = attendanceResponse.toReversed() || [];
 
+    // Calculation of pagination values
     const totalPages = Math.ceil(records.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
@@ -153,6 +157,7 @@ export default function BatchAttendanceDetails() {
 
 
     const handleUnauthorized = useCallback(() => {
+        console.debug("[CourseDetails] Handling unauthorized access");
         localStorage.removeItem("token");
         localStorage.removeItem("userId");
         localStorage.removeItem("isLoggedIn");
@@ -161,7 +166,7 @@ export default function BatchAttendanceDetails() {
         router.push("/login");
     }, [router]);
 
-    const fetchBatchAttendanceWithQueries = useCallback(async (fromDate: Date | undefined, toDate: Date | undefined) => {
+    const fetchBatchAttendance = useCallback(async (fromDate?: Date | undefined, toDate?: Date | undefined) => {
         if (!batchId) {
             setError("No batch ID provided");
             setLoading(false);
@@ -173,25 +178,32 @@ export default function BatchAttendanceDetails() {
         try {
             const token = localStorage.getItem("token");
             if (!token || !deviceId) {
-
+                console.debug(
+                    "[CourseDetails] Missing token or deviceId in fetchCourseAndSchedule",
+                    { token, deviceId }
+                );
                 handleUnauthorized();
                 return;
             }
-            let url = `/attendance/data?batchId=${batchId}`;
+            const params: { batchId: string; teacherId?: string; fromDate?: string; toDate?: string } = {
+                batchId: Array.isArray(batchId) ? batchId[0] : batchId,
+                teacherId: user?._id,
+            }
+
             if (fromDate !== undefined && toDate !== undefined) {
-                const fromDateYYYYMMDD = formatDateYYYYMMDD(fromDate);
-                const toDateYYYYMMDD = formatDateYYYYMMDD(toDate);
-                url += `&formDate=${fromDateYYYYMMDD}&toDate=${toDateYYYYMMDD}`
+                params.fromDate = formatDateYYYYMMDD(fromDate);
+                params.toDate = formatDateYYYYMMDD(toDate);
             }
 
             const BatchAttendnaceResponse = await api.get(
-                url,
+                "/attendance/data",
                 {
+                    params,
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                         "Device-Id": deviceId,
                     },
-                },
+                }
             );
 
             const batchData = BatchAttendnaceResponse?.data?.attendanceRecords
@@ -216,11 +228,88 @@ export default function BatchAttendanceDetails() {
         } finally {
             setLoading(false);
         }
-    }, [batchId, deviceId, handleUnauthorized])
+    }, [batchId, deviceId, handleUnauthorized, user?._id])
+
+    const exportToCSV = async () => {
+        if (!batchId) {
+            setError("No batch ID provided");
+            setLoading(false);
+            return;
+        }
+        try {
+            const params: { batchId: string; teacherId?: string; formDate?: string; toDate?: string } = {
+                batchId: Array.isArray(batchId) ? batchId[0] : batchId,
+                teacherId: user?._id
+            }
+
+            if (fromDate && toDate) {
+                params.formDate = formatDateYYYYMMDD(fromDate);
+                params.toDate = formatDateYYYYMMDD(toDate)
+            }
+
+            const response = await api.get('/attendance/data', { params });
+            const records: AttendanceRecord[] = response.data.attendanceRecords || [];
+
+            if (records.length === 0) {
+                setError('No attendace records to export');
+                return;
+            }
+
+            const escapeCSV = (val: string) => `"${val?.replace(/"/g, '""') || "N/A"}"`;
+
+            const headers = ['Date', 'Course', 'Batch', 'Teacher', 'Student', 'Status'];
+
+            const csvRows = [
+                headers.join(','),
+                ...records.flatMap((record: AttendanceRecord) => {
+                    const date = format(parseISO(record.date), 'dd-MMM-yyyy');
+                    const course = escapeCSV(record.course?.title);
+                    const batch = escapeCSV(record.batch?.name);
+                    const teacher = escapeCSV(record.teacher?.name);
+
+                    return record.students.map((student) => {
+                        const studentName = escapeCSV(student?.name);
+                        const status = escapeCSV(student?.status);
+                        return [date, course, batch, teacher, studentName, status].join(',');
+                    });
+                }),
+            ];
+
+
+            const batchName = records[0].batch?.name || "Batch";
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${batchName}_attendance.csv`;
+            link.click();
+        } catch (error) {
+            console.log("[ExportError] Error exporting Batch Attendance", error);
+            setError("Failed to export Batch Attendance data");
+        }
+
+    }
+
+    const clearFilters = () => {
+        setFromDate(undefined);
+        setToDate(undefined);
+        setCurrentPage(1);
+        if (batchId) {
+            fetchBatchAttendance();
+        }
+    }
+
+    const handleFilter = () => {
+        if (fromDate && toDate && batchId) {
+            fetchBatchAttendance(fromDate, toDate);
+            setCurrentPage(1);
+        }
+    }
 
     useEffect(() => {
-        fetchBatchAttendanceWithQueries(fromDate, toDate);
-    }, [batchId, fromDate, toDate, fetchBatchAttendanceWithQueries]);
+        fetchBatchAttendance();
+    }, [batchId, fetchBatchAttendance]);
 
     const getComponent = (status: string) => {
         switch (status.toLowerCase()) {
@@ -483,12 +572,13 @@ export default function BatchAttendanceDetails() {
                             ← Back to Courses
                         </Button>
 
-                        <Button onClick={() => alert(`we can export the data fromDate ${fromDate} to toDate ${toDate}`)} className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white rounded-xl px-6 py-3 flex items-center gap-2 shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
-                            <ArrowUpFromLine className="h-4 w-4" />
+                        <Button onClick={exportToCSV} className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white rounded-xl px-6 py-3 flex items-center gap-2 shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
+                            <Download className="h-4 w-4" />
                             Export
                         </Button>
                     </div>
 
+                    {/* Batch Header with Icon */}
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                             <BookOpenText className="w-6 h-6 text-white" />
@@ -521,9 +611,11 @@ export default function BatchAttendanceDetails() {
                     </div>
                 </motion.div>
 
-                <div className="flex gap-4 my-6 justify-between mx-2">
+                {/* Set Date Range */}
+                <div className="flex gap-4 my-6 mx-2">
                     <div className="flex flex-row gap-3">
-                        <Label htmlFor="formDate" className="px-1 font-semibold">
+                        <Label htmlFor="formDate" className="px-1 font-semibold text-black">
+                            <CalendarPick className="w-4 h-4" />
                             FromDate
                         </Label>
                         <Popover open={openFromDate} onOpenChange={setOpenFromDate}>
@@ -531,57 +623,93 @@ export default function BatchAttendanceDetails() {
                                 <Button
                                     variant="outline"
                                     id="formDate"
-                                    className="w-48 justify-between font-normal"
+                                    className={cn(
+                                        "w-48 justify-between font-normal text-black bg-white border transition-all",
+                                        openFromDate ? "border-blue-500 ring-2 ring-blue-300" : "border-gray-300"
+                                    )}
                                 >
-                                    {fromDate ? fromDate.toLocaleDateString() : "Select date"}
-                                    <ChevronDownIcon />
+                                    {fromDate ? fromDate.toLocaleDateString("en-GB") : "Pick a date"}
+                                    <ChevronDownIcon className="ml-2 h-4 w-4 text-gray-500" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                            <PopoverContent
+                                className="w-auto overflow-hidden p-0 bg-white border border-gray-200 shadow-md rounded-md"
+                                align="start"
+                            >
                                 <Calendar
                                     mode="single"
-                                    className="bg-black text-white"
                                     selected={fromDate}
                                     captionLayout="dropdown"
+                                    className="text-black bg-white"
                                     onSelect={(date) => {
-                                        setFromDate(date)
-                                        setOpenFromDate(false)
+                                        setFromDate(date);
+                                        setOpenFromDate(false);
+                                    }}
+                                    classNames={{
+                                        day_selected: "bg-blue-600 text-white hover:bg-blue-700",
                                     }}
                                 />
                             </PopoverContent>
                         </Popover>
+
                     </div>
-                    <div className="flex flex-row gap-3">
-                        <Label htmlFor="formDate" className="px-1 font-semibold">
-                            ToDate
+                    <div className="flex flex-row items-center gap-3">
+                        <CalendarPick className="w-4 h-4 text-gray-600" />
+                        <Label htmlFor="toDate" className="px-1 font-semibold text-black">
+                            To Date
                         </Label>
+
                         <Popover open={openToDate} onOpenChange={setOpenToDate}>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant="outline"
-                                    id="formDate"
-                                    className="w-48 justify-between font-normal"
+                                    id="toDate"
+                                    className={cn(
+                                        "w-48 justify-between font-normal text-black bg-white border transition-all",
+                                        openToDate ? "border-blue-500 ring-2 ring-blue-300" : "border-gray-300"
+                                    )}
                                 >
-                                    {toDate ? toDate.toLocaleDateString() : "Select date"}
-                                    <ChevronDownIcon />
+                                    {toDate ? toDate.toLocaleDateString("en-GB") : "Pick a date"}
+                                    <ChevronDownIcon className="ml-2 h-4 w-4 text-gray-500" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                            <PopoverContent
+                                className="w-auto overflow-hidden p-0 bg-white border border-gray-200 shadow-md rounded-md"
+                                align="start"
+                            >
                                 <Calendar
                                     mode="single"
-                                    className="bg-black text-white"
+                                    className="bg-white text-black"
                                     selected={toDate}
                                     captionLayout="dropdown"
                                     onSelect={(date) => {
-                                        setToDate(date)
-                                        setOpenToDate(false)
+                                        setToDate(date);
+                                        setOpenToDate(false);
+                                    }}
+                                    classNames={{
+                                        day_selected: "bg-blue-600 text-white hover:bg-blue-700",
                                     }}
                                 />
                             </PopoverContent>
                         </Popover>
                     </div>
+
+                    <Button
+                        onClick={handleFilter}
+                        className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-md"
+                        disabled={!fromDate || !toDate}
+                    >
+                        Filter
+                    </Button>
+                    <Button
+                        onClick={clearFilters}
+                        className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-md"
+                    >
+                        Clear
+                    </Button>
                 </div>
 
+                {/* Students Data */}
                 <div className="space-y-6">
                     {attendanceResponse && attendanceResponse.length > 0 ? (
                         <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-lg">
@@ -608,6 +736,7 @@ export default function BatchAttendanceDetails() {
                                     <tbody className="bg-white divide-y divide-gray-100">
                                         {currentRecords?.map((record) => (
                                             <tr key={record.attendanceId}>
+                                                {/* Date Cell */}
                                                 <td className="px-8 py-6 whitespace-nowrap ">
                                                     {record.date && (
                                                         <div className="text-sm text-gray-400 flex justify-start">
@@ -616,6 +745,7 @@ export default function BatchAttendanceDetails() {
                                                     )}
                                                 </td>
 
+                                                {/* Student Status Cells */}
                                                 {record.students?.map((student, idx) => (
                                                     <td
                                                         key={idx + student.studentId}
@@ -632,6 +762,7 @@ export default function BatchAttendanceDetails() {
 
                                 </table>
 
+                                {/* Pagination Part */}
                                 {showPagination && (
                                     <div className="mt-6 flex justify-center">
                                         <Pagination>
@@ -673,6 +804,7 @@ export default function BatchAttendanceDetails() {
                                     </div>
                                 )}
 
+                                {/* Show current page info */}
                                 {showPagination && (
                                     <div className="mt-4 text-center text-sm text-gray-500">
                                         Showing {startIdx + 1} to {Math.min(endIdx, records.length)} of {records.length} attendance records
