@@ -7,7 +7,7 @@ interface PendingRequest {
 }
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: "https://klaritilms-470003429420.asia-south2.run.app/api",
   headers: {
     "Content-Type": "application/json",
   },
