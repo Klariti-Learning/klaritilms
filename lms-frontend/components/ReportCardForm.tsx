@@ -40,7 +40,6 @@ export default function ReportCardForm() {
   };
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[ReportCardForm] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -52,14 +51,7 @@ export default function ReportCardForm() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug(
-        "[ReportCardForm] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
+
       handleUnauthorized();
     }
   }, [user, authLoading, router, handleUnauthorized]);
@@ -68,7 +60,6 @@ export default function ReportCardForm() {
     if (authLoading || !user?._id || !studentId) {
       setFetching(true);
       if (!studentId) {
-        console.debug("[ReportCardForm] Invalid studentId", { studentId });
         toast.error("Invalid student ID");
         router.push("/");
       }
@@ -79,13 +70,6 @@ export default function ReportCardForm() {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug(
-            "[ReportCardForm] Missing token or deviceId in fetchStudentDetails",
-            {
-              token,
-              deviceId,
-            }
-          );
           handleUnauthorized();
           return;
         }
@@ -125,13 +109,7 @@ export default function ReportCardForm() {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug(
-            "[ReportCardForm] Missing token or deviceId in fetchReportCards",
-            {
-              token,
-              deviceId,
-            }
-          );
+
           handleUnauthorized();
           return;
         }
@@ -192,13 +170,7 @@ export default function ReportCardForm() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[ReportCardForm] Missing token or deviceId in handleSubmit",
-          {
-            token,
-            deviceId,
-          }
-        );
+
         handleUnauthorized();
         return;
       }

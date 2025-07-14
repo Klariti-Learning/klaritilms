@@ -192,7 +192,6 @@ export default function StudentScheduleCall() {
   const [error, setError] = useState<string | null>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[StudentScheduleCall] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -255,15 +254,10 @@ export default function StudentScheduleCall() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Student") {
-      console.debug("[StudentScheduleCall] Redirecting to login", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
+
       handleUnauthorized();
       return;
     }
-    console.debug("[StudentScheduleCall] Fetching calls", { userId: user._id });
     fetchCalls();
   }, [user, authLoading, fetchCalls, handleUnauthorized]);
 
@@ -488,7 +482,6 @@ export default function StudentScheduleCall() {
 
       <div className="relative z-10 p-4">
         <div className="max-w-7xl mx-auto">
-          {/* Header Section with Softer Gradient */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -537,9 +530,7 @@ export default function StudentScheduleCall() {
             </motion.p>
           </motion.div>
 
-          {/* Main Content */}
           <div className="flex flex-col xl:flex-row gap-6">
-            {/* Sidebar with Softer Gradient */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -628,7 +619,6 @@ export default function StudentScheduleCall() {
               </Card>
             </motion.div>
 
-            {/* Main Content Area with Softer Gradient */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -699,7 +689,6 @@ export default function StudentScheduleCall() {
                     </motion.div>
                   ) : (
                     <div className="relative">
-                      {/* Timeline Line with Softer Gradient */}
                       <div
                         className={`absolute left-5 top-0 bottom-0 w-0.5 ${selectedFilter?.timelineColor} rounded-full`}
                       ></div>
@@ -719,7 +708,6 @@ export default function StudentScheduleCall() {
                               }}
                               className="relative pl-12"
                             >
-                              {/* Timeline Dot with Softer Gradient */}
                               <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
@@ -730,7 +718,6 @@ export default function StudentScheduleCall() {
                                 className={`absolute left-4 top-5 w-3 h-3 ${selectedFilter?.activeColor} rounded-full shadow-lg transform -translate-x-1/2 ring-2 ring-white`}
                               ></motion.div>
 
-                              {/* Class Card with Softer Gradient */}
                               <motion.div
                                 whileHover={{
                                   scale: 1.01,
@@ -761,7 +748,6 @@ export default function StudentScheduleCall() {
                                       </div>
                                     </div>
 
-                                    {/* Status Badge and Join Button */}
                                     <div className="flex items-center gap-2 ml-4">
                                       <Badge className="bg-gradient-to-r from-cyan-400 to-cyan-500 text-white px-3 py-1 text-xs font-semibold">
                                         {call.status === "Scheduled" ||
@@ -825,7 +811,6 @@ export default function StudentScheduleCall() {
                                     </div>
                                   </div>
 
-                                  {/* Teacher and Time Info */}
                                   <div className="flex items-center space-x-6 text-gray-600">
                                     <motion.div
                                       initial={{ opacity: 0, x: -10 }}
@@ -870,7 +855,6 @@ export default function StudentScheduleCall() {
                                     </motion.div>
                                   </div>
 
-                                  {/* Expandable Section */}
                                   <AnimatePresence>
                                     {state.openCards[call._id] && (
                                       <motion.div

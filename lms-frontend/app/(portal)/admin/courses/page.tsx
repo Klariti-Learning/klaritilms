@@ -101,7 +101,6 @@ export default function Courses() {
   const modalRef = useRef<HTMLDivElement>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[Courses] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -113,11 +112,7 @@ export default function Courses() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || !["Admin", "Super Admin"].includes(user.role?.roleName)) {
-      console.debug("[Courses] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
+
       handleUnauthorized();
     }
   }, [user, authLoading, handleUnauthorized]);
@@ -165,7 +160,6 @@ export default function Courses() {
       user &&
       ["Admin", "Super Admin"].includes(user.role?.roleName)
     ) {
-      console.debug("[Courses] Fetching courses", { userId: user._id });
       fetchCourses();
     }
   }, [user, authLoading, fetchCourses]);

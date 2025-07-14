@@ -105,7 +105,6 @@ export default function EditBatch() {
   const modalRef = useRef<HTMLDivElement>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[EditBatch] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -117,11 +116,7 @@ export default function EditBatch() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug("[EditBatch] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
+
       handleUnauthorized();
       return;
     }
@@ -134,10 +129,6 @@ export default function EditBatch() {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug("[EditBatch] Missing token or deviceId in fetchData", {
-            token,
-            deviceId,
-          });
           handleUnauthorized();
           return;
         }
@@ -240,10 +231,7 @@ export default function EditBatch() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[EditBatch] Missing token or deviceId in handleUpdateBatch",
-          { token, deviceId }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -291,10 +279,7 @@ export default function EditBatch() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[EditBatch] Missing token or deviceId in handleRemoveStudent",
-          { token, deviceId }
-        );
+ 
         handleUnauthorized();
         return;
       }
@@ -341,10 +326,7 @@ export default function EditBatch() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[EditBatch] Missing token or deviceId in handleAddStudents",
-          { token, deviceId }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -495,14 +477,12 @@ export default function EditBatch() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 md:p-6 mt-8 relative overflow-hidden">
-      {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-32 -right-32 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-blue-200/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-200/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
 
-      {/* Grid Pattern Overlay */}
       <div className="absolute inset-0 opacity-30">
         <div
           className="absolute inset-0"
@@ -520,7 +500,6 @@ export default function EditBatch() {
         initial="hidden"
         animate="visible"
       >
-        {/* Enhanced Header Section */}
         <motion.div
           variants={itemVariants}
           className="flex flex-col lg:flex-row justify-between items-start mb-8 gap-6"
@@ -609,7 +588,6 @@ export default function EditBatch() {
           </motion.div>
         </motion.div>
 
-        {/* Enhanced Error Alert */}
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -636,7 +614,6 @@ export default function EditBatch() {
           </motion.div>
         )}
 
-        {/* Compact Batch Details Section */}
         <motion.div
           variants={itemVariants}
           className="relative bg-white/80 backdrop-blur-2xl rounded-2xl shadow-lg border border-gray-200 p-6 mb-6 overflow-hidden group"
@@ -702,7 +679,6 @@ export default function EditBatch() {
           </div>
         </motion.div>
 
-        {/* Compact Current Students Section */}
         <motion.div
           variants={itemVariants}
           className="relative bg-white/80 backdrop-blur-2xl rounded-2xl shadow-lg border border-gray-200 p-6 mb-6 overflow-hidden"
@@ -789,11 +765,9 @@ export default function EditBatch() {
                     }}
                   >
                     <Card className="overflow-hidden bg-gradient-to-br from-white to-gray-50 backdrop-blur-2xl border border-gray-200 rounded-2xl shadow-md h-full group-hover:border-emerald-300 transition-all duration-300 relative">
-                      {/* Glow effect */}
                       <div className="absolute inset-0 bg-gradient-to-r from-emerald-100/50 via-teal-100/50 to-cyan-100/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
 
                       <CardContent className="p-4 h-full flex flex-col relative z-10">
-                        {/* Status Badge */}
                         <div className="absolute top-2 right-2 z-20">
                           <motion.div
                             animate={{ scale: [1, 1.1, 1] }}
@@ -807,7 +781,6 @@ export default function EditBatch() {
                           </motion.div>
                         </div>
 
-                        {/* Profile Section */}
                         <div className="flex items-center justify-center mb-3">
                           {student.profileImage ? (
                             <div className="relative">
@@ -845,7 +818,6 @@ export default function EditBatch() {
                           )}
                         </div>
 
-                        {/* Student Info */}
                         <div className="text-center mb-3 flex-grow">
                           <motion.h3
                             whileHover={{ scale: 1.05 }}
@@ -874,7 +846,6 @@ export default function EditBatch() {
                             )}
                           </div>
 
-                          {/* Subjects */}
                           {student.subjects && student.subjects.length > 0 && (
                             <div className="flex flex-wrap justify-center gap-1 mt-2">
                               {student.subjects
@@ -898,7 +869,6 @@ export default function EditBatch() {
                           )}
                         </div>
 
-                        {/* Hover overlay with enhanced effects */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-2xl flex items-center justify-center z-30">
                           <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
@@ -929,7 +899,6 @@ export default function EditBatch() {
           )}
         </motion.div>
 
-        {/* Compact Add Students Section */}
         {filteredStudents.length > 0 && (
           <motion.div
             variants={itemVariants}
@@ -971,7 +940,6 @@ export default function EditBatch() {
                 )}
               </div>
 
-              {/* Compact Search Bar */}
               <div className="relative mb-6">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
                   <Search className="w-5 h-5 text-gray-400" />
@@ -1002,7 +970,6 @@ export default function EditBatch() {
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
               </div>
 
-              {/* Compact Students Grid */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 mb-6">
                 <AnimatePresence>
                   {filteredStudents.map((student, index) => (
@@ -1027,7 +994,6 @@ export default function EditBatch() {
                         }`}
                         onClick={() => handleStudentSelect(student._id)}
                       >
-                        {/* Selection glow effect */}
                         <div
                           className={`absolute inset-0 bg-gradient-to-r from-purple-100/50 via-pink-100/50 to-blue-100/50 opacity-0 transition-opacity duration-300 rounded-2xl ${
                             selectedStudents.includes(student._id)
@@ -1037,7 +1003,6 @@ export default function EditBatch() {
                         ></div>
 
                         <CardContent className="p-4 h-full flex flex-col relative z-10">
-                          {/* Selection indicator */}
                           <div className="absolute top-2 right-2 z-20">
                             <motion.div
                               animate={
@@ -1056,7 +1021,6 @@ export default function EditBatch() {
                             </motion.div>
                           </div>
 
-                          {/* Profile Section */}
                           <div className="flex items-center justify-center mb-3">
                             {student.profileImage ? (
                               <div className="relative">
@@ -1120,7 +1084,6 @@ export default function EditBatch() {
                             )}
                           </div>
 
-                          {/* Student Info */}
                           <div className="text-center mb-3 flex-grow">
                             <motion.h3
                               whileHover={{ scale: 1.05 }}
@@ -1155,7 +1118,6 @@ export default function EditBatch() {
                               )}
                             </div>
 
-                            {/* Subjects */}
                             {student.subjects &&
                               student.subjects.length > 0 && (
                                 <div className="flex flex-wrap justify-center gap-1 mt-2">
@@ -1186,7 +1148,6 @@ export default function EditBatch() {
                 </AnimatePresence>
               </div>
 
-              {/* Compact Add Students Button */}
               <div className="flex justify-end">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -1232,7 +1193,6 @@ export default function EditBatch() {
           </motion.div>
         )}
 
-        {/* Compact Confirmation Modal */}
         <AnimatePresence>
           {confirmModal && (
             <motion.div
@@ -1250,7 +1210,6 @@ export default function EditBatch() {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="bg-white/95 backdrop-blur-2xl rounded-2xl p-8 max-w-md w-full shadow-2xl border border-gray-200 relative overflow-hidden"
               >
-                {/* Animated background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 animate-pulse"></div>
 
                 <div className="relative text-center">

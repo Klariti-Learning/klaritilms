@@ -231,7 +231,6 @@ export default function CourseDetails() {
   const [selectionMode, setSelectionMode] = useState<SelectionMode>(undefined);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[CourseDetails] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -243,14 +242,7 @@ export default function CourseDetails() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug(
-        "[CourseDetails] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
+
       handleUnauthorized();
       return;
     }
@@ -261,10 +253,7 @@ export default function CourseDetails() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[CourseDetails] Missing token or deviceId in fetchDriveFiles",
-          { token, deviceId }
-        );
+ 
         handleUnauthorized();
         return;
       }
@@ -296,10 +285,7 @@ export default function CourseDetails() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[CourseDetails] Missing token or deviceId in handleSelectDriveFile",
-          { token, deviceId }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -371,10 +357,6 @@ export default function CourseDetails() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[CourseDetails] Missing token or deviceId in fetchCourseAndSchedule",
-          { token, deviceId }
-        );
         handleUnauthorized();
         return;
       }
@@ -630,10 +612,7 @@ export default function CourseDetails() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[CourseDetails] Missing token or deviceId in fetchWorksheets",
-          { token, deviceId }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -686,10 +665,7 @@ export default function CourseDetails() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[CourseDetails] Missing token or deviceId in handleWorksheetUpload",
-          { token, deviceId }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -732,10 +708,7 @@ export default function CourseDetails() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[CourseDetails] Missing token or deviceId in handleDeleteWorksheet",
-          { token, deviceId }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -843,10 +816,7 @@ export default function CourseDetails() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[CourseDetails] Missing token or deviceId in handleConfirmCancel",
-          { token, deviceId }
-        );
+
         handleUnauthorized();
         return;
       }
@@ -977,10 +947,6 @@ export default function CourseDetails() {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug(
-          "[CourseDetails] Missing token or deviceId in handleRescheduleSubmit",
-          { token, deviceId }
-        );
         handleUnauthorized();
         return;
       }
@@ -1318,7 +1284,6 @@ export default function CourseDetails() {
       `}</style>
 
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1332,7 +1297,6 @@ export default function CourseDetails() {
             ← Back to Courses
           </Button>
 
-          {/* Course Header with Icon */}
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
               <Sparkles className="w-6 h-6 text-white" />
@@ -1345,7 +1309,6 @@ export default function CourseDetails() {
             </div>
           </div>
 
-          {/* Course Info Badges */}
           <div className="flex flex-wrap gap-2 mb-6">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
               <Target className="w-3 h-3" />
@@ -1377,7 +1340,6 @@ export default function CourseDetails() {
           </div>
         </motion.div>
 
-        {/* Course Content */}
         <div className="space-y-6">
           {course.chapters && course.chapters.length > 0 ? (
             course.chapters.map((chapter, chapterIndex) => {
@@ -1390,9 +1352,7 @@ export default function CourseDetails() {
                   transition={{ duration: 0.5, delay: chapterIndex * 0.1 }}
                   className="relative"
                 >
-                  {/* Timeline Connector */}
                   <div className="flex items-start gap-4">
-                    {/* Chapter Icon */}
                     <div className="flex flex-col items-center">
                       <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                         <Book className="w-5 h-5 text-white" />
@@ -1402,9 +1362,7 @@ export default function CourseDetails() {
                       )}
                     </div>
 
-                    {/* Chapter Content */}
                     <div className="flex-1">
-                      {/* Chapter Header */}
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <h2 className="text-xl font-bold text-gray-900 mb-1">
@@ -1425,7 +1383,6 @@ export default function CourseDetails() {
                         </div>
                       </div>
 
-                      {/* Lessons */}
                       <div className="space-y-3">
                         {chapter.lessons.length > 0 ? (
                           chapter.lessons.map((lesson, lessonIndex) => {
@@ -1486,7 +1443,6 @@ export default function CourseDetails() {
                                   </div>
                                 </div>
 
-                                {/* Lesson Date and Actions */}
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                     {isScheduled && scheduledCall && (
@@ -1677,7 +1633,6 @@ export default function CourseDetails() {
         </div>
       </div>
 
-      {/* All Modals */}
       <AnimatePresence>
         {isAddWorksheetModalOpen && selectedLesson && (
           <motion.div

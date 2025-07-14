@@ -265,7 +265,6 @@ export function EditCoursePage() {
   }>({})
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[EditCoursePage] Handling unauthorized access")
     localStorage.removeItem("token")
     localStorage.removeItem("userId")
     localStorage.removeItem("isLoggedIn")
@@ -277,11 +276,7 @@ export function EditCoursePage() {
   useEffect(() => {
     if (authLoading) return
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug("[EditCoursePage] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      })
+
       handleUnauthorized()
       return
     }
@@ -293,7 +288,6 @@ export function EditCoursePage() {
       try {
         const token = localStorage.getItem("token")
         if (!token || !deviceId) {
-          console.debug("[EditCoursePage] Missing token or deviceId", { token, deviceId })
           handleUnauthorized()
           return
         }
@@ -433,10 +427,6 @@ export function EditCoursePage() {
       setIsFetchingDriveFiles(true)
       const token = localStorage.getItem("token")
       if (!token || !deviceId) {
-        console.debug("[EditCoursePage] Missing token or deviceId in fetchDriveFiles", {
-          token,
-          deviceId,
-        })
         handleUnauthorized()
         return
       }
@@ -686,10 +676,6 @@ export function EditCoursePage() {
     try {
       const token = localStorage.getItem("token")
       if (!token || !deviceId) {
-        console.debug("[EditCoursePage] Missing token or deviceId in handleSubmit", {
-          token,
-          deviceId,
-        })
         handleUnauthorized()
         return
       }

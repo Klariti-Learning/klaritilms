@@ -13,7 +13,6 @@ const updateCallStatuses = async () => {
     logger.info("Running scheduled task to update call statuses");
     const now = moment().utc();
 
-    // Update ScheduledCall statuses
     const scheduledCallsToUpdate = await ScheduledCall.find({
       status: { $in: ["Scheduled", "Rescheduled"] },
       date: { $lte: now.toDate() },
@@ -91,7 +90,6 @@ const updateCallStatuses = async () => {
       }
     });
 
-    // Update DemoClass statuses
     const demoClassesToUpdate = await DemoClass.find({
       status: { $in: ["Scheduled", "Rescheduled"] },
       date: { $lte: now.toDate() },
@@ -150,7 +148,7 @@ const updateCallStatuses = async () => {
           ),
         ];
 
-        await Promise.all(notifications.filter((n) => n)); // Filter out undefined notifications
+        await Promise.all(notifications.filter((n) => n));
         getIO()
           .to(demoClass.assignedTeacherId._id.toString())
           .emit("notification", {

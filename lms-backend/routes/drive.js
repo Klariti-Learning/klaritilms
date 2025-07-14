@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { listDriveFiles, selectFileFromDrive } = require("../services/googleDriveService");
 
+//Get all files from folder
 router.get("/files/:folderId", async (req, res) => {
   const { folderId } = req.params;
   const { fileType } = req.query;
@@ -13,6 +14,7 @@ router.get("/files/:folderId", async (req, res) => {
   }
 });
 
+//Select a file
 router.post("/select-file", async (req, res) => {
   const { fileId, fileName, mimeType, courseTitle, courseFolderId } = req.body;
   try {

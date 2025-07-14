@@ -207,7 +207,6 @@ const [callDurationResponse, setCallDurationResponse] = useState<string | null>(
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const handleUnauthorized = useCallback(() => {
-  console.debug("[ScheduleBatch] Handling unauthorized access");
   localStorage.removeItem("token");
   localStorage.removeItem("userId");
   localStorage.removeItem("isLoggedIn");
@@ -219,11 +218,7 @@ const [callDurationResponse, setCallDurationResponse] = useState<string | null>(
 useEffect(() => {
   if (authLoading) return;
   if (!user || user.role?.roleName !== "Teacher") {
-    console.debug("[ScheduleBatch] Redirecting due to invalid role or no user", {
-      user: !!user,
-      role: user?.role?.roleName,
-      authLoading,
-    });
+
     handleUnauthorized();
     return;
   }
@@ -236,7 +231,6 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
       if (!token || !deviceId) {
-        console.debug("[ScheduleBatch] Missing token or deviceId in fetchData", { token, deviceId });
         handleUnauthorized();
         return;
       }
@@ -420,7 +414,6 @@ const handleSubmit = async (e: React.FormEvent) => {
   try {
     const token = localStorage.getItem("token");
     if (!token || !deviceId) {
-      console.debug("[ScheduleBatch] Missing token or deviceId in handleSubmit", { token, deviceId });
       handleUnauthorized();
       return;
     }

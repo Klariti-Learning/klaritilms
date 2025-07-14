@@ -125,7 +125,6 @@ export default function BatchDetails() {
   const modalRef = useRef<HTMLDivElement>(null);
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[BatchDetails] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -137,14 +136,7 @@ export default function BatchDetails() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || user.role?.roleName !== "Teacher") {
-      console.debug(
-        "[BatchDetails] Redirecting due to invalid role or no user",
-        {
-          user: !!user,
-          role: user?.role?.roleName,
-          authLoading,
-        }
-      );
+
       handleUnauthorized();
       return;
     }
@@ -157,15 +149,11 @@ export default function BatchDetails() {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-          console.debug("[BatchDetails] Missing token or deviceId", {
-            token,
-            deviceId,
-          });
+
           handleUnauthorized();
           return;
         }
 
-        // Fetch batch data
         const batchResponse = await api.get("/courses/batches/teacher");
         const fetchedBatch = batchResponse.data?.batches?.find(
           (b: Batch) => b._id === batchId
@@ -178,7 +166,6 @@ export default function BatchDetails() {
         let fetchedCourse = null;
         let validLessonIds: string[] = [];
 
-        // Fetch course data if courseId exists
         if (fetchedBatch.courseId) {
           try {
             const courseResponse = await api.get(
@@ -188,20 +175,15 @@ export default function BatchDetails() {
             if (!fetchedCourse) {
               throw new Error("Course not found");
             }
-            console.log("[BatchDetails] Fetched Course:", {
-              courseId: fetchedBatch.courseId,
-              chapters: fetchedCourse.chapters,
-            });
+
             setCourse(fetchedCourse);
 
-            // Extract valid lesson IDs
             validLessonIds =
               fetchedCourse.chapters
                 ?.flatMap((chapter: Chapter) =>
                   chapter.lessons.map((lesson: Lesson) => lesson.lessonId)
                 )
                 .filter(Boolean) || [];
-            console.log("[BatchDetails] Valid Lesson IDs:", validLessonIds);
           } catch (courseError) {
             console.warn(
               "[BatchDetails] Failed to fetch course data, proceeding with schedule:",
@@ -212,14 +194,10 @@ export default function BatchDetails() {
           throw new Error("No course associated with this batch");
         }
 
-        // Fetch schedule data
         const scheduleResponse = await api.get(
           `/schedule/batch/${batchId}/calls?_=${Date.now()}`
         );
-        console.log(
-          "[BatchDetails] Schedule Response:",
-          scheduleResponse.data?.batch
-        );
+
         const scheduleData = scheduleResponse.data?.batch || {
           calls: [],
           schedule: {
@@ -228,7 +206,6 @@ export default function BatchDetails() {
           },
         };
 
-        // Filter calls, but keep all calls if validLessonIds is empty
         const filteredCalls = Array.isArray(scheduleData.calls)
           ? validLessonIds.length > 0
             ? scheduleData.calls.filter((call: ScheduledCall) =>
@@ -237,7 +214,6 @@ export default function BatchDetails() {
             : scheduleData.calls
           : [];
 
-        // Deduplicate calls by lessonId, keeping the latest based on updatedAt
         const latestCallsMap = new Map<string, ScheduledCall>();
         filteredCalls.forEach((call: ScheduledCall) => {
           if (call.lessonId) {
@@ -440,7 +416,6 @@ export default function BatchDetails() {
 
   return (
     <div className="min-h-screen p-6 md:p-8 relative overflow-hidden">
-      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl"></div>
@@ -448,7 +423,6 @@ export default function BatchDetails() {
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10 mt-6">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -491,7 +465,6 @@ export default function BatchDetails() {
           </div>
         </motion.div>
 
-        {/* Students Section */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -618,7 +591,6 @@ export default function BatchDetails() {
           </Card>
         </motion.div>
 
-        {/* Enhanced Schedule Section */}
         {isScheduled && (
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -653,7 +625,6 @@ export default function BatchDetails() {
                   </Button>
                 </div>
 
-                {/* Enhanced Schedule Info Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                   <motion.div
                     whileHover={{ scale: 1.02 }}
@@ -732,7 +703,6 @@ export default function BatchDetails() {
                   </motion.div>
                 </div>
 
-                {/* Enhanced Schedule Table */}
                 <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-lg">
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -924,8 +894,6 @@ export default function BatchDetails() {
           </motion.div>
         )}
 
-        {/* Course Preview Modal */}
-
         <AnimatePresence>
           {previewModal && (
             <motion.div
@@ -978,7 +946,6 @@ export default function BatchDetails() {
                   </div>
 
                   <div className="space-y-8">
-                    {/* Course Title */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -1011,7 +978,6 @@ export default function BatchDetails() {
                         )}
                     </motion.div>
 
-                    {/* Table of Contents */}
                     {previewModal.chapters &&
                       previewModal.chapters.length > 0 ? (
                       <div>

@@ -22,12 +22,11 @@ const startPreCallNotifications = () => {
 
       logger.info(`Found ${calls.length} calls to check for notifications`);
 
-      // Define timing windows for notifications (in minutes)
       const timingWindows = {
-        "1day": { min: 1438, max: 1442 }, // 24 hours ± 2 minutes
-        "1hour": { min: 58, max: 62 }, // 60 minutes ± 2 minutes
-        "30min": { min: 28, max: 32 }, // 30 minutes ± 2 minutes
-        "10min": { min: 7, max: 13 }, // 10 minutes ± 3 minutes
+        "1day": { min: 1438, max: 1442 },
+        "1hour": { min: 58, max: 62 }, 
+        "30min": { min: 28, max: 32 },
+        "10min": { min: 7, max: 13 },
       };
 
       for (const call of calls) {
@@ -35,7 +34,6 @@ const startPreCallNotifications = () => {
           const callDate = moment(call.date).utc().format("YYYY-MM-DD");
           const callTimezone = call.timezone || "Asia/Kolkata";
 
-          // Validate timezone
           if (!moment.tz.zone(callTimezone)) {
             logger.warn(`Invalid timezone ${callTimezone} for call ${call._id}`);
             continue;
@@ -53,7 +51,6 @@ const startPreCallNotifications = () => {
             `Call ${call._id}: timeDiff=${timeDiff} minutes, timezone=${callTimezone}, startTime=${call.startTime}`
           );
 
-          // Check each notification timing
           for (const timing in timingWindows) {
             const { min, max } = timingWindows[timing];
             if (
@@ -75,7 +72,7 @@ const startPreCallNotifications = () => {
                     : `${timing} minutes`,
                 baseUrl: process.env.BASE_URL,
                 teacher: call.teacherId.name,
-                lessonTitle: call.classType, // Adjust if lesson title is available
+                lessonTitle: call.classType,
               };
 
               const userIds = [
@@ -106,7 +103,6 @@ const startPreCallNotifications = () => {
                     ? "Admin"
                     : "Student";
 
-                // Log notificationPreferences.enabled for each role
                 logger.info(
                   `${roleCategory} notificationPreferences.enabled for user ${user._id} (${user.name}): ${preferences.enabled}`
                 );

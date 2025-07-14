@@ -249,14 +249,12 @@ export default function CreateBatch() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 md:p-6 mt-8 relative overflow-hidden">
-      {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-32 -right-32 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-blue-200/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-200/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
 
-      {/* Grid Pattern Overlay */}
       <div className="absolute inset-0 opacity-30">
         <div
           className="absolute inset-0"
@@ -274,7 +272,6 @@ export default function CreateBatch() {
         initial="hidden"
         animate="visible"
       >
-        {/* Enhanced Header Section */}
         <motion.div
           variants={itemVariants}
           className="flex flex-col lg:flex-row justify-between items-start mb-8 gap-6"
@@ -363,7 +360,6 @@ export default function CreateBatch() {
           </motion.div>
         </motion.div>
 
-        {/* Enhanced Error Alert */}
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -388,7 +384,6 @@ export default function CreateBatch() {
           </motion.div>
         )}
 
-        {/* Enhanced Search Section */}
         <motion.div
           variants={itemVariants}
           className="relative bg-white/80 backdrop-blur-2xl rounded-2xl shadow-lg border border-gray-200 p-6 mb-6 overflow-hidden group"
@@ -460,7 +455,6 @@ export default function CreateBatch() {
           </div>
         </motion.div>
 
-        {/* Enhanced Students Grid */}
         {fetchLoading ? (
           <div className="flex items-center justify-center min-h-[50vh]">
             <motion.div
@@ -587,7 +581,6 @@ export default function CreateBatch() {
                         }`}
                         onClick={() => handleStudentSelect(student._id)}
                       >
-                        {/* Selection glow effect */}
                         <div
                           className={`absolute inset-0 bg-gradient-to-r from-emerald-100/50 via-teal-100/50 to-blue-100/50 opacity-0 transition-opacity duration-300 rounded-2xl ${
                             selectedStudents.includes(student._id) ? "opacity-100" : "group-hover:opacity-50"
@@ -595,7 +588,6 @@ export default function CreateBatch() {
                         ></div>
 
                         <CardContent className="p-4 h-full flex flex-col relative z-10">
-                          {/* Selection indicator */}
                           <div className="absolute top-2 right-2 z-20">
                             <motion.div
                               animate={selectedStudents.includes(student._id) ? { scale: [1, 1.2, 1] } : {}}
@@ -610,7 +602,6 @@ export default function CreateBatch() {
                             </motion.div>
                           </div>
 
-                          {/* Profile Section */}
                           <div className="flex items-center justify-center mb-3">
                             {student.profileImage ? (
                               <div className="relative">
@@ -669,7 +660,6 @@ export default function CreateBatch() {
                             )}
                           </div>
 
-                          {/* Student Info */}
                           <div className="text-center mb-3 flex-grow">
                             <motion.h3
                               whileHover={{ scale: 1.05 }}
@@ -709,7 +699,6 @@ export default function CreateBatch() {
           </motion.div>
         )}
 
-        {/* Enhanced Confirmation Modal */}
         <AnimatePresence>
           {confirmModal && (
             <motion.div
@@ -727,7 +716,6 @@ export default function CreateBatch() {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="bg-white/95 backdrop-blur-2xl rounded-2xl p-8 max-w-md w-full shadow-2xl border border-gray-200 relative overflow-hidden"
               >
-                {/* Animated background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 animate-pulse"></div>
 
                 <div className="relative text-center">

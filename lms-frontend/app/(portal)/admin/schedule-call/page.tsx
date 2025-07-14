@@ -374,7 +374,6 @@ export default function ScheduleCall() {
   };
 
   const handleUnauthorized = useCallback(() => {
-    console.debug("[Courses] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -1215,11 +1214,6 @@ const handleCancelCall = async (callId: string) => {
   useEffect(() => {
     if (authLoading) return;
     if (!user || !["Admin", "Super Admin"].includes(user.role?.roleName)) {
-      console.debug("[Courses] Redirecting due to invalid role or no user", {
-        user: !!user,
-        role: user?.role?.roleName,
-        authLoading,
-      });
       handleUnauthorized();
     }
   }, [user, authLoading, handleUnauthorized]);
@@ -1315,7 +1309,6 @@ const handleCancelCall = async (callId: string) => {
         </defs>
       </svg>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
-        {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div
             className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-200/20 to-pink-200/20 rounded-full blur-3xl"
@@ -1350,7 +1343,6 @@ const handleCancelCall = async (callId: string) => {
             transition={{ duration: 0.5 }}
             className="w-full max-w-7xl mt-10"
           >
-            {/* Enhanced Header */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -2508,7 +2500,6 @@ const handleCancelCall = async (callId: string) => {
                               </FormLabel>
                               <FormControl>
                                 <div className="flex flex-col gap-4">
-                                  {/* Drag and Drop Zone */}
                                   <label
                                     htmlFor="documents"
                                     className={cn(
@@ -2551,7 +2542,6 @@ const handleCancelCall = async (callId: string) => {
                                     </div>
                                   </label>
 
-                                  {/* Uploaded Files List */}
                                   {state.documents.length > 0 && (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                       {state.documents.map((file, index) => (

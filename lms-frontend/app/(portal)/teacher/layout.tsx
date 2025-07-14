@@ -623,7 +623,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
             }
           }}
         >
-          {/* Header Section */}
           <div className="p-6 border-b border-indigo-200/60">
             {isSidebarCollapsed ? (
               <div className="flex items-center justify-center">
@@ -771,7 +770,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
                   </div>
                 </div>
 
-                {/* Notification Options */}
                 <AnimatePresence>
                   {showNotificationOptions && (
                     <motion.div
@@ -878,7 +876,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
             )}
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-2 custom-sidebar">
             {sidebarItems.map((item, index) => {
               const isDisabled = disabledItems.includes(item.name);
@@ -980,7 +977,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
               );
             })}
 
-            {/* Help and Support with submenu */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1072,7 +1068,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
             </motion.div>
           </nav>
 
-          {/* Footer */}
           <AnimatePresence>
             {!isSidebarCollapsed && (
               <motion.div
@@ -1089,7 +1084,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
           </AnimatePresence>
         </motion.aside>
 
-        {/* Main Content */}
         <main
           className={`flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ${
             isSidebarCollapsed ? "ml-20" : "ml-80"
@@ -1098,7 +1092,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
 
-        {/* FAQ Modal */}
         <AnimatePresence>
           {isModalOpen && (
             <motion.div
@@ -1154,7 +1147,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
           )}
         </AnimatePresence>
 
-        {/* Disable Confirmation Modal */}
         <AnimatePresence>
           {showDisableConfirm && (
             <motion.div
@@ -1207,7 +1199,6 @@ const TeacherLayout = ({ children }: TeacherLayoutProps) => {
           )}
         </AnimatePresence>
 
-        {/* Notifications Modal */}
         <AnimatePresence>
           {showNotifications && (
             <motion.div
