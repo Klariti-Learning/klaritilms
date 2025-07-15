@@ -117,6 +117,7 @@ export interface ApiUserResponse {
     experience: { title: string; institution: string; duration: string }[];
   };
   teacherId: string;
+  parentGuardianName?: string; 
   createdAt: string;
   updatedAt: string;
 }
@@ -326,6 +327,7 @@ export interface UserDetails {
   phone: string;
   gender: string;
   role?: { roleName: string };
+  parentGuardianName?: string;
   profileImage?: string;
   subjects?: string[];
   timezone?: string;

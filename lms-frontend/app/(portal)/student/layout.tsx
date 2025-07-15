@@ -148,7 +148,6 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
         const response = await api.get("/courses/all");
         const fetchedCourses = response.data.courses || [];
         setCourses(fetchedCourses);
-        console.log("fetchedCourses", fetchedCourses);
       } catch (error) {
         const errorMsg = error as ApiError;
         console.error(

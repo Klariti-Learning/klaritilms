@@ -40,7 +40,7 @@ interface Teacher {
 interface AttendanceRecord {
   attendanceId: string;
   callId: string;
-  batch:{LbatchId: string; name: string };
+  batch: { LbatchId: string; name: string };
   course: { courseId: string; title: string } | null;
   teacher: { teacherId: string; name: string };
   date: string;
@@ -156,7 +156,11 @@ export function AttendanceContentPage() {
           return;
         }
         if (teacherId) {
-          const params: { teacherId: string; fromDate?: string; toDate?: string } = {
+          const params: {
+            teacherId: string;
+            fromDate?: string;
+            toDate?: string;
+          } = {
             teacherId: teacherId,
           };
           if (fromDate && toDate) {
@@ -249,7 +253,13 @@ export function AttendanceContentPage() {
     } else if (!authLoading) {
       handleUnauthorized();
     }
-  }, [user, authLoading, deviceId, handleUnauthorized, fetchTeachersAndAttendance]);
+  }, [
+    user,
+    authLoading,
+    deviceId,
+    handleUnauthorized,
+    fetchTeachersAndAttendance,
+  ]);
 
   const handleExport = useCallback(async () => {
     if (!user || !deviceId || !teacherId) {
@@ -262,9 +272,10 @@ export function AttendanceContentPage() {
         handleUnauthorized();
         return;
       }
-      const params: { teacherId: string; fromDate?: string; toDate?: string } = {
-        teacherId: teacherId,
-      };
+      const params: { teacherId: string; fromDate?: string; toDate?: string } =
+        {
+          teacherId: teacherId,
+        };
       if (fromDate && toDate) {
         params.fromDate = formatDateYYYYMMDD(fromDate);
         params.toDate = formatDateYYYYMMDD(toDate);
@@ -298,6 +309,45 @@ export function AttendanceContentPage() {
       }
     }
   }, [user, deviceId, teacherId, handleUnauthorized, fromDate, toDate]);
+
+  const handleExportAllTeachers = useCallback(async () => {
+    if (!user || !deviceId) {
+      handleUnauthorized();
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        handleUnauthorized();
+        return;
+      }
+      const response = await api.get("/attendance/export", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Device-Id": deviceId,
+        },
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `attendance_all_teachers.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("All teachers' attendance exported successfully");
+    } catch (error) {
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError.response?.data?.message || "Failed to export attendance";
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        toast.error(errorMessage);
+      }
+    }
+  }, [user, deviceId, handleUnauthorized]);
 
   if (authLoading || loading) {
     return (
@@ -403,18 +453,27 @@ export function AttendanceContentPage() {
         {!teacherId ? (
           <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg">
-                  <User className="w-5 h-5" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-bold text-gray-900">
+                      Teachers
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      Select a teacher to view their attendance records
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-xl font-bold text-gray-900">
-                    Teachers
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Select a teacher to view their attendance records
-                  </p>
-                </div>
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 py-2 shadow-md hover:shadow-lg transition-all"
+                  onClick={handleExportAllTeachers}
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Export All Teachers
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -451,7 +510,9 @@ export function AttendanceContentPage() {
                           </h3>
                         </div>
                       </div>
-                      <Link href={`/superadmin/attendance?teacherId=${teacher._id}`}>
+                      <Link
+                        href={`/superadmin/attendance?teacherId=${teacher._id}`}
+                      >
                         <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 py-2 shadow-md hover:shadow-lg transition-all">
                           Show Attendance
                           <ArrowRight className="w-4 h-4 ml-2" />
@@ -526,7 +587,8 @@ export function AttendanceContentPage() {
                         setOpenFromDate(false);
                       }}
                       classNames={{
-                        day_selected: "bg-blue-600 text-white hover:bg-blue-700",
+                        day_selected:
+                          "bg-blue-600 text-white hover:bg-blue-700",
                       }}
                     />
                   </PopoverContent>
@@ -535,7 +597,10 @@ export function AttendanceContentPage() {
 
               <div className="flex flex-row items-center gap-3">
                 <CalendarPick className="w-4 h-4 text-gray-600" />
-                <Label htmlFor="toDate" className="px-1 font-semibold text-black">
+                <Label
+                  htmlFor="toDate"
+                  className="px-1 font-semibold text-black"
+                >
                   To Date
                 </Label>
 
@@ -571,7 +636,8 @@ export function AttendanceContentPage() {
                         setOpenToDate(false);
                       }}
                       classNames={{
-                        day_selected: "bg-blue-600 text-white hover:bg-blue-700",
+                        day_selected:
+                          "bg-blue-600 text-white hover:bg-blue-700",
                       }}
                     />
                   </PopoverContent>
@@ -623,7 +689,9 @@ export function AttendanceContentPage() {
                       wrapperClass=""
                       visible={true}
                     />
-                    <p className="ml-4 text-blue-600">Loading attendance records...</p>
+                    <p className="ml-4 text-blue-600">
+                      Loading attendance records...
+                    </p>
                   </div>
                 ) : batchAttendance.length === 0 ? (
                   <div className="text-center py-12">
@@ -683,11 +751,12 @@ export function AttendanceContentPage() {
                                   </p>
                                 </div>
                                 <Badge
-                                  className={`${record.students.every(
-                                    (s) => s.status === "Present"
-                                  )
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-yellow-100 text-yellow-700"
+                                  className={`${
+                                    record.students.every(
+                                      (s) => s.status === "Present"
+                                    )
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-yellow-100 text-yellow-700"
                                   } border border-gray-200`}
                                 >
                                   {record.students.every(
@@ -709,9 +778,10 @@ export function AttendanceContentPage() {
                                       </p>
                                     </div>
                                     <Badge
-                                      className={`${student.status === "Present"
-                                        ? "bg-green-100 text-green-700"
-                                        : "bg-red-100 text-red-700"
+                                      className={`${
+                                        student.status === "Present"
+                                          ? "bg-green-100 text-green-700"
+                                          : "bg-red-100 text-red-700"
                                       } border border-gray-200`}
                                     >
                                       {student.status}
