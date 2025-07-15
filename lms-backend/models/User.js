@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema(
         message: "Gender must be 'male', 'female', or 'other'",
       },
     },
+     parentGuardianName: { type: String, default: "" },
     role: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
     profileImage: { type: String, default: null },
     subjects: [

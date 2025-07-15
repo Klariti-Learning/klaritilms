@@ -604,6 +604,7 @@ router.post("/direct-login", async (req, res) => {
     } catch (error) {
       logger.warn(`Invalid token for device: ${deviceId}`, {
         error: error.message,
+        tokenSnippet: token.slice(0, 10) + "...",
       });
       return res
         .status(401)
@@ -618,23 +619,36 @@ router.post("/direct-login", async (req, res) => {
 
     try {
       const sessionToken = await redisClient.get(`session:${userId}:${deviceId}`);
-      if (!sessionToken) {
-        logger.warn(`No active session for user: ${userId}, device: ${deviceId}`, {
-          sessionTokenExists: !!sessionToken,
-        });
-        return res.status(401).json({ errors: [{ msg: "Session expired" }] });
-      }
+      let finalToken = token;
 
-      if (sessionToken === token && decoded.exp > Math.floor(Date.now() / 1000) + 24 * 3600) {
+      if (!sessionToken) {
+        logger.warn(`No active session for user: ${userId}, device: ${deviceId}`);
+        const user = await User.findById(userId).select("_id updatedAt");
+        if (!user) {
+          logger.warn(`User not found: ${userId}`);
+          return res.status(404).json({ message: "User not found" });
+        }
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        if (user.updatedAt < thirtyDaysAgo) {
+          logger.warn(`User inactive for token renewal: ${userId}`);
+          return res
+            .status(401)
+            .json({ errors: [{ msg: "User account inactive" }] });
+        }
+        finalToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+          expiresIn: "7d",
+        });
+        await redisClient.setEx(`session:${userId}:${deviceId}`, 7 * 24 * 3600, finalToken);
+        logger.debug(`New token issued for user: ${userId}, device: ${deviceId}`);
+      } else if (sessionToken === token && decoded.exp > Math.floor(Date.now() / 1000) + 3600) { // Reduced to 1 hour
         logger.debug(`Reusing existing token for user: ${userId}, device: ${deviceId}`);
         await redisClient.expire(`session:${userId}:${deviceId}`, 7 * 24 * 3600);
       } else {
-        const newToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+        finalToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
           expiresIn: "7d",
         });
-        await redisClient.setEx(`session:${userId}:${deviceId}`, 7 * 24 * 3600, newToken);
+        await redisClient.setEx(`session:${userId}:${deviceId}`, 7 * 24 * 3600, finalToken);
         logger.debug(`New token issued for user: ${userId}, device: ${deviceId}`);
-        token = newToken;
       }
 
       const user = await User.findById(userId).populate("role").select("-__v");
@@ -676,13 +690,16 @@ router.post("/direct-login", async (req, res) => {
       res.json({
         message: "Direct login successful",
         user: directLoginUserData,
-        token,
+        token: finalToken,
       });
     } finally {
       await releaseLock(lockKey);
     }
   } catch (error) {
-    logger.error("Direct login error:", error);
+    logger.error("Direct login error:", {
+      message: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -820,6 +837,10 @@ router.put(
       .optional()
       .isArray()
       .withMessage("Preferred time slots must be an array"),
+    check("parentGuardianName")
+      .optional()
+      .matches(/^[A-Za-z\s]+$/)
+      .withMessage("Parent/Guardian Name must contain only alphabets and spaces"),
     check("profile.bio")
       .optional()
       .isString()
@@ -902,6 +923,7 @@ router.put(
         subjects: updateData.subjects || user.subjects,
         preferredTimeSlots:
           updateData.preferredTimeSlots || user.preferredTimeSlots,
+        parentGuardianName: updateData.parentGuardianName || user.parentGuardianName,
         profile: {
           ...user.profile,
           bio: updateData.profile?.bio || user.profile.bio,
@@ -1016,6 +1038,7 @@ router.get("/me", authenticate, async (req, res) => {
       email: user.email,
       phone: user.phone,
       gender: user.gender,
+      parentGuardianName:user.parentGuardianName,
       role,
       profileImage: user.profileImage,
       subjects: user.subjects,
@@ -1222,15 +1245,32 @@ router.post(
             .json({ errors: [{ msg: "User account inactive" }] });
         }
 
-        const newToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
-          expiresIn: "7d",
-        });
-        await redisClient.setEx(
-          `session:${userId}:${deviceId}`,
-          7 * 24 * 3600,
-          newToken
-        );
-        logger.debug(`Token renewed for user: ${userId}, device: ${deviceId}`);
+        const existingSession = await redisClient.get(`session:${userId}:${deviceId}`);
+        let newToken;
+        if (existingSession) {
+          try {
+            const decoded = jwt.verify(existingSession, process.env.JWT_SECRET);
+            if (decoded.exp > Math.floor(Date.now() / 1000) + 3600) {
+              newToken = existingSession;
+              await redisClient.expire(`session:${userId}:${deviceId}`, 7 * 24 * 3600);
+              logger.debug(`Reusing existing token for user: ${userId}, device: ${deviceId}`);
+            }
+          } catch (error) {
+            logger.warn(`Existing token invalid for user: ${userId}, device: ${deviceId}`);
+          }
+        }
+
+        if (!newToken) {
+          newToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+            expiresIn: "7d",
+          });
+          await redisClient.setEx(
+            `session:${userId}:${deviceId}`,
+            7 * 24 * 3600,
+            newToken
+          );
+          logger.debug(`New token issued for user: ${userId}, device: ${deviceId}`);
+        }
 
         logger.info(
           `Token renewed successfully for user: ${userId}, device: ${deviceId}`
@@ -1240,7 +1280,10 @@ router.post(
         await releaseLock(lockKey);
       }
     } catch (error) {
-      logger.error("Renew token error:", error);
+      logger.error("Renew token error:", {
+        message: error.message,
+        stack: error.stack,
+      });
       res.status(500).json({ message: "Server error", error: error.message });
     }
   }
