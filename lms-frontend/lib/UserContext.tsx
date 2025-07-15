@@ -71,6 +71,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         isActive: data.isTimezoneSet || undefined,
         isFirstLogin: data.isFirstLogin || undefined,
         teacherId: data.teacherId || undefined,
+        parentGuardianName: data.parentGuardianName || undefined,
       });
     } catch (error) {
       const apiError = error as ApiError;

@@ -22,6 +22,7 @@ import {
   CalendarRange,
   ShieldUser,
   Bookmark,
+  Users,
 } from "lucide-react";
 import profile from "../../../../public/Assests/small.png";
 import api from "@/lib/api";
@@ -664,6 +665,9 @@ export default function StudentProfile() {
     if (data.profile?.grade && !/^[A-Za-z0-9\s-]+$/.test(data.profile.grade)) {
       errors.grade = "Invalid grade format (e.g., 9th)";
     }
+    if (data.parentGuardianName && !/^[A-Za-z\s]+$/.test(data.parentGuardianName)) {
+    errors.parentGuardianName = "Parent/Guardian Name must contain only alphabets and spaces";
+  }
     return errors;
   };
 
@@ -998,6 +1002,41 @@ export default function StudentProfile() {
                   )}
                 </div>
               </motion.div>
+              <motion.div
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3, delay: 0.1 }}
+  className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+>
+  <Users
+    className={`w-6 h-6 ${
+      isEditing ? "text-indigo-600" : "text-indigo-500"
+    }`}
+  />
+  <div className="flex-1 ml-4">
+    <Label
+      className={`text-sm font-medium ${
+        isEditing ? "text-indigo-600" : "text-gray-600"
+      }`}
+    >
+      Parent/Guardian Name
+    </Label>
+    {isEditing ? (
+      <Input
+        value={formData.parentGuardianName || ""}
+        onChange={(e) => handleInputChange(e, "parentGuardianName")}
+        placeholder="Enter parent/guardian name"
+        className="mt-1 border-indigo-300 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 hover:scale-[1.01]"
+        pattern="[A-Za-z\s]+"
+        title="Only alphabets and spaces are allowed"
+      />
+    ) : (
+      <p className="mt-1 text-gray-800 text-lg font-medium">
+        {userDetails.parentGuardianName || "Not set"}
+      </p>
+    )}
+  </div>
+</motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
