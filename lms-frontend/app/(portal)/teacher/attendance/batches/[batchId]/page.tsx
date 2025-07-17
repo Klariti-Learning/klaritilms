@@ -89,7 +89,6 @@ export default function BatchAttendanceDetails() {
 
     const records = attendanceResponse.toReversed() || [];
 
-    // Calculation of pagination values
     const totalPages = Math.ceil(records.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
@@ -762,7 +761,6 @@ export default function BatchAttendanceDetails() {
 
                                 </table>
 
-                                {/* Pagination Part */}
                                 {showPagination && (
                                     <div className="mt-6 flex justify-center">
                                         <Pagination>

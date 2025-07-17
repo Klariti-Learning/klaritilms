@@ -5,7 +5,6 @@ const attendanceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "ScheduledCall",
     required: true,
-    unique: true, 
   },
   batchId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -40,7 +39,7 @@ const attendanceSchema = new mongoose.Schema({
       },
       markedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User", 
+        ref: "User",
       },
     },
   ],
@@ -55,8 +54,8 @@ const attendanceSchema = new mongoose.Schema({
   },
   idempotencyKey: {
     type: String,
-    unique: true, 
-    sparse: true, 
+    unique: true,
+    sparse: true,
   },
   createdAt: {
     type: Date,
@@ -72,5 +71,7 @@ attendanceSchema.pre("save", function (next) {
   this.updatedAt = new Date();
   next();
 });
+
+attendanceSchema.index({ date: 1 });
 
 module.exports = mongoose.model("Attendance", attendanceSchema);
