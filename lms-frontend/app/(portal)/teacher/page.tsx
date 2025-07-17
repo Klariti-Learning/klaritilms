@@ -18,20 +18,24 @@ import {
   Sparkles,
   GraduationCap,
   PlayCircle,
-  Timer,
-  ChevronRight,
-  Bell,
-  RefreshCw,
-  Info,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
+  TicketSlash,
+  ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import moment from "moment-timezone";
-import type { ScheduledCall, ApiError, Notification } from "@/types";
+import type { ScheduledCall, ApiError } from "@/types";
+// import type { Notification } from "@/types";
+import AttendanceButton from "@/components/AttendanceButton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { SelectGroup } from "@radix-ui/react-select";
 
 const formatDateTime = (date: string) => {
   const callDate = new Date(date);
@@ -118,85 +122,6 @@ const getTimeUntilClass = (
   }
 };
 
-const getNotificationType = (
-  message: string
-): "info" | "success" | "warning" | "error" => {
-  const lowerMessage = message.toLowerCase();
-  if (
-    lowerMessage.includes("error") ||
-    lowerMessage.includes("failed") ||
-    lowerMessage.includes("problem")
-  ) {
-    return "error";
-  }
-  if (
-    lowerMessage.includes("warning") ||
-    lowerMessage.includes("alert") ||
-    lowerMessage.includes("attention")
-  ) {
-    return "warning";
-  }
-  if (
-    lowerMessage.includes("success") ||
-    lowerMessage.includes("completed") ||
-    lowerMessage.includes("approved") ||
-    lowerMessage.includes("enrolled") ||
-    lowerMessage.includes("assigned")
-  ) {
-    return "success";
-  }
-  return "info";
-};
-
-const getNotificationIcon = (type: string) => {
-  switch (type) {
-    case "success":
-      return {
-        icon: <CheckCircle className="w-6 h-6" />,
-        className: "bg-green-100 text-green-600",
-      };
-    case "warning":
-      return {
-        icon: <AlertCircle className="w-6 h-6" />,
-        className: "bg-yellow-100 text-yellow-600",
-      };
-    case "error":
-      return {
-        icon: <XCircle className="w-6 h-6" />,
-        className: "bg-red-100 text-red-600",
-      };
-    default:
-      return {
-        icon: <Info className="w-6 h-6" />,
-        className: "bg-purple-100 text-purple-600",
-      };
-  }
-};
-
-const formatNotificationTime = (createdAt: string): string => {
-  try {
-    const now = new Date();
-    const notificationTime = new Date(createdAt);
-    const diffInMs = now.getTime() - notificationTime.getTime();
-    const diffInSeconds = Math.floor(diffInMs / 1000);
-    const diffInMinutes = Math.floor(diffInSeconds / 60);
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    const diffInDays = Math.floor(diffInHours / 24);
-
-    if (diffInSeconds < 1) return "Just now";
-    if (diffInSeconds < 60)
-      return `${diffInSeconds} second${diffInSeconds === 1 ? "" : "s"} ago`;
-    if (diffInMinutes < 60)
-      return `${diffInMinutes} minute${diffInMinutes === 1 ? "" : "s"} ago`;
-    if (diffInHours < 24)
-      return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
-
-    return `${diffInDays} day${diffInDays === 1 ? "" : "s"} ago`;
-  } catch {
-    return "Unknown time";
-  }
-};
-
 interface StudentAttendance {
   studentId: string;
   name: string;
@@ -208,10 +133,16 @@ interface AttendanceState {
   submitted: boolean;
 }
 
+interface ScheduledCallData extends ScheduledCall {
+  days: string[];
+}
+
+
 export default function TeacherPortal() {
   const { user, loading: authLoading, deviceId } = useAuth();
   const router = useRouter();
-  const [upcomingClasses, setUpcomingClasses] = useState<ScheduledCall[]>([]);
+  const [todaysClasses, setTodaysClasses] = useState<ScheduledCallData[]>([])
+  const [upcomingClasses, setUpcomingClasses] = useState<ScheduledCallData[]>([]);
   const [stats, setStats] = useState({
     totalStudents: 0,
     activeCourses: 0,
@@ -219,10 +150,32 @@ export default function TeacherPortal() {
     classesThisWeek: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
   const [attendance, setAttendance] = useState<AttendanceState[]>([]);
 
+  const eligibleClasses = todaysClasses.filter((classItem) => {
+    const classDate = moment.tz(
+      classItem.date,
+      classItem.timezone || "Asia/Kolkata"
+    );
+    const today = moment.tz("Asia/Kolkata");
+    const isToday = classDate.isSame(today, "day");
+    const classAttendance = attendance.find(
+      (entry) => entry.callId === classItem._id
+    );
+    return isToday && classAttendance;
+  });
+
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(
+    eligibleClasses.length > 0 ? eligibleClasses[0]._id : null
+  );
+
+  const selectedClass = eligibleClasses.find(c => c._id === selectedClassId);
+  const classAttendance = attendance.find(a => a.callId === selectedClassId);
+
+  console.log(eligibleClasses)
+
+  // console.log(todaysClasses)
   const handleUnauthorized = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
@@ -233,17 +186,17 @@ export default function TeacherPortal() {
   }, [router]);
 
   useEffect(() => {
-    if (!upcomingClasses || upcomingClasses.length === 0) return;
+    if (!todaysClasses || todaysClasses.length === 0) return;
 
-    const newAttendance: AttendanceState[] = upcomingClasses
+    const newAttendance: AttendanceState[] = todaysClasses
       .filter((classItem) => {
-        const isJoinEnabled = isJoinLinkEnabled(
+        const classDate = moment.tz(
           classItem.date,
-          classItem.startTime,
-          classItem.endTime,
           classItem.timezone || "Asia/Kolkata"
-        );
-        return isJoinEnabled && classItem.studentIds?.length;
+        )
+        const today = moment.tz("Asia/Kolkata");
+        const isToday = classDate.isSame(today, "day");
+        return isToday && classItem.studentIds?.length;
       })
       .map((classItem) => ({
         callId: classItem._id,
@@ -262,7 +215,7 @@ export default function TeacherPortal() {
     if (newAttendance.length > 0) {
       setAttendance((prev) => [...prev, ...newAttendance]);
     }
-  }, [attendance, upcomingClasses]);
+  }, [attendance, todaysClasses]);
 
   const handleSubmitAttendance = async (callId: string) => {
     const classAttendance = attendance.find((entry) => entry.callId === callId);
@@ -333,89 +286,13 @@ export default function TeacherPortal() {
           attendances: classEntry.attendances.map((student) =>
             student.studentId === studentId ? { ...student, status } : student
           ),
-          submitted: false, 
+          submitted: false,
         };
       })
     );
   };
 
-  const fetchNotifications = useCallback(async (): Promise<void> => {
-    try {
-      setNotificationsLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token || !deviceId) {
-        throw new Error("No authentication token found");
-      }
 
-      const response = await api.get("/notifications", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Device-Id": deviceId,
-        },
-        params: {
-          page: 1,
-          limit: 5,
-        },
-      });
-
-      const { notifications: notificationsData } = response.data;
-      if (!Array.isArray(notificationsData)) {
-        console.error(
-          "[TeacherPortal] Invalid notifications data:",
-          response.data
-        );
-        toast.error("Invalid notifications data received");
-        setNotifications([]);
-        return;
-      }
-
-      setNotifications(notificationsData);
-    } catch (error) {
-      const apiError = error as ApiError;
-      console.error("[TeacherPortal] Failed to fetch notifications:", apiError);
-      if (apiError.response?.status !== 401) {
-        const errorMessage =
-          apiError.response?.data?.message ||
-          apiError.message ||
-          "Failed to load notifications";
-        toast.error(errorMessage);
-      }
-    } finally {
-      setNotificationsLoading(false);
-    }
-  }, [deviceId]);
-
-  const markNotificationAsRead = async (notificationId: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token || !deviceId) {
-        throw new Error("No authentication token found");
-      }
-
-      await api.put(
-        `/notifications/${notificationId}/read`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Device-Id": deviceId,
-          },
-        }
-      );
-
-      setNotifications((prev) =>
-        prev.map((notif) =>
-          notif._id === notificationId ? { ...notif, read: true } : notif
-        )
-      );
-    } catch (error) {
-      console.error(
-        "[TeacherPortal] Failed to mark notification as read:",
-        error
-      );
-      toast.error("Failed to mark notification as read");
-    }
-  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -437,7 +314,7 @@ export default function TeacherPortal() {
           return;
         }
 
-        let allCalls: ScheduledCall[] = [];
+        let allCalls: ScheduledCallData[] = [];
         let page = 1;
         let hasMore = true;
         const limit = 10;
@@ -456,11 +333,40 @@ export default function TeacherPortal() {
           hasMore = page < response.data?.pages;
           page++;
         }
-
         const uniqueCalls = Array.from(
           new Map(allCalls.map((c) => [c._id, c])).values()
         );
         const now = moment.tz("Asia/Kolkata");
+        const todaysCallsData = uniqueCalls.filter((call) => {
+          const callDate = moment.tz(
+            call.date,
+            call.timezone || "Asia/Kolkata"
+          );
+          const isValidDate = callDate.isValid();
+          const isValidTime = moment(
+            `${call.date} ${call.startTime}`,
+            "YYYY-MM-DD h:mm a"
+          ).isValid();
+          return (
+            isValidDate && isValidTime && (call.status === "Scheduled" || call.status === "Rescheduled" || call.status === "Completed") && callDate.isSame(now, "day")
+          )
+        }).sort((a, b) => {
+          const aLive = isJoinLinkEnabled(
+            a.date,
+            a.startTime,
+            a.endTime,
+            a.timezone || "Asia/Kolkata"
+          );
+          const bLive = isJoinLinkEnabled(
+            b.date,
+            b.startTime,
+            b.endTime,
+            b.timezone || "Asia/Kolkata"
+          );
+          if (aLive === bLive) return 0;
+          return aLive ? -1 : 1;
+        });
+
         const upcomingCalls = uniqueCalls
           .filter((call) => {
             const callDate = moment.tz(
@@ -499,6 +405,7 @@ export default function TeacherPortal() {
           .slice(0, 3);
 
         setUpcomingClasses(upcomingCalls);
+        setTodaysClasses(todaysCallsData);
 
         const [studentsResponse, batchesResponse] = await Promise.all([
           api.get(`/schedule/students?teacherId=${user?._id}`, {
@@ -552,7 +459,6 @@ export default function TeacherPortal() {
           classesThisWeek,
         });
 
-        await fetchNotifications();
       } catch (error) {
         const apiError = error as ApiError;
         console.error(
@@ -574,7 +480,7 @@ export default function TeacherPortal() {
     if (user && user.role?.roleName === "Teacher") {
       fetchDashboardData();
     }
-  }, [user, handleUnauthorized, deviceId, fetchNotifications]);
+  }, [user, handleUnauthorized, deviceId]);
 
   const handleJoinCall = async (callId: string) => {
     try {
@@ -632,6 +538,14 @@ export default function TeacherPortal() {
       bgColor: "bg-green-500",
       hoverBg: "bg-green-100",
     },
+    {
+      title: "Raise a Ticket",
+      description: "Raise your query to notify us",
+      icon: <TicketSlash className="w-5 h-5" />,
+      href: "/teacher/raise-query",
+      bgColor: "bg-red-500",
+      hoverBg: "bg-red-100",
+    },
   ];
 
   const statCards = [
@@ -639,9 +553,9 @@ export default function TeacherPortal() {
       title: "Total Students",
       value: stats.totalStudents.toString(),
       change: "+12% from last month",
-      icon: <Users className="w-7 h-7" />,
-      bgColor: "bg-blue-500",
-      hoverBg: "bg-blue-100",
+      icon: <GraduationCap className="w-7 h-7" />,
+      bgColor: "bg-teal-500",
+      hoverBg: "bg-teal-50",
       changeColor: "text-green-600",
       href: "/teacher/students",
     },
@@ -649,9 +563,9 @@ export default function TeacherPortal() {
       title: "Active Batches",
       value: stats.totalBatches.toString(),
       change: "+3 new this month",
-      icon: <GraduationCap className="w-7 h-7" />,
-      bgColor: "bg-teal-500",
-      hoverBg: "bg-teal-100",
+      icon: <Users className="w-7 h-7" />,
+      bgColor: "bg-purple-500",
+      hoverBg: "bg-purple-50",
       changeColor: "text-green-600",
       href: "/teacher/courses",
     },
@@ -661,7 +575,7 @@ export default function TeacherPortal() {
       change: "+1 from last week",
       icon: <Video className="w-7 h-7" />,
       bgColor: "bg-indigo-500",
-      hoverBg: "bg-indigo-100",
+      hoverBg: "bg-indigo-50",
       changeColor: "text-green-600",
       href: "/teacher/schedule",
     },
@@ -671,7 +585,7 @@ export default function TeacherPortal() {
       change: "+5% this month",
       icon: <TrendingUp className="w-7 h-7" />,
       bgColor: "bg-yellow-500",
-      hoverBg: "bg-yellow-100",
+      hoverBg: "bg-yellow-50",
       changeColor: "text-green-600",
       href: "#",
     },
@@ -732,25 +646,30 @@ export default function TeacherPortal() {
           {statCards.map((stat, index) => (
             <Card
               key={index}
-              className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm cursor-pointer"
+              className={`relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm cursor-pointer ${stat.hoverBg}`}
               onClick={() => router.push(stat.href)}
             >
               <div className="absolute inset-0 bg-blue-50 opacity-50"></div>
-              <CardContent className="relative p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`p-3 rounded-xl ${stat.bgColor} text-white shadow-lg`}
-                  >
-                    {stat.icon}
-                  </div>
-                </div>
+              <CardContent className="relative px-6">
+
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-600">
-                    {stat.title}
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {stat.value}
-                  </p>
+                  <div className="flex justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-600">
+                        {stat.title}
+                      </p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {stat.value}
+                      </p>
+                    </div>
+                    <div>
+                      <div
+                        className={`p-3 rounded-xl ${stat.bgColor} text-white shadow-lg`}
+                      >
+                        {stat.icon}
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-blue-500" />
                     <p className={`text-sm font-medium ${stat.changeColor}`}>
@@ -764,18 +683,169 @@ export default function TeacherPortal() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden">
+          {/* Mark Attendance */}
+          <div className="lg:col-span-1">
+            <Card className="border-0 drop-shadow-lg/25 bg-white backdrop-blur-sm max-h-[500px] overflow-y-auto">
+              <CardHeader className="pb-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 text-white rounded-lg">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-bold text-blue-600">
+                      Student Attendance
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      Today&apos;s Attendance Overview
+                    </p>
+                  </div>
+                </div>
+
+              </CardHeader>
+
+              <CardContent className="space-y-4 px-4">
+                {selectedClass && classAttendance && (
+                  <div className="flex justify-between">
+                    <div className="text-sm text-blue-500 font-semibold">Time : <span className="text-xs font-bold text-black">{selectedClass?.startTime || "00:00"}</span></div>
+                    <div className="text-sm text-blue-500 font-semibold">Total Students : <span className="text-xs font-bold text-black">{selectedClass?.studentIds?.length || "0"}</span></div>
+                  </div>
+                )}
+                <div className="flex justify-between items-center mt-2">
+                  <div className={(selectedClassId && classAttendance) ? "w-2/3" : "w-full"}>
+                    <Select
+                      onValueChange={setSelectedClassId}
+                      value={selectedClassId ?? undefined}
+                      disabled={eligibleClasses.length === 0}
+                    >
+                      <SelectTrigger
+                        className="w-full bg-white border border-gray-200 rounded-lg shadow-md text-gray-800 text-sm font-semibold py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:ring-offset-white disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed hover:bg-gradient-to-r hover:from-white hover:to-blue-50 transition-all duration-300 ease-in-out"
+                      >
+                        {selectedClass ? (
+                          <span className="flex items-center">
+                            {isJoinLinkEnabled(
+                              selectedClass.date,
+                              selectedClass.startTime,
+                              selectedClass.endTime,
+                              selectedClass.timezone || "Asia/Kolkata"
+                            ) && (
+                                <span className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(239,68,68,0.5)] inline-block" />
+                              )}
+                            <span className="truncate">{`${selectedClass.classType} — ${formatDateTime(selectedClass.date)}`}</span>
+                          </span>
+                        ) : (
+                          <SelectValue
+                            placeholder="Select a live class to mark attendance"
+                            className="text-gray-500 text-sm font-medium italic"
+                          />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent
+                        className="bg-white/95 backdrop-blur-md border border-gray-100 rounded-lg shadow-xl max-h-72 overflow-y-auto z-50 mt-2 p-2 cursor-pointer"
+                      >
+                        <SelectGroup>
+                          {eligibleClasses.map((classItem) => {
+                            const isLive = isJoinLinkEnabled(
+                              classItem.date,
+                              classItem.startTime,
+                              classItem.endTime,
+                              classItem.timezone || "Asia/Kolkata"
+                            );
+                            return (
+                              <SelectItem
+                                key={classItem._id}
+                                value={classItem._id}
+                                className="w-full text-gray-800 py-3 px-4 text-sm font-medium rounded-md hover:bg-blue-50/80 hover:text-blue-600 focus:bg-blue-100 focus:text-blue-700 focus:outline-none cursor-pointer transition-all duration-200 ease-in-out hover:scale-[1.02] flex items-center group"
+                              >
+                                {isLive && (
+                                  <span className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(239,68,68,0.5)] inline-block group-hover:scale-125 transition-transform" />
+                                )}
+                                <span className="truncate">{`${classItem.classType} — ${formatDateTime(classItem.date)}`}</span>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedClassId && classAttendance && (
+                    <div >
+                      <div className="text-sm text-blue-500 font-semibold">Days : <span className="font-bold text-black">{selectedClass?.days?.length === 0 ? new Date().toLocaleDateString("en-US", { weekday: "short" }) : (selectedClass?.days.join(","))}</span></div>
+                    </div>
+                  )}
+                </div>
+                {selectedClass && classAttendance && (
+                  <div className="space-y-3">
+
+                    <div className="flex items-center justify-between text-base bg-blue-50 font-semibold text-blue-500 -mx-4 p-4 px-6">
+                      <span className="truncate">Sl. No</span>
+                      <span className="truncate mr-8">Name</span>
+                      <span className="truncate mr-5">Status</span>
+                    </div>
+
+                    {classAttendance.attendances.map((student, index) => (
+                      <div
+                        key={student.studentId}
+                        className="flex items-center justify-between text-base"
+                      >
+                        <div className="font-medium text-gray-700 truncate ml-6">{index + 1}</div>
+                        <div className="font-medium text-gray-700 truncate">{student.name}</div>
+                        <div className="flex gap-1">
+                          <button
+                            className="px-2 py-1 rounded-md text-xs font-semibold transition-all duration-300"
+                            onClick={() =>
+                              handleAttendanceToggle(
+                                selectedClass._id,
+                                student.studentId,
+                                student.status === "Present" ? "Absent" : "Present"
+                              )
+                            }
+                            type="button"
+                          >
+                            <AttendanceButton status={student.status} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    <Button
+                      onClick={() => handleSubmitAttendance(selectedClass._id)}
+                      disabled={loading}
+                      className={`w-full text-sm font-semibold ${classAttendance.submitted
+                        ? "bg-blue-500 hover:bg-blue-600 text-white"
+                        : "bg-blue-600 hover:bg-blue-700 text-white"
+                        }`}
+                    >
+                      {loading
+                        ? "Submitting..."
+                        : classAttendance.submitted
+                          ? "Resubmit"
+                          : "Submit"}
+                    </Button>
+                  </div>
+                )}
+
+                {eligibleClasses.length === 0 && (
+                  <p className="text-center text-gray-600 text-sm">
+                    No live classes available for attendance.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Upcoming Classes Section */}
+          <div className="lg:col-span-2 upcoming-classes-section">
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden py-6 px-4">
               <CardHeader className="flex flex-row items-center justify-between pb-4">
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="p-2 bg-blue-500 text-white rounded-lg">
-                      <Clock className="w-5 h-5" />
+
                     </div>
                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></div>
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold text-gray-900">
+                    <CardTitle className="text-xl font-bold text-[#1447E6]">
                       Upcoming Classes
                     </CardTitle>
                     <p className="text-sm text-gray-600">
@@ -787,17 +857,16 @@ export default function TeacherPortal() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-gray-200 cursor-pointer hover:bg-blue-50 bg-transparent"
+                    className="border-[#1D44B5] cursor-pointer hover:bg-blue-50 bg-transparent text-[#1D44B5] font-[400]"
                   >
-                    View All
-                    <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-300" />
+                    View All <ArrowUpRight />
                   </Button>
                 </Link>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="">
                 {upcomingClasses.length > 0 ? (
-                  <div className="divide-y divide-gray-100">
-                    {upcomingClasses.map((classItem, index) => {
+                  <div className="divide-y divide-red-400 flex flex-col gap-y-3">
+                    {upcomingClasses.map((classItem) => {
                       const isJoinEnabled = isJoinLinkEnabled(
                         classItem.date,
                         classItem.startTime,
@@ -821,20 +890,17 @@ export default function TeacherPortal() {
                       return (
                         <div
                           key={classItem._id}
-                          className={`group relative p-4 hover:bg-blue-50 transition-all duration-300 ${
-                            index === 0 ? "bg-blue-50/50" : ""
-                          }`}
+                          className={`group  relative p-4 hover:bg-blue-50 transition-all duration-300 border-[1px] border-[#CBCBCB] rounded-lg`}
                         >
-                          {index === 0 && (
+                          {/* {index === 0 && (
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>
-                          )}
+                          )} */}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4 flex-1">
-                              <div className="relative flex-shrink-0">
+                              <div className="relative flex-shrink-0 ">
                                 <div
-                                  className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md transition-transform duration-300 group-hover:scale-105 ${
-                                    isToday ? "bg-red-500" : "bg-blue-500"
-                                  }`}
+                                  className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md transition-transform duration-300 group-hover:scale-105 ${isToday ? "bg-red-500" : "bg-blue-500"
+                                    }`}
                                 >
                                   <PlayCircle className="w-6 h-6" />
                                 </div>
@@ -844,57 +910,72 @@ export default function TeacherPortal() {
                                   </div>
                                 )}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-900 transition-colors truncate">
-                                    {classItem.classType}
-                                  </h3>
-                                  {timeUntil && (
-                                    <div className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full ml-2">
-                                      <Timer className="w-3 h-3 inline mr-1" />
-                                      {timeUntil}
-                                    </div>
-                                  )}
+                              <div className="flex-1 min-w-0 flex gap-y-3 flex-col">
+                                <div className="flex items-center justify-between ">
+                                  <div className="text-lg font-bold text-gray-900 group-hover:text-blue-900 transition-colors truncate flex">
+                                    <span className="">{classItem.classType}  </span>
+                                    {timeUntil && (
+                                      <div className="text-sm font-semibold h-fit text-blue-600 bg-blue-100  rounded-full ml-2 flex items-center justify-center py-1 px-3">
+                                        <svg
+
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="16"
+                                          height="16"
+                                          viewBox="0 0 12 12"
+                                          fill="none"
+                                          className="">
+                                          <g clipPath="url(#clip0_350_2042)">
+                                            <path d="M10.9303 4.40944C11.1507 4.19123 11.3256 3.93145 11.4448 3.64516C11.5641 3.35887 11.6253 3.05176 11.625 2.74163C11.625 1.44169 10.5696 0.388125 9.26831 0.387938H9.26737C8.61488 0.387938 8.02369 0.653063 7.59713 1.08131L8.98781 2.46975L8.6745 2.78644C7.89169 2.24866 6.96399 1.96135 6.01425 1.96256C5.06453 1.96129 4.13683 2.24854 3.354 2.78625L3.01819 2.44669L4.37681 1.07269C4.16057 0.851721 3.90235 0.676181 3.61734 0.556372C3.33232 0.436563 3.02624 0.374899 2.71706 0.375C1.4235 0.375 0.375 1.43531 0.375 2.74331C0.375 3.39956 0.638625 3.99337 1.06519 4.42219L2.43806 3.03375L2.71463 3.31331C2.26305 3.7552 1.90446 4.28298 1.65996 4.86556C1.41546 5.44814 1.28999 6.07375 1.29094 6.70556C1.29094 7.647 1.56525 8.52375 2.03625 9.26175L1.64081 11.625H1.99069C2.20931 11.625 2.29013 11.3683 2.43225 11.049C2.55862 10.7624 2.68374 10.4753 2.80763 10.1876C3.64969 10.9706 4.776 11.4493 6.01425 11.4493C7.25231 11.4493 8.37844 10.9703 9.22088 10.1876C9.34473 10.4753 9.46992 10.7625 9.59644 11.049C9.73875 11.3683 9.81919 11.625 10.0378 11.625H10.3877L9.99281 9.26119C10.4803 8.4981 10.7388 7.61126 10.7378 6.70575C10.7387 6.07397 10.6132 5.4484 10.3687 4.86585C10.1242 4.2833 9.76561 3.75556 9.31406 3.31369L9.57206 3.05306L10.9303 4.40944ZM9.68813 6.70575C9.68813 8.74331 8.04319 10.3954 6.01425 10.3954C3.98531 10.3954 2.34056 8.74331 2.34056 6.70575C2.34056 4.66856 3.98513 3.01669 6.01425 3.01669C8.043 3.01669 9.68813 4.66838 9.68813 6.70575Z" fill="#2D6EFC" />
+                                            <path d="M6.36396 6.10086V4.0708H5.6644V6.10086C5.55826 6.16231 5.4701 6.25053 5.40871 6.3567C5.34731 6.46287 5.31484 6.58328 5.31452 6.70593C5.31452 6.86174 5.36646 7.00461 5.45177 7.12105L3.86102 8.72943L4.07852 8.94993L5.68671 7.32374C5.78459 7.37624 5.89521 7.40886 6.01427 7.40886C6.27265 7.40886 6.49559 7.26674 6.61709 7.05749H7.76365V6.35493H6.61709C6.55644 6.24952 6.46915 6.1619 6.36396 6.10086Z" fill="#2D6EFC" />
+                                          </g>
+                                          <defs>
+                                            <clipPath id="clip0_350_2042">
+                                              <rect width="12" height="12" fill="white" />
+                                            </clipPath>
+                                          </defs>
+                                        </svg>
+                                        <span className="ml-2">
+                                          {timeUntil}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                                <div className="flex items-center gap-4 text-sm text-gray-600 ">
                                   <div className="flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-blue-400" />
-                                    <span className="font-medium">
-                                      {isToday
-                                        ? "Today"
-                                        : isTomorrow
-                                        ? "Tomorrow"
-                                        : formatDateTime(classItem.date)}
+                                    <Calendar className="w-5 text-blue-400" />
+                                    <span className="font-mediu text-sm">
+                                      {isToday ? "Today" : isTomorrow ? "Tomorrow" : formatDateTime(classItem.date)}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-blue-400" />
+                                    <Clock className="w-5 text-blue-400" />
                                     <span className="font-medium">
                                       {formatTime(classItem.startTime)} -{" "}
                                       {formatTime(classItem.endTime)}
-                                      <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100 align-middle">
+                                      <span className="ml-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold border border-blue-100 align-middle">
                                         {classItem.timezone
                                           ? classItem.timezone.toUpperCase()
-                                          : "Asia/Kolkata"}
+                                          : "ASIA / KOLKATA"}
                                       </span>
                                     </span>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 ">
                                   {isToday && (
-                                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-xs px-2 py-0.5 rounded-full">
-                                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1 animate-pulse"></div>
+                                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-sm px-3 py-1 rounded-full  flex items-center justify-center">
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-1 animate-pulse"></div>
                                       Today
                                     </Badge>
                                   )}
                                   {isTomorrow && (
-                                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-xs px-2 py-0.5 rounded-full">
+                                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-sm px-3 py-1 rounded-full flex items-center justify-center">
                                       Tomorrow
                                     </Badge>
                                   )}
                                   {isJoinEnabled && (
-                                    <Badge className="bg-red-100 text-red-700 hover:bg-red-100 text-xs px-2 py-0.5 rounded-full animate-pulse">
-                                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1"></div>
+                                    <Badge className="bg-red-100 text-red-700 hover:bg-red-100 text-sm px-3 py-1 rounded-full animate-pulse flex items-center justify-center">
+                                      <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
                                       Live
                                     </Badge>
                                   )}
@@ -906,15 +987,14 @@ export default function TeacherPortal() {
                                 onClick={() => handleJoinCall(classItem._id)}
                                 disabled={!isJoinEnabled}
                                 size="sm"
-                                className={`font-semibold cursor-pointer px-4 py-2 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105 disabled:hover:scale-100 ${
-                                  isJoinEnabled
-                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                    : "bg-blue-100 text-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                                }`}
+                                className={`font-semibold cursor-pointer px-10 py-3 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105 disabled:hover:scale-100 ${isJoinEnabled
+                                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                  : "bg-blue-100 text-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                  }`}
                               >
                                 <Video className="w-4 h-4 mr-1" />
                                 {isJoinEnabled
-                                  ? "Join"
+                                  ? "Join the class"
                                   : "Join (10 min before)"}
                               </Button>
                             </div>
@@ -945,307 +1025,48 @@ export default function TeacherPortal() {
               </CardContent>
             </Card>
           </div>
-
-          <div className="lg:col-span-1">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm max-h-[400px] overflow-y-auto">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-500 text-white rounded-lg">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-bold text-gray-900">
-                      Mark Attendance
-                    </CardTitle>
-                    <p className="text-sm text-gray-600">
-                      Track student attendance
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4 p-4">
-                {upcomingClasses.map((classItem) => {
-                  const isJoinEnabled = isJoinLinkEnabled(
-                    classItem.date,
-                    classItem.startTime,
-                    classItem.endTime,
-                    classItem.timezone || "Asia/Kolkata"
-                  );
-                  const classAttendance = attendance.find(
-                    (entry) => entry.callId === classItem._id
-                  );
-
-                  if (!isJoinEnabled || !classAttendance) return null;
-
-                  return (
-                    <div key={classItem._id} className="space-y-3">
-                      <div className="border-b pb-2">
-                        <h3 className="text-md font-semibold text-gray-900 truncate">
-                          {classItem.classType}
-                        </h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <Calendar className="w-3 h-3 text-blue-400" />
-                          <span>{formatDateTime(classItem.date)}</span>
-                          <Clock className="w-3 h-3 text-blue-400" />
-                          <span>
-                            {formatTime(classItem.startTime)} -{" "}
-                            {formatTime(classItem.endTime)}
-                          </span>
-                        </div>
-                        {classAttendance.submitted && (
-                          <Badge className="mt-1 bg-green-100 text-green-700 text-xs">
-                            Submitted
-                          </Badge>
-                        )}
-                      </div>
-
-                      {classAttendance.attendances.map((student) => (
-                        <div
-                          key={student.studentId}
-                          className="flex items-center justify-between text-sm"
-                        >
-                          <span className="font-medium text-gray-700 truncate">
-                            {student.name}
-                          </span>
-                          <div className="flex gap-1">
-                            <button
-                              className={`px-2 py-1 rounded-md text-xs font-semibold transition-all duration-300 ${
-                                student.status === "Present"
-                                  ? "bg-green-500 text-white"
-                                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                              }`}
-                              onClick={() =>
-                                handleAttendanceToggle(
-                                  classItem._id,
-                                  student.studentId,
-                                  "Present"
-                                )
-                              }
-                              type="button"
-                            >
-                              P
-                            </button>
-                            <button
-                              className={`px-2 py-1 rounded-md text-xs font-semibold transition-all duration-300 ${
-                                student.status === "Absent"
-                                  ? "bg-red-500 text-white"
-                                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                              }`}
-                              onClick={() =>
-                                handleAttendanceToggle(
-                                  classItem._id,
-                                  student.studentId,
-                                  "Absent"
-                                )
-                              }
-                              type="button"
-                            >
-                              A
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-
-                      <Button
-                        onClick={() => handleSubmitAttendance(classItem._id)}
-                        disabled={loading}
-                        className={`w-full text-sm font-semibold ${
-                          classAttendance.submitted
-                            ? "bg-blue-500 hover:bg-blue-600 text-white"
-                            : "bg-blue-600 hover:bg-blue-700 text-white"
-                        }`}
-                      >
-                        {loading
-                          ? "Submitting..."
-                          : classAttendance.submitted
-                          ? "Resubmit"
-                          : "Submit"}
-                      </Button>
-                    </div>
-                  );
-                })}
-                {attendance.length === 0 && (
-                  <p className="text-center text-gray-600 text-sm">
-                    No classes available for attendance.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm lg:col-span-1">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-500 text-white rounded-lg">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg font-bold text-gray-900">
-                    Quick Actions
-                  </CardTitle>
-                  <p className="text-xs text-gray-600">
-                    Streamline your workflow
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 p-4">
-              {quickActions.map((action, index) => (
-                <Link key={index} href={action.href}>
-                  <div
-                    className={`group relative overflow-hidden rounded-lg p-3 cursor-pointer transition-all duration-300 hover:shadow-lg border border-gray-200 hover:bg-${action.hoverBg}`}
-                  >
-                    <div className="relative flex items-center gap-3">
-                      <div
-                        className={`p-2 rounded-lg ${action.bgColor} text-white shadow-md group-hover:scale-110 transition-transform`}
-                      >
-                        {action.icon}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-sm text-gray-900 mb-1">
-                          {action.title}
-                        </h3>
-                        <p className="text-xs text-gray-600">
-                          {action.description}
-                        </p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" />
+        <div className="mt-10 mx-2">
+          <div className="flex items-center gap-4">
+            <div className="p-1.5 bg-blue-500 text-white rounded-lg">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl font-bold text-gray-900">
+                Quick Actions
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Streamline your workflow
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-10">
+            {quickActions.map((action, index) => (
+              <Link key={index} href={action.href} className="h-full">
+                <div
+                  className={`h-full bg-white group relative overflow-hidden rounded-xl py-8 px-4 cursor-pointer shadow transition-all duration-300 hover:shadow-lg border border-gray-200 flex flex-col justify-center hover:bg-${action.hoverBg}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`p-2 rounded-lg ${action.bgColor} text-white shadow-md group-hover:scale-110 transition-transform`}
+                    >
+                      {action.icon}
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm lg:col-span-2">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-purple-500 text-white rounded-xl">
-                    <Bell className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl font-bold text-gray-900">
-                      Latest Notifications
-                    </CardTitle>
-                    <p className="text-sm text-gray-500">
-                      Stay updated with system alerts
-                    </p>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm text-gray-900 mb-1">
+                        {action.title}
+                      </h3>
+                      <p className="text-xs text-gray-600">
+                        {action.description}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" />
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  {notifications.filter((n) => !n.read).length > 0 && (
-                    <Badge className="bg-red-100 text-red-600 hover:bg-red-100 text-sm px-3 py-1 rounded-full font-medium">
-                      {notifications.filter((n) => !n.read).length} unread
-                    </Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={fetchNotifications}
-                    disabled={notificationsLoading}
-                    className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-4 py-2 h-auto font-medium"
-                  >
-                    <RefreshCw
-                      className={`w-5 h-5 mr-2 ${
-                        notificationsLoading ? "animate-spin" : ""
-                      }`}
-                    />
-                    Refresh
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {notificationsLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
-                    <p className="text-sm text-gray-500">
-                      Loading notifications...
-                    </p>
-                  </div>
-                </div>
-              ) : notifications.length > 0 ? (
-                <div className="px-8 pb-8 space-y-2">
-                  {notifications.slice(0, 5).map((notification, index) => {
-                    const notificationType = getNotificationType(
-                      notification.message
-                    );
-                    const notificationIcon =
-                      getNotificationIcon(notificationType);
-
-                    return (
-                      <div
-                        key={notification._id}
-                        className={`flex items-start gap-5 py-5 cursor-pointer hover:bg-gray-50 -mx-8 px-8 rounded-lg transition-colors duration-200 ${
-                          index !== notifications.length - 1
-                            ? "border-b-2 border-gray-200"
-                            : ""
-                        }`}
-                        onClick={() =>
-                          !notification.read &&
-                          markNotificationAsRead(notification._id)
-                        }
-                      >
-                        <div
-                          className={`p-3 rounded-full ${notificationIcon.className} flex-shrink-0 mt-0.5 shadow-sm`}
-                        >
-                          {notificationIcon.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`text-base leading-relaxed font-semibold ${
-                              notification.read
-                                ? "text-gray-600"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Clock className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm text-gray-500 font-medium">
-                              {formatNotificationTime(notification.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                        {!notification.read && (
-                          <div className="w-3 h-3 bg-purple-500 rounded-full mt-2 flex-shrink-0 shadow-sm animate-pulse"></div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <div className="mt-4 text-center">
-                    <Link href="/teacher/notifications">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                      >
-                        View All Notifications
-                        <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-16 px-8">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                    <Bell className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    No Notifications
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    You&apos;re all caught up! Check back later for updates.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>
