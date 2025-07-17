@@ -15,6 +15,15 @@ import {
   FileDown,
   ArrowLeft,
 } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import Link from "next/link";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
@@ -40,7 +49,7 @@ interface Teacher {
 interface AttendanceRecord {
   attendanceId: string;
   callId: string;
-  batch: { LbatchId: string; name: string };
+  batch: { batchId: string; name: string };
   course: { courseId: string; title: string } | null;
   teacher: { teacherId: string; name: string };
   date: string;
@@ -48,6 +57,7 @@ interface AttendanceRecord {
   endTime: string | null;
   timezone: string;
   students: Array<{
+    parentGuardianName: string;
     studentId: string;
     name: string;
     status: string;
@@ -64,41 +74,6 @@ interface BatchAttendance {
   attendanceRecords: AttendanceRecord[];
 }
 
-const formatDateTime = (date: string) => {
-  try {
-    const parsedDate = moment(date);
-    if (!parsedDate.isValid()) return "Invalid Date";
-    return parsedDate.format("DD MMM YYYY");
-  } catch {
-    return "Invalid Date";
-  }
-};
-
-const formatTimeRange = (
-  date: string,
-  startTime: string | null,
-  endTime: string | null,
-  timezone: string
-) => {
-  if (!startTime || !endTime) return "N/A";
-  try {
-    const startMoment = moment.tz(
-      `${date} ${startTime}`,
-      "YYYY-MM-DD HH:mm",
-      timezone
-    );
-    const endMoment = moment.tz(
-      `${date} ${endTime}`,
-      "YYYY-MM-DD HH:mm",
-      timezone
-    );
-    if (!startMoment.isValid() || !endMoment.isValid()) return "Invalid Time";
-    return `${startMoment.format("h:mm A")} - ${endMoment.format("h:mm A")}`;
-  } catch {
-    return "Invalid Time";
-  }
-};
-
 export function AttendanceContentPage() {
   const { user, loading: authLoading, deviceId } = useAuth();
   const router = useRouter();
@@ -106,13 +81,15 @@ export function AttendanceContentPage() {
   const teacherId = searchParams.get("teacherId");
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [batchAttendance, setBatchAttendance] = useState<BatchAttendance[]>([]);
-  const [loading, setLoading] = useState(true); // For initial page load
-  const [attendanceLoading, setAttendanceLoading] = useState(false); // For attendance records
+  const [loading, setLoading] = useState(true);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openToDate, setOpenToDate] = useState(false);
   const [openFromDate, setOpenFromDate] = useState(false);
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // Number of records per page
 
   const formatDateYYYYMMDD = (date: Date) => {
     const newDate = date?.toLocaleDateString("en-US", {
@@ -125,11 +102,8 @@ export function AttendanceContentPage() {
   };
 
   const teacherName =
-    teacherId &&
-    batchAttendance.length > 0 &&
-    batchAttendance[0].attendanceRecords.length > 0
-      ? batchAttendance[0].attendanceRecords[0].teacher.name
-      : "Unknown Teacher";
+    batchAttendance.find((batch) => batch.attendanceRecords.length > 0)
+      ?.attendanceRecords[0]?.teacher.name || "Unknown Teacher";
 
   const handleUnauthorized = useCallback(() => {
     localStorage.removeItem("token");
@@ -143,10 +117,11 @@ export function AttendanceContentPage() {
   const clearFilters = () => {
     setFromDate(undefined);
     setToDate(undefined);
-    fetchAttendance(); // Only fetch attendance
+    setCurrentPage(1); // Reset to first page when clearing filters
+    fetchTeachersAndAttendance();
   };
 
-  const fetchAttendance = useCallback(
+  const fetchTeachersAndAttendance = useCallback(
     async (fromDate?: Date | undefined, toDate?: Date | undefined) => {
       setAttendanceLoading(true);
       try {
@@ -155,6 +130,20 @@ export function AttendanceContentPage() {
           handleUnauthorized();
           return;
         }
+
+        if (teachers.length === 0) {
+          const teacherResponse = await api.get("/admin/users?role=Teacher", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Device-Id": deviceId,
+            },
+          });
+          const teachersData = Array.isArray(teacherResponse.data.users)
+            ? teacherResponse.data.users
+            : [];
+          setTeachers(teachersData);
+        }
+
         if (teacherId) {
           const params: {
             teacherId: string;
@@ -175,50 +164,7 @@ export function AttendanceContentPage() {
             params,
           });
           setBatchAttendance(attendanceResponse.data.batchAttendance || []);
-        }
-      } catch (error) {
-        const apiError = error as ApiError;
-        const errorMessage =
-          apiError.response?.data?.message || "Failed to fetch attendance data";
-        setError(errorMessage);
-        if (apiError.response?.status === 401) {
-          handleUnauthorized();
-        } else {
-          toast.error(errorMessage);
-        }
-      } finally {
-        setAttendanceLoading(false);
-      }
-    },
-    [deviceId, handleUnauthorized, teacherId]
-  );
-
-  const fetchTeachersAndAttendance = useCallback(
-    async (fromDate?: Date | undefined, toDate?: Date | undefined) => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          handleUnauthorized();
-          return;
-        }
-
-        // Fetch teachers only if not already loaded
-        if (teachers.length === 0) {
-          const teacherResponse = await api.get("/admin/users?role=Teacher", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Device-Id": deviceId,
-            },
-          });
-          const teachersData = Array.isArray(teacherResponse.data.users)
-            ? teacherResponse.data.users
-            : [];
-          setTeachers(teachersData);
-        }
-
-        if (teacherId) {
-          await fetchAttendance(fromDate, toDate);
+          setCurrentPage(1); // Reset to first page when new data is fetched
         }
       } catch (error) {
         const apiError = error as ApiError;
@@ -231,15 +177,16 @@ export function AttendanceContentPage() {
           toast.error(errorMessage);
         }
       } finally {
+        setAttendanceLoading(false);
         setLoading(false);
       }
     },
-    [deviceId, handleUnauthorized, teacherId, teachers.length, fetchAttendance]
+    [deviceId, handleUnauthorized, teacherId, teachers.length]
   );
 
   const handleFilter = () => {
     if (fromDate && toDate) {
-      fetchAttendance(fromDate, toDate);
+      fetchTeachersAndAttendance(fromDate, toDate);
     }
   };
 
@@ -260,6 +207,45 @@ export function AttendanceContentPage() {
     handleUnauthorized,
     fetchTeachersAndAttendance,
   ]);
+
+  const handleExportAllTeachers = useCallback(async () => {
+    if (!user || !deviceId) {
+      handleUnauthorized();
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        handleUnauthorized();
+        return;
+      }
+      const response = await api.get("/attendance/export", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Device-Id": deviceId,
+        },
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `attendance_all_teachers.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("All teachers' attendance exported successfully");
+    } catch (error) {
+      const apiError = error as ApiError;
+      const errorMessage =
+        apiError.response?.data?.message || "Failed to export attendance";
+      if (apiError.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        toast.error(errorMessage);
+      }
+    }
+  }, [user, deviceId, handleUnauthorized]);
 
   const handleExport = useCallback(async () => {
     if (!user || !deviceId || !teacherId) {
@@ -309,45 +295,6 @@ export function AttendanceContentPage() {
       }
     }
   }, [user, deviceId, teacherId, handleUnauthorized, fromDate, toDate]);
-
-  const handleExportAllTeachers = useCallback(async () => {
-    if (!user || !deviceId) {
-      handleUnauthorized();
-      return;
-    }
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        handleUnauthorized();
-        return;
-      }
-      const response = await api.get("/attendance/export", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Device-Id": deviceId,
-        },
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `attendance_all_teachers.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success("All teachers' attendance exported successfully");
-    } catch (error) {
-      const apiError = error as ApiError;
-      const errorMessage =
-        apiError.response?.data?.message || "Failed to export attendance";
-      if (apiError.response?.status === 401) {
-        handleUnauthorized();
-      } else {
-        toast.error(errorMessage);
-      }
-    }
-  }, [user, deviceId, handleUnauthorized]);
 
   if (authLoading || loading) {
     return (
@@ -510,9 +457,7 @@ export function AttendanceContentPage() {
                           </h3>
                         </div>
                       </div>
-                      <Link
-                        href={`/superadmin/attendance?teacherId=${teacher._id}`}
-                      >
+                      <Link href={`/superadmin/attendance?teacherId=${teacher._id}`}>
                         <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 py-2 shadow-md hover:shadow-lg transition-all">
                           Show Attendance
                           <ArrowRight className="w-4 h-4 ml-2" />
@@ -545,7 +490,6 @@ export function AttendanceContentPage() {
               </Button>
             </div>
 
-            {/* Filter part */}
             <div className="flex gap-4 my-6 mx-2">
               <div className="flex flex-row gap-3">
                 <Label
@@ -677,6 +621,7 @@ export function AttendanceContentPage() {
                   </div>
                 </div>
               </CardHeader>
+
               <CardContent className="space-y-6">
                 {attendanceLoading ? (
                   <div className="flex items-center justify-center py-12">
@@ -689,9 +634,7 @@ export function AttendanceContentPage() {
                       wrapperClass=""
                       visible={true}
                     />
-                    <p className="ml-4 text-blue-600">
-                      Loading attendance records...
-                    </p>
+                    <p className="ml-4 text-blue-600">Loading attendance records...</p>
                   </div>
                 ) : batchAttendance.length === 0 ? (
                   <div className="text-center py-12">
@@ -706,102 +649,178 @@ export function AttendanceContentPage() {
                     </p>
                   </div>
                 ) : (
-                  batchAttendance.map((batch, index) => (
-                    <div key={batch.batchId + "_" + index}>
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="mb-4"
-                      >
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                          <Badge className="bg-blue-100 text-blue-700 border border-blue-200">
-                            Batch: {batch.batchName}
-                          </Badge>
-                        </h3>
-                      </motion.div>
-                      {batch.attendanceRecords.length === 0 ? (
-                        <p className="text-gray-600 text-sm">
-                          No attendance records for this batch
-                        </p>
-                      ) : (
-                        batch.attendanceRecords.map((record, idx) => (
-                          <motion.div
-                            key={record.attendanceId + "_" + idx}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-indigo-50 hover:to-blue-100 transition-all border border-gray-200 mb-4"
-                          >
-                            <div className="flex flex-col gap-4">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h4 className="font-semibold text-gray-900">
-                                    {record.course?.title || "N/A"} -{" "}
-                                    {formatDateTime(record.date)}
-                                  </h4>
-                                  <p className="text-sm text-gray-600">
-                                    Time:{" "}
-                                    {formatTimeRange(
-                                      record.date,
-                                      record.startTime,
-                                      record.endTime,
-                                      record.timezone
-                                    )}
-                                  </p>
-                                </div>
-                                <Badge
-                                  className={`${
-                                    record.students.every(
-                                      (s) => s.status === "Present"
-                                    )
-                                      ? "bg-green-100 text-green-700"
-                                      : "bg-yellow-100 text-yellow-700"
-                                  } border border-gray-200`}
+                  (() => {
+                    const uniqueDates = Array.from(
+                      new Set(
+                        batchAttendance.flatMap((batch) =>
+                          batch.attendanceRecords.map((record) =>
+                            moment(record.date).format("DD MMM YYYY")
+                          )
+                        )
+                      )
+                    ).sort((a, b) => moment(a, "DD MMM YYYY").diff(moment(b, "DD MMM YYYY")));
+
+                    const studentAttendanceMap = new Map();
+                    batchAttendance.forEach((batch) => {
+                      batch.attendanceRecords.forEach((record) => {
+                        const formattedDate = moment(record.date).format("DD MMM YYYY");
+                        record.students.forEach((student) => {
+                          const studentId = student.studentId;
+                          if (!studentAttendanceMap.has(studentId)) {
+                            studentAttendanceMap.set(studentId, {
+                              studentId,
+                              studentName: student.name,
+                              parentGuardianName: student.parentGuardianName || "N/A",
+                              teacherName: record.teacher.name,
+                              classType: record.course?.title || "N/A",
+                              batchName: batch.batchName,
+                              attendance: new Map(),
+                            });
+                          }
+                          studentAttendanceMap.get(studentId).attendance.set(formattedDate, student.status);
+                        });
+                      });
+                    });
+
+                    const studentAttendance = Array.from(studentAttendanceMap.values());
+
+                    // Pagination logic
+                    const totalItems = studentAttendance.length;
+                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+                    const startIndex = (currentPage - 1) * itemsPerPage;
+                    const endIndex = startIndex + itemsPerPage;
+                    const paginatedAttendance = studentAttendance.slice(startIndex, endIndex);
+
+                    const handlePageChange = (page: number) => {
+                      setCurrentPage(page);
+                      // Scroll to top of table
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    };
+
+                    return (
+                      <div className="w-full">
+                        <table className="w-full text-sm text-left text-gray-700 bg-white/80 rounded-lg shadow-md">
+                          <thead className="text-xs uppercase bg-blue-50 text-blue-700 sticky top-0 z-10">
+                            <tr>
+                              <th className="px-6 py-3 w-16">S.No.</th>
+                              <th className="px-6 py-3 w-40">Teacher Name</th>
+                              <th className="px-6 py-3 w-40">Student Name</th>
+                              <th className="px-6 py-3 w-40">Parent&apos;s Name</th>
+                              <th className="px-6 py-3 w-40">Class Type</th>
+                              <th className="px-6 py-3 w-40">Batch Name</th>
+                              {uniqueDates.map((date) => (
+                                <th key={date} className="px-6 py-3 w-40">
+                                  {date}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                        </table>
+                        <div
+                          className="overflow-x-auto"
+                          style={{
+                            maxHeight: "400px",
+                            scrollbarWidth: "none",
+                            msOverflowStyle: "none",
+                          }}
+                        >
+                          <style jsx>{`
+                            div::-webkit-scrollbar {
+                              display: none;
+                            }
+                          `}</style>
+                          <table className="w-full text-sm text-left text-gray-700 bg-white/80">
+                            <tbody>
+                              {paginatedAttendance.map((student, index) => (
+                                <motion.tr
+                                  key={student.studentId}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.05 }}
+                                  className="border-b hover:bg-blue-50/50 transition-colors"
                                 >
-                                  {record.students.every(
-                                    (s) => s.status === "Present"
-                                  )
-                                    ? "All Present"
-                                    : "Mixed Attendance"}
-                                </Badge>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {record.students.map((student, idx) => (
-                                  <div
-                                    key={student.studentId + "_" + idx}
-                                    className="flex items-center justify-between p-3 bg-white/60 rounded-lg"
-                                  >
-                                    <div>
-                                      <p className="text-sm font-medium text-gray-900">
-                                        {student.name}
-                                      </p>
-                                    </div>
-                                    <Badge
-                                      className={`${
-                                        student.status === "Present"
-                                          ? "bg-green-100 text-green-700"
-                                          : "bg-red-100 text-red-700"
-                                      } border border-gray-200`}
-                                    >
-                                      {student.status}
-                                    </Badge>
-                                  </div>
-                                ))}
-                              </div>
-                              <p className="text-xs text-gray-500">
-                                Marked by:{" "}
-                                {record.students[0]?.markedBy.name || "N/A"} on{" "}
-                                {moment(record.createdAt).format(
-                                  "DD MMM YYYY, h:mm A"
-                                )}
-                              </p>
-                            </div>
-                          </motion.div>
-                        ))
-                      )}
-                    </div>
-                  ))
+                                  <td className="px-6 py-4 w-16">{startIndex + index + 1}</td>
+                                  <td className="px-6 py-4 w-40">{student.teacherName}</td>
+                                  <td className="px-6 py-4 w-40">{student.studentName}</td>
+                                  <td className="px-6 py-4 w-40">{student.parentGuardianName}</td>
+                                  <td className="px-6 py-4 w-40">{student.classType}</td>
+                                  <td className="px-6 py-4 w-40">{student.batchName}</td>
+                                  {uniqueDates.map((date) => (
+                                    <td key={date} className="px-6 py-4 w-40">
+                                      <Badge
+                                        className={`${
+                                          student.attendance.get(date) === "Present"
+                                            ? "bg-green-100 text-green-700"
+                                            : student.attendance.get(date) === "Absent"
+                                            ? "bg-red-100 text-red-700"
+                                            : "bg-gray-100 text-gray-700"
+                                        } border border-gray-200`}
+                                      >
+                                        {student.attendance.get(date) || "N/A"}
+                                      </Badge>
+                                    </td>
+                                  ))}
+                                </motion.tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {totalPages > 1 && (
+                          <div className="mt-6">
+                            <Pagination>
+                              <PaginationContent>
+                                <PaginationItem>
+                                  <PaginationPrevious
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                    size="default"
+                                  />
+                                </PaginationItem>
+                                {[...Array(totalPages)].map((_, i) => {
+                                  const page = i + 1;
+                                  if (
+                                    page === 1 ||
+                                    page === totalPages ||
+                                    (page >= currentPage - 1 && page <= currentPage + 1)
+                                  ) {
+                                    return (
+                                      <PaginationItem key={page}>
+                                        <PaginationLink
+                                          onClick={() => handlePageChange(page)}
+                                          isActive={currentPage === page}
+                                          className={currentPage === page ? "bg-blue-600 text-white" : "cursor-pointer"}
+                                          size="default"
+                                        >
+                                          {page}
+                                        </PaginationLink>
+                                      </PaginationItem>
+                                    );
+                                  } else if (
+                                    (page === currentPage - 2 && currentPage > 3) ||
+                                    (page === currentPage + 2 && currentPage < totalPages - 2)
+                                  ) {
+                                    return (
+                                      <PaginationItem key={page}>
+                                        <PaginationEllipsis />
+                                      </PaginationItem>
+                                    );
+                                  }
+                                  return null;
+                                })}
+                                <PaginationItem>
+                                  <PaginationNext
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                    size="default"
+                                  />
+                                </PaginationItem>
+                              </PaginationContent>
+                            </Pagination>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
                 )}
               </CardContent>
             </Card>

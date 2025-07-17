@@ -150,67 +150,67 @@ router.get(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { fromDate, toDate, batchId, studentId, callId, teacherId } =
-      req.query;
+    const { fromDate, toDate, batchId, studentId, callId, teacherId } = req.query;
     const userId = req.user.userId;
 
     try {
       const user = await User.findById(userId).populate("role");
       if (
         !user ||
-        !["Student", "Teacher", "Admin", "Super Admin"].includes(
-          user.role.roleName
-        )
+        !["Student", "Teacher", "Admin", "Super Admin"].includes(user.role.roleName)
       ) {
-        logger.warn(
-          `Unauthorized attendance data access attempt by user: ${userId}`
-        );
+        logger.warn(`Unauthorized attendance data access attempt by user: ${userId}`);
         return res.status(403).json({ message: "Not authorized" });
       }
 
       let query = {};
       if (fromDate || toDate) {
         query.date = {};
-        if (fromDate) {
-          query.date.$gte = new Date(fromDate);
-        }
+        if (fromDate) query.date.$gte = new Date(fromDate);
         if (toDate) {
           const endOfDay = new Date(toDate);
           endOfDay.setUTCHours(23, 59, 59, 999);
           query.date.$lte = endOfDay;
         }
       }
-
       if (batchId) query.batchId = batchId;
       if (studentId) query["attendances.studentId"] = studentId;
       if (callId) query.callId = callId;
+
+      logger.debug("Query for attendance data:", query);
 
       let response = {};
 
       if (["Admin", "Super Admin"].includes(user.role.roleName) && teacherId) {
         query.teacherId = teacherId;
 
-        const batches = await Batch.find({ teacherId })
+        const batches = await Batch.find({ teacherId, isDeleted: { $ne: true } })
           .select("_id name")
           .lean();
         if (!batches.length) {
           logger.warn(`No batches found for teacher: ${teacherId}`);
-          return res
-            .status(404)
-            .json({ message: "No batches found for the teacher" });
+          return res.status(404).json({ message: "No batches found for the teacher" });
         }
 
         const attendanceRecordsRaw = await Attendance.find({
           ...query,
           batchId: { $in: batches.map((batch) => batch._id) },
         })
-          .populate("batchId", "name")
+          .populate({
+            path: "batchId",
+            select: "name",
+          })
           .populate("courseId", "title")
           .populate("teacherId", "name")
-          .populate("attendances.studentId", "name")
+          .populate("attendances.studentId", "name parentGuardianName") // Modified to include parentGuardianName
           .populate("attendances.markedBy", "name")
-          .populate("callId", "startTime endTime")
+          .populate({
+            path: "callId",
+            select: "startTime endTime",
+          })
           .lean();
+
+        logger.debug("Raw attendance records for admin:", JSON.stringify(attendanceRecordsRaw, null, 2));
 
         const batchAttendance = batches.map((batch) => {
           const batchRecords = attendanceRecordsRaw
@@ -220,46 +220,35 @@ router.get(
             )
             .map((record) => ({
               attendanceId: record._id,
-              callId: record.callId?._id || record.callId,
-              batch: {
-                batchId: record.batchId._id,
-                name: record.batchId.name,
-              },
+              callId: record.callId?._id?.toString() || null,
+              batch: record.batchId
+                ? {
+                    batchId: record.batchId._id?.toString() || null,
+                    name: record.batchId.name || "N/A",
+                  }
+                : null,
               course: record.courseId
                 ? {
                     courseId: record.courseId._id,
                     title: record.courseId.title,
                   }
                 : null,
-              teacher: {
-                teacherId: record.teacherId._id,
-                name: record.teacherId.name,
-              },
+              teacher: record.teacherId
+                ? {
+                    teacherId: record.teacherId._id,
+                    name: record.teacherId.name,
+                  }
+                : null,
               date: record.date || record.classDate,
-              startTime:
-                record.callId?.startTime ||
-                record.classStartTime ||
-                record.startTime ||
-                null,
-              endTime:
-                record.callId?.endTime ||
-                record.classEndTime ||
-                record.endTime ||
-                null,
+              startTime: record.callId?.startTime || null,
+              endTime: record.callId?.endTime || null,
               timezone: record.timezone || "Asia/Calcutta",
-              students: (
-                record.attendances ||
-                record.studentAttendance ||
-                []
-              ).map((student) => ({
+              students: (record.attendances || []).map((student) => ({
                 studentId: student.studentId?._id || student.studentId,
                 name: student.studentId?.name || "N/A",
+                parentGuardianName: student.studentId?.parentGuardianName || "N/A", // Added parentGuardianName
                 status: student.status,
-                markedAt:
-                  record.callId?.endTime ||
-                  record.classEndTime ||
-                  record.endTime ||
-                  null,
+                markedAt: student.markedAt || record.callId?.endTime || null,
                 markedBy: record.teacherId
                   ? {
                       teacherId: record.teacherId._id,
@@ -290,21 +279,29 @@ router.get(
         }
 
         const attendanceRecordsRaw = await Attendance.find(query)
-          .populate("batchId", "name")
+          .populate({
+            path: "batchId",
+            select: "name",
+          })
           .populate("courseId", "title")
           .populate("teacherId", "name")
-          .populate("attendances.studentId", "name")
+          .populate("attendances.studentId", "name parentGuardianName") // Modified to include parentGuardianName
           .populate("attendances.markedBy", "name")
-          .populate("callId", "startTime endTime")
+          .populate({
+            path: "callId",
+            select: "startTime endTime",
+          })
           .lean();
+
+        logger.debug("Raw attendance records for non-admin:", JSON.stringify(attendanceRecordsRaw, null, 2));
 
         const attendanceRecords = attendanceRecordsRaw.map((record) => ({
           attendanceId: record._id,
-          callId: record.callId?._id || record.callId,
+          callId: record.callId?._id?.toString() || null,
           batch: record.batchId
             ? {
-                batchId: record.batchId._id,
-                name: record.batchId.name,
+                batchId: record.batchId._id?.toString() || null,
+                name: record.batchId.name || "N/A",
               }
             : null,
           course: record.courseId
@@ -320,38 +317,25 @@ router.get(
               }
             : null,
           date: record.date || record.classDate,
-          startTime:
-            record.callId?.startTime ||
-            record.classStartTime ||
-            record.startTime ||
-            null,
-          endTime:
-            record.callId?.endTime ||
-            record.classEndTime ||
-            record.endTime ||
-            null,
+          startTime: record.callId?.startTime || null,
+          endTime: record.callId?.endTime || null,
           timezone: record.timezone || "Asia/Calcutta",
-          students: (record.attendances || record.studentAttendance || []).map(
-            (student) => ({
-              studentId: student.studentId?._id || student.studentId,
-              name: student.studentId?.name || "N/A",
-              status: student.status,
-              markedAt:
-                record.callId?.endTime ||
-                record.classEndTime ||
-                record.endTime ||
-                null,
-              markedBy: record.teacherId
-                ? {
-                    teacherId: record.teacherId._id,
-                    name: record.teacherId.name,
-                  }
-                : {
-                    teacherId: student.markedBy?._id || student.markedBy,
-                    name: student.markedBy?.name || "N/A",
-                  },
-            })
-          ),
+          students: (record.attendances || []).map((student) => ({
+            studentId: student.studentId?._id || student.studentId,
+            name: student.studentId?.name || "N/A",
+            parentGuardianName: student.studentId?.parentGuardianName || "N/A", // Added parentGuardianName
+            status: student.status,
+            markedAt: student.markedAt || record.callId?.endTime || null,
+            markedBy: record.teacherId
+              ? {
+                  teacherId: record.teacherId._id,
+                  name: record.teacherId.name,
+                }
+              : {
+                  teacherId: student.markedBy?._id || student.markedBy,
+                  name: student.markedBy?.name || "N/A",
+                },
+          })),
           createdAt: record.createdAt,
           updatedAt: record.updatedAt,
         }));
