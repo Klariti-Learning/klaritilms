@@ -189,6 +189,7 @@ export default function StudentDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   const handleUnauthorized = useCallback(() => {
+    console.debug("[StudentDashboard] Handling unauthorized access");
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("isLoggedIn");
@@ -197,7 +198,11 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (!authLoading && (!user || user?.role?.roleName !== "Student")) {
-
+      console.debug("[StudentDashboard] Redirecting to login", {
+        user: !!user,
+        role: user?.role?.roleName,
+        authLoading,
+      });
       handleUnauthorized();
     }
   }, [user, authLoading, router, handleUnauthorized]);
@@ -446,8 +451,8 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50 pt-20 pb-12">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+    <div className="min-h-screen pt-20 pb-12">
+      <div className="w-full mx-auto ">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -513,17 +518,17 @@ export default function StudentDashboard() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <Card
-                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-48 flex flex-col justify-between relative px-2"
+                className=" backdrop-blur-sm  border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative px-2"
                 onClick={() => router.push("/student/schedule")}
               >
-                <div className="absolute inset-0 bg-blue-50 rounded-2xl"></div>
+                <div className="absolute inset-0 bg-[#fcfcfc] rounded-2xl"></div>
                 <CardContent className="relative p-2 flex flex-col justify-between h-full z-10">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-gray-600 font-semibold">
                         Total Classes
                       </h3>
-                      <p className="text-2xl font-bold text-gray-900 mb-0">
+                      <p className="text-2xl font-bold text-gray-900 my-2">
                         {callsLoading ? (
                           <span className="inline-block w-10 h-6 bg-blue-200 animate-pulse rounded"></span>
                         ) : (
@@ -531,16 +536,16 @@ export default function StudentDashboard() {
                         )}
                       </p>
                     </div>
-                    <div className="p-1 bg-blue-500 rounded-lg">
-                      <BookOpen className="w-5 h-5 text-white" />
+                    <div className="p-2 bg-blue-500 rounded-md">
+                      <BookOpen className="w-5 text-white" />
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-0">
                     <div className="flex items-center text-gray-600 text-sm font-medium">
-                      <TrendingUp className="w-4 h-4 mr-1 text-blue-500" />
+                      <TrendingUp className="w-5 mr-1 text-blue-500" />
                       <span>Scheduled</span>
                     </div>
-                    <div className="text-blue-700 text-xs font-bold bg-blue-100 p-1 px-2 rounded">
+                    <div className="text-[#014FD4] border-[1px] border-[#D0E4FE] text-xs font-bold bg-[#DBEAFE] p-1 px-2 rounded">
                       All Time
                     </div>
                   </div>
@@ -548,17 +553,17 @@ export default function StudentDashboard() {
               </Card>
 
               <Card
-                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-48 flex flex-col justify-between relative px-2"
+                className="bg-[#F6F9FF]  backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative px-2"
                 onClick={() => router.push("/student/schedule")}
               >
-                <div className="absolute inset-0 bg-teal-50 rounded-2xl"></div>
+                <div className="absolute inset-0 bg-[#fcfcfc] rounded-2xl"></div>
                 <CardContent className="relative p-2 flex flex-col justify-between h-full z-10">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-gray-600 font-semibold">
                         Upcoming Classes
                       </h3>
-                      <p className="text-2xl font-bold text-gray-900 mb-0">
+                      <p className="text-2xl font-bold text-gray-900 my-2">
                         {callsLoading ? (
                           <span className="inline-block w-10 h-6 bg-teal-200 animate-pulse rounded"></span>
                         ) : (
@@ -566,16 +571,16 @@ export default function StudentDashboard() {
                         )}
                       </p>
                     </div>
-                    <div className="p-1 bg-teal-500 rounded-lg">
-                      <Clock className="w-5 h-5 text-white" />
+                    <div className="p-2 bg-[#00BBA7] rounded-lg">
+                      <Clock className="w-5  text-white" />
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-0">
                     <div className="flex items-center text-gray-600 text-sm font-medium">
-                      <Clock className="w-4 h-4 mr-1 text-teal-500" />
+                      <Clock className="w-5 mr-1 text-teal-500" />
                       <span>Scheduled Soon</span>
                     </div>
-                    <div className="text-teal-700 text-xs font-bold bg-teal-100 p-1 px-2 rounded">
+                    <div className="text-[#038375]  border-[1px] border-[#96F7E4] text-xs font-bold bg-[#CBFBF1] p-1 px-2 rounded">
                       This Week
                     </div>
                   </div>
@@ -583,7 +588,7 @@ export default function StudentDashboard() {
               </Card>
 
               <Card
-                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-48 flex flex-col justify-between relative px-2"
+                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative px-2"
                 onClick={() => router.push("/student/schedule")}
               >
                 <div className="absolute inset-0 bg-indigo-50 rounded-2xl"></div>
@@ -593,7 +598,7 @@ export default function StudentDashboard() {
                       <h3 className="text-gray-600 font-semibold">
                         Completed Classes
                       </h3>
-                      <p className="text-2xl font-bold text-gray-900 mb-0">
+                      <p className="text-2xl font-bold text-gray-900 my-2">
                         {callsLoading ? (
                           <span className="inline-block w-10 h-6 bg-indigo-200 animate-pulse rounded"></span>
                         ) : (
@@ -601,16 +606,16 @@ export default function StudentDashboard() {
                         )}
                       </p>
                     </div>
-                    <div className="p-1 bg-indigo-500 rounded-lg">
-                      <Users className="w-5 h-5 text-white" />
+                    <div className="p-2 bg-[#AA00FF] rounded-lg">
+                      <Users className="w-5  text-white" />
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-0">
                     <div className="flex items-center text-gray-600 text-sm font-medium">
-                      <TrendingUp className="w-4 h-4 mr-1 text-indigo-500" />
+                      <TrendingUp className="w-5 mr-1 text-indigo-500" />
                       <span>Total Completed</span>
                     </div>
-                    <div className="text-indigo-700 text-xs font-bold bg-indigo-100 p-1 px-2 rounded">
+                    <div className="text-[#AA00FF] text-xs font-bold bg-indigo-100 border-[1px] border-[#DD98FF] p-1 px-2 rounded">
                       Completed
                     </div>
                   </div>
@@ -618,7 +623,7 @@ export default function StudentDashboard() {
               </Card>
 
               <Card
-                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-48 flex flex-col justify-between relative px-2"
+                className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative px-2"
                 onClick={() => router.push("/student/raise-query")}
               >
                 <div className="absolute inset-0 bg-yellow-50 rounded-2xl"></div>
@@ -628,7 +633,7 @@ export default function StudentDashboard() {
                       <h3 className="text-gray-600 font-semibold">
                         Support Tickets
                       </h3>
-                      <p className="text-2xl font-bold text-gray-900 mb-0">
+                      <p className="text-2xl font-bold text-gray-900 my-2">
                         {ticketsLoading ? (
                           <span className="inline-block w-10 h-6 bg-yellow-200 animate-pulse rounded"></span>
                         ) : (
@@ -636,16 +641,16 @@ export default function StudentDashboard() {
                         )}
                       </p>
                     </div>
-                    <div className="p-1 bg-yellow-500 rounded-lg">
+                    <div className="p-2 bg-yellow-500 rounded-lg">
                       <FileText className="w-5 h-5 text-white" />
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-0">
                     <div className="flex items-center text-gray-600 text-sm font-medium">
-                      <MessageSquare className="w-4 h-4 mr-1 text-yellow-500" />
+                      <MessageSquare className="w-5 mr-1 text-yellow-500" />
                       <span>Resolved / Open</span>
                     </div>
-                    <div className="text-yellow-700 text-xs font-bold bg-yellow-100 p-1 px-2 rounded">
+                    <div className="text-[#A47900] border-[1px] border-[#FFF085] text-xs font-bold bg-[#FEF9C2] p-1 px-2 rounded">
                       Support
                     </div>
                   </div>
@@ -658,19 +663,19 @@ export default function StudentDashboard() {
                 <ClassTeachers />
               </div>
 
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all overflow-hidden lg:col-span-3 h-fit">
+              <Card className="bg-white/80 backdrop-blur-sm border-2 border-green-300 h-fit lg:h-full shadow-xl hover:shadow-2xl transition-all overflow-hidden lg:col-span-3  p-4">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
                       {ongoingCall ? (
                         <>
                           <div className="relative">
-                            <div className="p-2 bg-red-500 rounded-xl">
-                              <Clock className="w-5 h-5 text-white" />
+                            <div className="p-2 bg-green-600 rounded-lg animate-bounce">
+                              <Clock className="w-5 h-5 text-white " />
                             </div>
                             <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
                           </div>
-                          <span className="text-red-500 font-semibold drop-shadow-sm">
+                          <span className="text-green-600 font-semibold drop-shadow-sm">
                             Ongoing Class
                           </span>
                         </>
@@ -689,7 +694,7 @@ export default function StudentDashboard() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 gap-1 rounded-xl cursor-pointer border border-gray-200"
+                        className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 gap-1 rounded-md cursor-pointer border border-gray-200"
                       >
                         View All
                         <ArrowUpRight className="w-4 h-4" />
@@ -712,7 +717,7 @@ export default function StudentDashboard() {
                       />
                     </div>
                   ) : ongoingCall ? (
-                    <div className="p-6 bg-red-400 border-t border-b border-gray-200">
+                    <div className="p-6 bg-white border-t ">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-3">
@@ -722,9 +727,9 @@ export default function StudentDashboard() {
                             <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
                           </div>
                           <h3 className="font-bold text-gray-900 text-lg mt-3">
-                            {ongoingCall.classType} - {ongoingCall.type}
+                            {ongoingCall.classType.toUpperCase()} - {ongoingCall.type}
                           </h3>
-                          <p className="text-sm text-gray-700 mt-1 font-medium">
+                          <p className="text-sm text-gray-700 mt-1 font-medium ">
                             {formatDateTime(ongoingCall.date)},{" "}
                             {formatTimeRange(
                               ongoingCall.date,
@@ -735,7 +740,7 @@ export default function StudentDashboard() {
                           </p>
                         </div>
                         <Button
-                          className="bg-red-600 hover:bg-red-700 text-white rounded-2xl px-8 py-3 shadow-lg shadow-red-200 transition-all hover:shadow-red-300 transform hover:scale-105 font-bold"
+                          className="bg-green-600 hover:bg-red-700 text-white rounded-2xl px-8 py-3  transition-all hover:shadow-red-300 transform hover:scale-105 font-bold"
                           onClick={() => handleJoinCall(ongoingCall.zoomLink)}
                         >
                           🚀 Join Now
@@ -755,7 +760,7 @@ export default function StudentDashboard() {
                       </p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-gray-100  ">
                       {upcomingCalls.slice(0, 3).map((call, index) => (
                         <div
                           key={call._id}
@@ -831,8 +836,10 @@ export default function StudentDashboard() {
                   )}
                 </CardContent>
               </Card>
+                  
+              {/* <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all overflow-hidden lg:col-span-5 h-fit py-4"> */}
+            <Card className="bg-white/90 border-0 shadow-md hover:shadow-lg transition-scale transform hover:scale-[1.02] duration-300 overflow-hidden lg:col-span-5 min-h-[300px] py-4">
 
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all overflow-hidden lg:col-span-5 h-fit">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
@@ -841,8 +848,8 @@ export default function StudentDashboard() {
                       </div>
                       <span className="text-blue-600">Quick Actions</span>
                     </CardTitle>
-                    <Badge className="bg-blue-100 text-blue-700 border border-blue-200 font-bold">
-                      🎯 Student Tools
+                    <Badge className="bg-blue-100 text-sm text-blue-700 border border-blue-200 font-bold py-1">
+                      🛠️ Student Tools
                     </Badge>
                   </div>
                 </CardHeader>
@@ -856,7 +863,7 @@ export default function StudentDashboard() {
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-900">
-                              📅 View Schedule
+                              View Schedule
                             </h3>
                             <p className="text-sm text-gray-600 font-medium">
                               See all your upcoming classes
@@ -874,7 +881,7 @@ export default function StudentDashboard() {
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-900">
-                              👤 My Profile
+                              My Profile
                             </h3>
                             <p className="text-sm text-gray-600 font-medium">
                               Update your information
@@ -894,7 +901,7 @@ export default function StudentDashboard() {
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-900">
-                              💬 Support Tickets
+                              Support Tickets
                             </h3>
                             <p className="text-sm text-gray-600 font-medium">
                               View your support requests
@@ -912,7 +919,7 @@ export default function StudentDashboard() {
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-900">
-                              🎫 Raise Query
+                              Raise Query
                             </h3>
                             <p className="text-sm text-gray-600 font-medium">
                               Create new support ticket

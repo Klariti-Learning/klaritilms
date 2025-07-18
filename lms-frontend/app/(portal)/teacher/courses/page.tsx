@@ -188,7 +188,7 @@ export function TeacherCoursesContent() {
           fetchedBatches.map(async (batch: Batch) => {
             if (batch.courseId) {
               try {
- 
+
                 const scheduleResponse = await api.get(
                   `/schedule/batch/${batch._id}/calls?_=${Date.now()}`
                 );
@@ -414,11 +414,11 @@ export function TeacherCoursesContent() {
         prev.map((batch) =>
           batch._id === batchId
             ? {
-                ...batch,
-                courseId,
-                courseTitle:
-                  courses.find((c) => c._id === courseId)?.title || "N/A",
-              }
+              ...batch,
+              courseId,
+              courseTitle:
+                courses.find((c) => c._id === courseId)?.title || "N/A",
+            }
             : batch
         )
       );
@@ -426,11 +426,11 @@ export function TeacherCoursesContent() {
         prev.map((batch) =>
           batch._id === batchId
             ? {
-                ...batch,
-                courseId,
-                courseTitle:
-                  courses.find((c) => c._id === courseId)?.title || "N/A",
-              }
+              ...batch,
+              courseId,
+              courseTitle:
+                courses.find((c) => c._id === courseId)?.title || "N/A",
+            }
             : batch
         )
       );
@@ -579,7 +579,7 @@ export function TeacherCoursesContent() {
             }
           `}</style>
 
-          <div className="max-w-7xl mx-auto w-full">
+          <div className="max-w-screen mx-auto w-full">
             <motion.div
               initial={{ opacity: 0, y: -30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -714,9 +714,8 @@ export function TeacherCoursesContent() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500" />
                     <Input
                       type="text"
-                      placeholder={`Search ${
-                        activeTab === "courses" ? "courses" : "batches"
-                      }...`}
+                      placeholder={`Search ${activeTab === "courses" ? "courses" : "batches"
+                        }...`}
                       value={
                         activeTab === "courses"
                           ? courseSearchQuery
@@ -732,19 +731,19 @@ export function TeacherCoursesContent() {
                     {(activeTab === "courses"
                       ? courseSearchQuery
                       : batchSearchQuery) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 hover:bg-gray-100"
-                        onClick={() =>
-                          activeTab === "courses"
-                            ? setCourseSearchQuery("")
-                            : setBatchSearchQuery("")
-                        }
-                      >
-                        <X className="w-4 h-4 text-gray-500" />
-                      </Button>
-                    )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 hover:bg-gray-100"
+                          onClick={() =>
+                            activeTab === "courses"
+                              ? setCourseSearchQuery("")
+                              : setBatchSearchQuery("")
+                          }
+                        >
+                          <X className="w-4 h-4 text-gray-500" />
+                        </Button>
+                      )}
                   </div>
                 </div>
               </motion.div>
@@ -1201,20 +1200,20 @@ export function TeacherCoursesContent() {
 
                                   {(batch.isScheduled ||
                                     batch.hasScheduledCalls) && (
-                                    <div className="flex items-center gap-2 p-2 bg-purple-50/50 rounded-lg">
-                                      <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                        <Clock4 className="w-3 h-3 text-white" />
+                                      <div className="flex items-center gap-2 p-2 bg-purple-50/50 rounded-lg">
+                                        <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                          <Clock4 className="w-3 h-3 text-white" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <span className="text-xs font-medium text-gray-500 block">
+                                            Schedule
+                                          </span>
+                                          <span className="text-sm font-bold text-gray-800 truncate block">
+                                            {batch.scheduleDuration || "N/A"}
+                                          </span>
+                                        </div>
                                       </div>
-                                      <div className="flex-1 min-w-0">
-                                        <span className="text-xs font-medium text-gray-500 block">
-                                          Schedule
-                                        </span>
-                                        <span className="text-sm font-bold text-gray-800 truncate block">
-                                          {batch.scheduleDuration || "N/A"}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -1269,23 +1268,22 @@ export function TeacherCoursesContent() {
 
                                   {(batch.isScheduled ||
                                     batch.hasScheduledCalls) && (
-                                    <div
-                                      className={`text-white text-center font-bold px-3 py-2 rounded-xl shadow-md text-xs ${
-                                        batch.scheduleStatus?.toLowerCase() ===
-                                        "scheduled"
-                                          ? "bg-gradient-to-r from-green-500 to-emerald-500"
-                                          : batch.scheduleStatus?.toLowerCase() ===
-                                            "cancelled"
-                                          ? "bg-gradient-to-r from-red-500 to-pink-500"
-                                          : batch.scheduleStatus?.toLowerCase() ===
-                                            "completed"
-                                          ? "bg-gradient-to-r from-blue-500 to-indigo-500"
-                                          : "bg-gradient-to-r from-gray-500 to-gray-600"
-                                      }`}
-                                    >
-                                      {batch.scheduleStatus || "N/A"}
-                                    </div>
-                                  )}
+                                      <div
+                                        className={`text-white text-center font-bold px-3 py-2 rounded-xl shadow-md text-xs ${batch.scheduleStatus?.toLowerCase() ===
+                                            "scheduled"
+                                            ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                                            : batch.scheduleStatus?.toLowerCase() ===
+                                              "cancelled"
+                                              ? "bg-gradient-to-r from-red-500 to-pink-500"
+                                              : batch.scheduleStatus?.toLowerCase() ===
+                                                "completed"
+                                                ? "bg-gradient-to-r from-blue-500 to-indigo-500"
+                                                : "bg-gradient-to-r from-gray-500 to-gray-600"
+                                          }`}
+                                      >
+                                        {batch.scheduleStatus || "N/A"}
+                                      </div>
+                                    )}
                                 </div>
 
                                 <motion.div
@@ -1461,11 +1459,10 @@ export function TeacherCoursesContent() {
                                         duration: 0.3,
                                         delay: index * 0.1,
                                       }}
-                                      className={`relative p-6 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1 ${
-                                        selectedBatchId === batch._id
+                                      className={`relative p-6 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1 ${selectedBatchId === batch._id
                                           ? "border-2 border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-200"
                                           : "border border-gray-200"
-                                      }`}
+                                        }`}
                                       onClick={() => {
                                         setSelectedBatchId(batch._id);
                                       }}
@@ -1536,13 +1533,13 @@ export function TeacherCoursesContent() {
                       {(editOption === "editCourse" ||
                         (editOption === "editCourseForBatch" &&
                           selectedBatchId)) && (
-                        <Button
-                          onClick={handleProceedEdit}
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-8 py-2 font-bold transition-all duration-300 shadow-md hover:shadow-blue-500/20"
-                        >
-                          Proceed to Edit
-                        </Button>
-                      )}
+                          <Button
+                            onClick={handleProceedEdit}
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-8 py-2 font-bold transition-all duration-300 shadow-md hover:shadow-blue-500/20"
+                          >
+                            Proceed to Edit
+                          </Button>
+                        )}
                     </div>
                   </motion.div>
                 </motion.div>
@@ -1621,11 +1618,10 @@ export function TeacherCoursesContent() {
                                   duration: 0.3,
                                   delay: index * 0.1,
                                 }}
-                                className={`relative p-6 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1 ${
-                                  selectedCourseId === course.courseId
+                                className={`relative p-6 bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1 ${selectedCourseId === course.courseId
                                     ? "border-2 border-blue-500 bg-blue-50/50 ring-2 ring-blue-200"
                                     : "border border-gray-200"
-                                }`}
+                                  }`}
                                 onClick={() =>
                                   setSelectedCourseId(course.courseId)
                                 }

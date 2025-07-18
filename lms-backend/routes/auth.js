@@ -841,6 +841,10 @@ router.put(
       .optional()
       .matches(/^[A-Za-z\s]+$/)
       .withMessage("Parent/Guardian Name must contain only alphabets and spaces"),
+      check("parentGuardianNumber")
+      .optional()
+      .matches(/^\+[1-9]\d{1,14}$/)
+      .withMessage("Valid parent/guardian phone number is required"),
     check("profile.bio")
       .optional()
       .isString()
@@ -924,6 +928,7 @@ router.put(
         preferredTimeSlots:
           updateData.preferredTimeSlots || user.preferredTimeSlots,
         parentGuardianName: updateData.parentGuardianName || user.parentGuardianName,
+        parentGuardianNumber: updateData.parentGuardianNumber || user.parentGuardianNumber,
         profile: {
           ...user.profile,
           bio: updateData.profile?.bio || user.profile.bio,
@@ -1039,6 +1044,7 @@ router.get("/me", authenticate, async (req, res) => {
       phone: user.phone,
       gender: user.gender,
       parentGuardianName:user.parentGuardianName,
+      parentGuardianNumber:user.parentGuardianNumber,   
       role,
       profileImage: user.profileImage,
       subjects: user.subjects,

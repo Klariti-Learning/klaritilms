@@ -1,3 +1,4 @@
+
 const express = require("express");
 const router = express.Router();
 const { check, validationResult } = require("express-validator");
@@ -9,6 +10,7 @@ const User = require("../models/User");
 const ScheduledCall = require("../models/ScheduledCall");
 const logger = require("../utils/logger");
 const XLSX = require("xlsx");
+const moment = require("moment");
 
 // Create or Update Attendance
 router.post(
@@ -202,7 +204,7 @@ router.get(
           })
           .populate("courseId", "title")
           .populate("teacherId", "name")
-          .populate("attendances.studentId", "name parentGuardianName") // Modified to include parentGuardianName
+          .populate("attendances.studentId", "name parentGuardianName parentGuardianNumber")
           .populate("attendances.markedBy", "name")
           .populate({
             path: "callId",
@@ -246,7 +248,8 @@ router.get(
               students: (record.attendances || []).map((student) => ({
                 studentId: student.studentId?._id || student.studentId,
                 name: student.studentId?.name || "N/A",
-                parentGuardianName: student.studentId?.parentGuardianName || "N/A", // Added parentGuardianName
+                parentGuardianName: student.studentId?.parentGuardianName || "N/A",
+                parentGuardianNumber: student.studentId?.parentGuardianNumber || "N/A",
                 status: student.status,
                 markedAt: student.markedAt || record.callId?.endTime || null,
                 markedBy: record.teacherId
@@ -285,7 +288,7 @@ router.get(
           })
           .populate("courseId", "title")
           .populate("teacherId", "name")
-          .populate("attendances.studentId", "name parentGuardianName") // Modified to include parentGuardianName
+          .populate("attendances.studentId", "name parentGuardianName parentGuardianNumber")
           .populate("attendances.markedBy", "name")
           .populate({
             path: "callId",
@@ -323,7 +326,8 @@ router.get(
           students: (record.attendances || []).map((student) => ({
             studentId: student.studentId?._id || student.studentId,
             name: student.studentId?.name || "N/A",
-            parentGuardianName: student.studentId?.parentGuardianName || "N/A", // Added parentGuardianName
+            parentGuardianName: student.studentId?.parentGuardianName || "N/A",
+            parentGuardianNumber: student.studentId?.parentGuardianNumber || "N/A",
             status: student.status,
             markedAt: student.markedAt || record.callId?.endTime || null,
             markedBy: record.teacherId
@@ -370,25 +374,22 @@ router.get(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { fromDate, toDate, batchId, studentId, callId, teacherId } =
-      req.query;
+    const { fromDate, toDate, batchId, studentId, callId, teacherId } = req.query;
     const userId = req.user.userId;
 
     try {
       const user = await User.findById(userId).populate("role");
       if (
         !user ||
-        !["Student", "Teacher", "Admin", "Super Admin"].includes(
-          user.role.roleName
-        )
+        !["Student", "Teacher", "Admin", "Super Admin"].includes(user.role.roleName)
       ) {
-        logger.warn(
-          `Unauthorized attendance export attempt by user: ${userId}`
-        );
+        logger.warn(`Unauthorized attendance export attempt by user: ${userId}`);
         return res.status(403).json({ message: "Not authorized" });
       }
 
       let query = {};
+      let batchAttendance = [];
+
       if (fromDate || toDate) {
         query.date = {};
         if (fromDate) query.date.$gte = new Date(fromDate);
@@ -402,14 +403,211 @@ router.get(
       if (studentId) query["attendances.studentId"] = studentId;
       if (callId) query.callId = callId;
 
-      logger.info("Export query parameters:", {
-        teacherId,
-        fromDate,
-        toDate,
-        batchId,
-        studentId,
-        callId,
+      if (["Admin", "Super Admin"].includes(user.role.roleName) && teacherId) {
+        query.teacherId = teacherId;
+
+        const batches = await Batch.find({ teacherId, isDeleted: { $ne: true } })
+          .select("_id name")
+          .lean();
+        if (!batches.length) {
+          logger.warn(`No batches found for teacher: ${teacherId}`);
+          return res.status(404).json({ message: "No batches found for the teacher" });
+        }
+
+        const attendanceRecordsRaw = await Attendance.find({
+          ...query,
+          batchId: { $in: batches.map((batch) => batch._id) },
+        })
+          .populate("batchId", "name")
+          .populate("courseId", "title")
+          .populate("teacherId", "name")
+          .populate("attendances.studentId", "name parentGuardianName parentGuardianNumber")
+          .lean();
+
+        logger.info(`Found ${attendanceRecordsRaw.length} attendance records for teacher ${teacherId}`);
+
+        const attendanceRecords = attendanceRecordsRaw.map((record) => ({
+          attendanceId: record._id,
+          callId: record.callId?._id?.toString() || null,
+          batch: record.batchId
+            ? {
+                batchId: record.batchId._id?.toString() || null,
+                name: record.batchId.name || "No Batch",
+              }
+            : null,
+          course: record.courseId
+            ? {
+                courseId: record.courseId._id,
+                title: record.courseId.title,
+              }
+            : null,
+          teacher: record.teacherId
+            ? {
+                teacherId: record.teacherId._id,
+                name: record.teacherId.name,
+              }
+            : null,
+          date: record.date || record.classDate,
+          startTime: record.callId?.startTime || null,
+          endTime: record.callId?.endTime || null,
+          timezone: record.timezone || "Asia/Calcutta",
+          students: (record.attendances || []).map((student) => ({
+            studentId: student.studentId?._id || student.studentId,
+            name: student.studentId?.name || "N/A",
+            parentGuardianName: student.studentId?.parentGuardianName || "N/A",
+            parentGuardianNumber: student.studentId?.parentGuardianNumber || "N/A",
+            status: student.status,
+            markedAt: student.markedAt || record.callId?.endTime || null,
+            markedBy: record.teacherId
+              ? {
+                  teacherId: record.teacherId._id,
+                  name: record.teacherId.name,
+                }
+              : {
+                  teacherId: student.markedBy?._id || student.markedBy,
+                  name: student.markedBy?.name || "N/A",
+                },
+          })),
+          createdAt: record.createdAt,
+          updatedAt: record.updatedAt,
+        }));
+
+        batchAttendance = batches.map((batch) => {
+          const batchRecords = attendanceRecords
+            .filter(
+              (record) =>
+                record.batch?.batchId === batch._id.toString()
+            )
+            .map((record) => ({
+              ...record,
+              batch: {
+                batchId: batch._id.toString(),
+                name: batch.name || "No Batch",
+              },
+            }));
+
+          return {
+            batchId: batch._id.toString(),
+            batchName: batch.name,
+            attendanceRecords: batchRecords,
+          };
+        }).filter((batch) => batch.attendanceRecords.length > 0); // Remove empty batches
+      } else {
+        if (user.role.roleName === "Student") {
+          query["attendances.studentId"] = userId;
+        } else if (user.role.roleName === "Teacher") {
+          query.teacherId = userId;
+        }
+
+        const attendanceRecordsRaw = await Attendance.find(query)
+          .populate("batchId", "name")
+          .populate("courseId", "title")
+          .populate("teacherId", "name")
+          .populate("attendances.studentId", "name parentGuardianName parentGuardianNumber")
+          .lean();
+
+        logger.info(`Found ${attendanceRecordsRaw.length} attendance records`);
+
+        const attendanceRecords = attendanceRecordsRaw.map((record) => ({
+          attendanceId: record._id,
+          callId: record.callId?._id?.toString() || null,
+          batch: record.batchId
+            ? {
+                batchId: record.batchId._id?.toString() || null,
+                name: record.batchId.name || "No Batch",
+              }
+            : null,
+          course: record.courseId
+            ? {
+                courseId: record.courseId._id,
+                title: record.courseId.title,
+              }
+            : null,
+          teacher: record.teacherId
+            ? {
+                teacherId: record.teacherId._id,
+                name: record.teacherId.name,
+              }
+            : null,
+          date: record.date || record.classDate,
+          startTime: record.callId?.startTime || null,
+          endTime: record.callId?.endTime || null,
+          timezone: record.timezone || "Asia/Calcutta",
+          students: (record.attendances || []).map((student) => ({
+            studentId: student.studentId?._id || student.studentId,
+            name: student.studentId?.name || "N/A",
+            parentGuardianName: student.studentId?.parentGuardianName || "N/A",
+            parentGuardianNumber: student.studentId?.parentGuardianNumber || "N/A",
+            status: student.status,
+            markedAt: student.markedAt || record.callId?.endTime || null,
+            markedBy: record.teacherId
+              ? {
+                  teacherId: record.teacherId._id,
+                  name: record.teacherId.name,
+                }
+              : {
+                  teacherId: student.markedBy?._id || student.markedBy,
+                  name: student.markedBy?.name || "N/A",
+                },
+          })),
+          createdAt: record.createdAt,
+          updatedAt: record.updatedAt,
+        }));
+
+        const batchMap = new Map();
+        attendanceRecords.forEach((record) => {
+          const batchId = record.batch?.batchId || "no-batch";
+          const batchName = record.batch?.name || "No Batch";
+          if (!batchMap.has(batchId)) {
+            batchMap.set(batchId, {
+              batchId,
+              batchName,
+              attendanceRecords: [],
+            });
+          }
+          batchMap.get(batchId).attendanceRecords.push(record);
+        });
+        batchAttendance = Array.from(batchMap.values());
+      }
+
+      const uniqueDates = Array.from(
+        new Set(
+          batchAttendance.flatMap((batch) =>
+            batch.attendanceRecords.map((record) =>
+              moment(record.date).format("DD-MMM-YY")
+            )
+          )
+        )
+      ).sort((a, b) => moment(a, "DD-MMM-YY").diff(moment(b, "DD-MMM-YY")));
+
+      const studentAttendanceMap = new Map();
+      batchAttendance.forEach((batch) => {
+        batch.attendanceRecords.forEach((record) => {
+          const courseId = record.course?.courseId || "N/A";
+          const formattedDate = moment(record.date).format("DD-MMM-YY");
+          record.students.forEach((student) => {
+            const key = `${student.studentId}-${batch.batchId}-${courseId}`;
+            if (!studentAttendanceMap.has(key)) {
+              studentAttendanceMap.set(key, {
+                studentId: student.studentId,
+                studentName: student.name,
+                parentGuardianName: student.parentGuardianName || "N/A",
+                parentGuardianNumber: student.parentGuardianNumber || "N/A",
+                teacherName: record.teacher.name,
+                classType: record.course?.title || "N/A",
+                batchId: batch.batchId,
+                batchName: batch.batchName,
+                attendance: new Map(),
+              });
+            }
+            studentAttendanceMap
+              .get(key)
+              .attendance.set(formattedDate, student.status);
+          });
+        });
       });
+
+      const studentAttendance = Array.from(studentAttendanceMap.values());
 
       const workbook = XLSX.utils.book_new();
       const headerStyle = {
@@ -418,326 +616,49 @@ router.get(
         alignment: { horizontal: "center" },
       };
 
-      if (["Admin", "Super Admin"].includes(user.role.roleName) && teacherId) {
-        query.teacherId = teacherId;
+      const worksheetData = [
+        [
+          "S.No.",
+          "Teacher Name",
+          "Student Name",
+          "Parent's Name",
+          "Parent's Number",
+          "Class Type",
+          "Batch Name",
+          ...uniqueDates,
+        ],
+      ];
 
-        const batches = await Batch.find({ teacherId })
-          .select("_id name")
-          .lean();
-        logger.info(
-          `Found ${batches.length} batches for teacher ${teacherId}:`,
-          batches
-        );
-        if (!batches.length) {
-          logger.warn(`No batches found for teacher: ${teacherId}`);
-          return res
-            .status(404)
-            .json({ message: "No batches found for the teacher" });
-        }
-
-        const attendanceRecords = await Attendance.find({
-          ...query,
-          batchId: { $in: batches.map((batch) => batch._id) },
-        })
-          .populate("batchId", "name")
-          .populate("courseId", "title")
-          .populate("teacherId", "name")
-          .populate("attendances.studentId", "name parentGuardianName")
-          .lean();
-        logger.info(
-          `Found ${attendanceRecords.length} attendance records for teacher ${teacherId}:`,
-          attendanceRecords
-        );
-
-        for (const batch of batches) {
-          const batchRecords = attendanceRecords.filter(
-            (record) =>
-              record.batchId &&
-              record.batchId._id &&
-              record.batchId._id.toString() === batch._id.toString()
-          );
-          logger.info(
-            `Batch ${batch.name} has ${batchRecords.length} records:`,
-            batchRecords
-          );
-
-          // Collect all unique students and dates
-          const students = new Map(); // studentId -> { name, parentGuardianName }
-          const dates = new Set(); // unique dates
-
-          batchRecords.forEach((record) => {
-            if (record.date) {
-              const dateStr = new Date(record.date).toLocaleDateString(
-                "en-GB",
-                {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "2-digit",
-                }
-              );
-              dates.add(dateStr);
-            }
-            if (record.attendances && Array.isArray(record.attendances)) {
-              record.attendances.forEach((attendance) => {
-                if (
-                  attendance.studentId &&
-                  attendance.studentId._id &&
-                  attendance.studentId.name
-                ) {
-                  students.set(attendance.studentId._id.toString(), {
-                    name: attendance.studentId.name,
-                    parentGuardianName:
-                      attendance.studentId.parentGuardianName || "N/A",
-                  });
-                }
-              });
-            }
-          });
-
-          // Convert dates to sorted array
-          const sortedDates = Array.from(dates).sort();
-
-          // Initialize worksheet data with headers
-          const worksheetData = [
-            [
-              "S.No.",
-              "Teacher Name",
-              "Student Name",
-              "Parent's Name",
-              "ClassType",
-              "Batch Name",
-              ...sortedDates,
-            ],
-          ];
-
-          // Build attendance map: studentId -> { date -> status }
-          const attendanceMap = new Map();
-          students.forEach((_, studentId) => {
-            attendanceMap.set(studentId, new Map());
-          });
-
-          batchRecords.forEach((record) => {
-            if (
-              record.date &&
-              record.attendances &&
-              Array.isArray(record.attendances)
-            ) {
-              const dateStr = new Date(record.date).toLocaleDateString(
-                "en-GB",
-                {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "2-digit",
-                }
-              );
-              record.attendances.forEach((attendance) => {
-                if (attendance.studentId && attendance.studentId._id) {
-                  const studentId = attendance.studentId._id.toString();
-                  attendanceMap
-                    .get(studentId)
-                    .set(dateStr, attendance.status || "N/A");
-                }
-              });
-            }
-          });
-
-          // Populate worksheet data
-          let serialNo = 1;
-          students.forEach((student, studentId) => {
-            const row = [
-              serialNo++,
-              batchRecords[0]?.teacherId?.name || "N/A",
-              student.name,
-              student.parentGuardianName,
-              batchRecords[0]?.courseId?.title || "N/A",
-              batch.name,
-            ];
-            sortedDates.forEach((date) => {
-              const status = attendanceMap.get(studentId).get(date) || "-";
-              row.push(status);
-            });
-            worksheetData.push(row);
-          });
-
-          logger.info(`Worksheet data for batch ${batch.name}:`, worksheetData);
-
-          if (worksheetData.length > 1) {
-            // Only create sheet if there is data beyond headers
-            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-            // Apply bold style only to headers
-            worksheetData[0].forEach((header, index) => {
-              const cellRef = XLSX.utils.encode_cell({ r: 0, c: index });
-              worksheet[cellRef] = { v: header, t: "s", s: headerStyle };
-            });
-            worksheet["!cols"] = [
-              { wch: 10 }, // S.No.
-              { wch: 20 }, // Teacher Name
-              { wch: 20 }, // Student Name
-              { wch: 20 }, // Parent's Name
-              { wch: 20 }, // ClassType
-              { wch: 20 }, // Batch Name
-              ...sortedDates.map(() => ({ wch: 15 })), // Dates
-            ];
-            const safeSheetName = batch.name
-              .replace(/[:\/?*[\]]/g, "_")
-              .slice(0, 31);
-            XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName);
-          } else {
-            logger.info(
-              `Skipping sheet for batch ${batch.name} as it has no attendance data`
-            );
-          }
-        }
-
-        // If no sheets were added, include a default sheet
-        if (workbook.SheetNames.length === 0) {
-          logger.info("No data to export, creating default sheet");
-          const worksheetData = [
-            [
-              "S.No.",
-              "Teacher Name",
-              "Student Name",
-              "Parent's Name",
-              "ClassType",
-              "Batch Name",
-            ],
-          ];
-          const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-          worksheetData[0].forEach((header, index) => {
-            const cellRef = XLSX.utils.encode_cell({ r: 0, c: index });
-            worksheet[cellRef] = { v: header, t: "s", s: headerStyle };
-          });
-          worksheet["!cols"] = [
-            { wch: 10 }, // S.No.
-            { wch: 20 }, // Teacher Name
-            { wch: 20 }, // Student Name
-            { wch: 20 }, // Parent's Name
-            { wch: 20 }, // ClassType
-            { wch: 20 }, // Batch Name
-          ];
-          XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
-        }
-      } else {
-        if (user.role.roleName === "Teacher") {
-          query.teacherId = userId;
-        }
-
-        const attendanceRecords = await Attendance.find(query)
-          .populate("batchId", "name")
-          .populate("courseId", "title")
-          .populate("teacherId", "name")
-          .populate("attendances.studentId", "name parentGuardianName")
-          .lean();
-        logger.info(
-          `Found ${attendanceRecords.length} attendance records (non-admin):`,
-          attendanceRecords
-        );
-
-        // Collect all unique students and dates
-        const students = new Map();
-        const dates = new Set();
-
-        attendanceRecords.forEach((record) => {
-          if (record.date) {
-            const dateStr = new Date(record.date).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "2-digit",
-            });
-            dates.add(dateStr);
-          }
-          if (record.attendances && Array.isArray(record.attendances)) {
-            record.attendances.forEach((attendance) => {
-              if (
-                attendance.studentId &&
-                attendance.studentId._id &&
-                attendance.studentId.name
-              ) {
-                students.set(attendance.studentId._id.toString(), {
-                  name: attendance.studentId.name,
-                  parentGuardianName:
-                    attendance.studentId.parentGuardianName || "N/A",
-                });
-              }
-            });
-          }
-        });
-
-        const sortedDates = Array.from(dates).sort();
-        const worksheetData = [
-          [
-            "S.No.",
-            "Teacher Name",
-            "Student Name",
-            "Parent's Name",
-            "ClassType",
-            "Batch Name",
-            ...sortedDates,
-          ],
+      studentAttendance.forEach((student, index) => {
+        const row = [
+          index + 1,
+          student.teacherName,
+          student.studentName,
+          student.parentGuardianName,
+          student.parentGuardianNumber,
+          student.classType,
+          student.batchName,
+          ...uniqueDates.map((date) => student.attendance.get(date) || "-"),
         ];
+        worksheetData.push(row);
+      });
 
-        const attendanceMap = new Map();
-        students.forEach((_, studentId) => {
-          attendanceMap.set(studentId, new Map());
-        });
-
-        attendanceRecords.forEach((record) => {
-          if (
-            record.date &&
-            record.attendances &&
-            Array.isArray(record.attendances)
-          ) {
-            const dateStr = new Date(record.date).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "2-digit",
-            });
-            record.attendances.forEach((attendance) => {
-              if (attendance.studentId && attendance.studentId._id) {
-                const studentId = attendance.studentId._id.toString();
-                attendanceMap
-                  .get(studentId)
-                  .set(dateStr, attendance.status || "N/A");
-              }
-            });
-          }
-        });
-
-        let serialNo = 1;
-        students.forEach((student, studentId) => {
-          const row = [
-            serialNo++,
-            attendanceRecords[0]?.teacherId?.name || "N/A",
-            student.name,
-            student.parentGuardianName,
-            attendanceRecords[0]?.courseId?.title || "N/A",
-            attendanceRecords[0]?.batchId?.name || "N/A",
-          ];
-          sortedDates.forEach((date) => {
-            const status = attendanceMap.get(studentId).get(date) || "-";
-            row.push(status);
-          });
-          worksheetData.push(row);
-        });
-
-        logger.info(`Worksheet data (non-admin):`, worksheetData);
-
-        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        worksheetData[0].forEach((header, index) => {
-          const cellRef = XLSX.utils.encode_cell({ r: 0, c: index });
-          worksheet[cellRef] = { v: header, t: "s", s: headerStyle };
-        });
-        worksheet["!cols"] = [
-          { wch: 10 }, // S.No.
-          { wch: 20 }, // Teacher Name
-          { wch: 20 }, // Student Name
-          { wch: 20 }, // Parent's Name
-          { wch: 20 }, // ClassType
-          { wch: 20 }, // Batch Name
-          ...sortedDates.map(() => ({ wch: 15 })), // Dates
-        ];
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
-      }
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      worksheetData[0].forEach((header, index) => {
+        const cellRef = XLSX.utils.encode_cell({ r: 0, c: index });
+        worksheet[cellRef] = { v: header, t: "s", s: headerStyle };
+      });
+      worksheet["!cols"] = [
+        { wch: 10 }, 
+        { wch: 20 },
+        { wch: 20 }, 
+        { wch: 20 }, 
+        { wch: 20 },
+        { wch: 20 }, 
+        { wch: 20 }, 
+        ...uniqueDates.map(() => ({ wch: 15 })),
+      ];
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
 
       const excelBuffer = XLSX.write(workbook, {
         type: "buffer",
@@ -745,20 +666,21 @@ router.get(
         compression: true,
       });
 
+      let filename = `attendance_teacher_${teacherId || userId}`;
+      if (fromDate && toDate) {
+        filename += `_${moment(fromDate).format("YYYY-MM-DD")}_to_${moment(toDate).format("YYYY-MM-DD")}`;
+      }
+      filename += ".xlsx";
+
       res.setHeader(
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       );
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename=attendance_teacher_${teacherId || userId}.xlsx`
-      );
+      res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
 
       res.send(excelBuffer);
       logger.info(
-        `Attendance exported by user ${userId} for teacher ${
-          teacherId || userId
-        }`
+        `Attendance exported by user ${userId} for teacher ${teacherId || userId}`
       );
     } catch (error) {
       logger.error("Export attendance error:", error);

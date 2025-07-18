@@ -14,6 +14,12 @@ const userSchema = new mongoose.Schema(
       },
     },
      parentGuardianName: { type: String, default: "" },
+     parentGuardianNumber: {
+      type: String,
+      default: "",
+      match: [/^\+[1-9]\d{1,14}$/, "Valid phone number is required"],
+      sparse: true,
+    },
     role: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
     profileImage: { type: String, default: null },
     subjects: [

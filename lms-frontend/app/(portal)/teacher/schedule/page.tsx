@@ -842,7 +842,7 @@ export function ScheduleCallContent() {
       const apiError = error as ApiError;
       toast.error(
         apiError?.message ||
-          "Invalid time format. Please select a valid time slot."
+        "Invalid time format. Please select a valid time slot."
       );
       setState((prev) => ({ ...prev, formLoading: false }));
       return;
@@ -958,7 +958,7 @@ export function ScheduleCallContent() {
       const apiError = error as ApiError;
       toast.error(
         apiError?.message ||
-          "Invalid time format. Please select a valid time slot."
+        "Invalid time format. Please select a valid time slot."
       );
       setState((prev) => ({ ...prev, formLoading: false }));
       return;
@@ -1109,8 +1109,8 @@ export function ScheduleCallContent() {
 
   const availableClassTypeOptions = user
     ? allClassTypeOptions.filter((option) =>
-        user.subjects.includes(option.value)
-      )
+      user.subjects.includes(option.value)
+    )
     : [];
 
   const sortedCalls = [...state.scheduledCalls].sort((a, b) => {
@@ -1161,7 +1161,7 @@ export function ScheduleCallContent() {
       const today = moment.tz(call.timezone || "UTC").startOf("day");
       return (
         (call.status === "Scheduled" || call.status === "Rescheduled") &&
-        callDate.isSameOrAfter(today, "day") 
+        callDate.isSameOrAfter(today, "day")
       );
     })
     .slice(0, 2);
@@ -1170,14 +1170,14 @@ export function ScheduleCallContent() {
     state.callView === "upcoming"
       ? upcomingCalls
       : state.callView === "today"
-      ? todayCalls
-      : state.callView === "week"
-      ? weekCalls
-      : state.callView === "completed"
-      ? completedCalls
-      : state.callView === "cancelled"
-      ? cancelledCalls
-      : sortedCalls;
+        ? todayCalls
+        : state.callView === "week"
+          ? weekCalls
+          : state.callView === "completed"
+            ? completedCalls
+            : state.callView === "cancelled"
+              ? cancelledCalls
+              : sortedCalls;
 
   const filteredTimezones = useMemo(() => {
     return allTimezones.filter((tz) =>
@@ -1228,7 +1228,7 @@ export function ScheduleCallContent() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="w-full max-w-7xl mt-10"
+            className="w-full max-w-screen mt-10"
           >
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -1263,17 +1263,16 @@ export function ScheduleCallContent() {
                   transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
                 >
                   <Sparkles
-                    className={`w-8 h-8 ${
-                      state.callView === "today"
+                    className={`w-8 h-8 ${state.callView === "today"
                         ? "text-orange-500"
                         : state.callView === "week"
-                        ? "text-indigo-500"
-                        : state.callView === "completed"
-                        ? "text-green-500"
-                        : state.callView === "cancelled"
-                        ? "text-pink-500"
-                        : "text-blue-500"
-                    }`}
+                          ? "text-indigo-500"
+                          : state.callView === "completed"
+                            ? "text-green-500"
+                            : state.callView === "cancelled"
+                              ? "text-pink-500"
+                              : "text-blue-500"
+                      }`}
                   />{" "}
                 </motion.div>
               </div>
@@ -1397,15 +1396,14 @@ export function ScheduleCallContent() {
                               transition={{ duration: 0.4, delay: index * 0.1 }}
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
-                              className="w-full flex justify-center" 
+                              className="w-full flex justify-center"
                             >
                               <Button
                                 variant="ghost"
-                                className={`w-max h-12 rounded-xl font-semibold transition-all duration-300 group ${
-                                  isActive
+                                className={`w-max h-12 rounded-xl font-semibold transition-all duration-300 group ${isActive
                                     ? `${filter.activeColor} text-white shadow-lg ring-2 ring-white/30`
                                     : "text-slate-700 hover:bg-gradient-to-r hover:from-slate-50/80 hover:to-blue-50/80 hover:shadow-md"
-                                }`}
+                                  }`}
                                 onClick={() =>
                                   setState((prev) => ({
                                     ...prev,
@@ -1420,18 +1418,16 @@ export function ScheduleCallContent() {
                               >
                                 <div className="flex items-center">
                                   <div
-                                    className={`p-2 rounded-lg mr-3 transition-all duration-300 ${
-                                      isActive
+                                    className={`p-2 rounded-lg mr-3 transition-all duration-300 ${isActive
                                         ? "bg-white/20"
                                         : "bg-slate-50 group-hover:bg-blue-50"
-                                    }`}
+                                      }`}
                                   >
                                     <IconComponent
-                                      className={`w-4 h-4 ${
-                                        isActive
+                                      className={`w-4 h-4 ${isActive
                                           ? "text-white"
                                           : "text-slate-600"
-                                      }`}
+                                        }`}
                                     />
                                   </div>
                                   <span className="text-sm">
@@ -1440,11 +1436,10 @@ export function ScheduleCallContent() {
                                 </div>
                                 <Badge
                                   variant="secondary"
-                                  className={`${
-                                    isActive
+                                  className={`${isActive
                                       ? "bg-white/20 text-white border-white/30"
                                       : "bg-gradient-to-r from-slate-50 to-blue-50 text-slate-600"
-                                  } px-2 py-1 text-xs font-bold`}
+                                    } px-2 py-1 text-xs font-bold`}
                                 >
                                   {classCount}
                                 </Badge>
@@ -1465,17 +1460,16 @@ export function ScheduleCallContent() {
                     <Card className="bg-white/90 backdrop-blur-xl border-0 shadow-2xl rounded-3xl overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-purple-50/20" />
                       <CardHeader
-                        className={`relative z-10 ${
-                          state.callView === "upcoming"
+                        className={`relative z-10 ${state.callView === "upcoming"
                             ? "bg-gradient-to-r from-blue-500 to-blue-700"
                             : state.callView === "today"
-                            ? "bg-gradient-to-r from-orange-400 to-orange-500"
-                            : state.callView === "week"
-                            ? "bg-gradient-to-r from-indigo-400 to-indigo-500"
-                            : state.callView === "completed"
-                            ? "bg-gradient-to-r from-emerald-500 to-green-500"
-                            : "bg-gradient-to-r from-red-500 to-pink-500"
-                        } text-white p-4`}
+                              ? "bg-gradient-to-r from-orange-400 to-orange-500"
+                              : state.callView === "week"
+                                ? "bg-gradient-to-r from-indigo-400 to-indigo-500"
+                                : state.callView === "completed"
+                                  ? "bg-gradient-to-r from-emerald-500 to-green-500"
+                                  : "bg-gradient-to-r from-red-500 to-pink-500"
+                          } text-white p-4`}
                       >
                         <CardTitle className="text-2xl font-bold flex items-center justify-between">
                           <div className="flex items-center">
@@ -1483,14 +1477,14 @@ export function ScheduleCallContent() {
                             {state.callView === "upcoming"
                               ? "Upcoming Classes"
                               : state.callView === "today"
-                              ? "Today's Classes"
-                              : state.callView === "week"
-                              ? "Weekly Classes"
-                              : state.callView === "completed"
-                              ? "Completed Classes"
-                              : state.callView === "cancelled"
-                              ? "Cancelled Classes"
-                              : "Scheduled Classes"}
+                                ? "Today's Classes"
+                                : state.callView === "week"
+                                  ? "Weekly Classes"
+                                  : state.callView === "completed"
+                                    ? "Completed Classes"
+                                    : state.callView === "cancelled"
+                                      ? "Cancelled Classes"
+                                      : "Scheduled Classes"}
                           </div>
                         </CardTitle>
                       </CardHeader>
@@ -1508,14 +1502,14 @@ export function ScheduleCallContent() {
                               {state.callView === "upcoming"
                                 ? "No upcoming classes scheduled"
                                 : state.callView === "today"
-                                ? "No classes scheduled for today"
-                                : state.callView === "week"
-                                ? "No classes scheduled this week"
-                                : state.callView === "completed"
-                                ? "No completed classes"
-                                : state.callView === "cancelled"
-                                ? "No cancelled classes"
-                                : "No scheduled classes"}
+                                  ? "No classes scheduled for today"
+                                  : state.callView === "week"
+                                    ? "No classes scheduled this week"
+                                    : state.callView === "completed"
+                                      ? "No completed classes"
+                                      : state.callView === "cancelled"
+                                        ? "No cancelled classes"
+                                        : "No scheduled classes"}
                             </p>
                           </motion.div>
                         ) : (
@@ -1562,12 +1556,12 @@ export function ScheduleCallContent() {
                                             case "Completed":
                                               return "linear-gradient(135deg, #10b981, #22c55e)";
                                             case "Cancelled":
-                                              return "linear-gradient(135deg, #ef4444, #f472b6)"; 
+                                              return "linear-gradient(135deg, #ef4444, #f472b6)";
                                             case "Rescheduled":
-                                              return "linear-gradient(135deg, #fb923c, #f97316)"; 
+                                              return "linear-gradient(135deg, #fb923c, #f97316)";
                                             case "Scheduled":
                                             default:
-                                              return "linear-gradient(135deg, #3b82f6, #2563eb)"; 
+                                              return "linear-gradient(135deg, #3b82f6, #2563eb)";
                                           }
                                         })(),
                                         color: "#fff",
@@ -1618,16 +1612,15 @@ export function ScheduleCallContent() {
                                                 <div className="flex items-center gap-2">
                                                   <Button
                                                     size="sm"
-                                                    className={`px-3 py-1 text-xs bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 ${
-                                                      !isJoinLinkEnabled(
-                                                        call.date,
-                                                        call.startTime,
-                                                        call.endTime,
-                                                        call.timezone || "UTC"
-                                                      )
+                                                    className={`px-3 py-1 text-xs bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 ${!isJoinLinkEnabled(
+                                                      call.date,
+                                                      call.startTime,
+                                                      call.endTime,
+                                                      call.timezone || "UTC"
+                                                    )
                                                         ? "opacity-50 cursor-not-allowed"
                                                         : ""
-                                                    }`}
+                                                      }`}
                                                     onClick={(e) => {
                                                       e.stopPropagation();
                                                       handleJoinCall(call._id);
@@ -1832,7 +1825,7 @@ export function ScheduleCallContent() {
                                                   {isScheduledOrRescheduled &&
                                                     call.documents &&
                                                     call.documents.length >
-                                                      0 && (
+                                                    0 && (
                                                       <motion.div
                                                         initial={{
                                                           opacity: 0,
@@ -2341,46 +2334,46 @@ export function ScheduleCallContent() {
                                   .watch("studentEmails")
                                   .filter((email) => email.trim() !== "")
                                   .length > 0 && (
-                                  <div className="space-y-3">
-                                    <p className="text-sm font-medium text-gray-600">
-                                      Added Emails:
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                      {form
-                                        .watch("studentEmails")
-                                        .map((email, index) => ({
-                                          email,
-                                          index,
-                                        }))
-                                        .filter(
-                                          ({ email }) => email.trim() !== ""
-                                        )
-                                        .map(({ email, index }) => (
-                                          <motion.div
-                                            key={index}
-                                            initial={{ opacity: 0, scale: 0.8 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.8 }}
-                                            className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-full px-4 py-2 shadow-sm"
-                                          >
-                                            <Mail className="w-4 h-4 text-blue-600" />
-                                            <span className="text-sm font-medium text-blue-800 max-w-[200px] truncate">
-                                              {email}
-                                            </span>
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                removeEmailField(index)
-                                              }
-                                              className="ml-1 p-1 hover:bg-red-100 rounded-full transition-colors duration-200 group"
+                                    <div className="space-y-3">
+                                      <p className="text-sm font-medium text-gray-600">
+                                        Added Emails:
+                                      </p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {form
+                                          .watch("studentEmails")
+                                          .map((email, index) => ({
+                                            email,
+                                            index,
+                                          }))
+                                          .filter(
+                                            ({ email }) => email.trim() !== ""
+                                          )
+                                          .map(({ email, index }) => (
+                                            <motion.div
+                                              key={index}
+                                              initial={{ opacity: 0, scale: 0.8 }}
+                                              animate={{ opacity: 1, scale: 1 }}
+                                              exit={{ opacity: 0, scale: 0.8 }}
+                                              className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-full px-4 py-2 shadow-sm"
                                             >
-                                              <X className="w-4 h-4 text-red-500 group-hover:text-red-700" />
-                                            </button>
-                                          </motion.div>
-                                        ))}
+                                              <Mail className="w-4 h-4 text-blue-600" />
+                                              <span className="text-sm font-medium text-blue-800 max-w-[200px] truncate">
+                                                {email}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  removeEmailField(index)
+                                                }
+                                                className="ml-1 p-1 hover:bg-red-100 rounded-full transition-colors duration-200 group"
+                                              >
+                                                <X className="w-4 h-4 text-red-500 group-hover:text-red-700" />
+                                              </button>
+                                            </motion.div>
+                                          ))}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
 
                                 {form.formState.errors.studentEmails && (
                                   <p className="text-red-600 font-medium bg-red-50/80 p-3 rounded-xl">

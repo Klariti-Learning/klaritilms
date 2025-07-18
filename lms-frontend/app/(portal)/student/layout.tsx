@@ -50,6 +50,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+
 interface Course {
   courseId: string;
   title: string;
@@ -107,8 +108,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       try {
         setIsLoading(true);
         const response = await api.get("/users/notification-preferences");
-        const { enabled, methods, timings } =
-          response.data.notificationPreferences;
+        const { enabled, methods, timings } = response.data.notificationPreferences;
         setIsNotificationsEnabled(enabled);
         setShowNotificationOptions(false);
         setNotificationMethod(
@@ -148,6 +148,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
         const response = await api.get("/courses/all");
         const fetchedCourses = response.data.courses || [];
         setCourses(fetchedCourses);
+        console.log("fetchedCourses", fetchedCourses);
       } catch (error) {
         const errorMsg = error as ApiError;
         console.error(
@@ -631,9 +632,14 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
   return (
     <TooltipProvider>
       <style>{styles}</style>
-      <div className="flex min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      
+      {/* <div className="flex min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50  bg-amber-300"> */}
+      <div className="flex h-dvh bg-blue-100 ">
+        {/* <div className="flex min-h-screen bg-red-500"> */}
         <motion.aside
-          className="bg-white/80 backdrop-blur-lg border-r border-indigo-200/50 shadow-md flex flex-col fixed top-[60px] left-0 h-[calc(100vh-60px)] z-40"
+        
+          // className="bg-white/80 backdrop-blur-lg border-r border-indigo-200/50 shadow-md flex flex-col fixed top-[60px] left-0 h-[calc(100vh-60px)] z-40"
+          className="bg-white/80 backdrop-blur-lg h-fit  mt-17 border-r border-indigo-200/50 shadow-md flex flex-col fixed lg:relative top-[0px] lg:top-0 left-0  z-40 "
           initial={{ width: "80px" }}
           animate={{ width: isSidebarCollapsed ? "80px" : "320px" }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
@@ -647,7 +653,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
             }
           }}
         >
-          <div className="p-6 border-b border-indigo-200/60">
+          <div className="p-6 border-b border-indigo-200/60 ">
             {isSidebarCollapsed ? (
               <div className="flex flex-col items-center justify-center">
                 <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 bg-gray-100 flex-shrink-0 mb-2">
@@ -678,7 +684,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                 transition={{ delay: 0.2 }}
                 className="space-y-4"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between ">
                   <div className="flex items-center space-x-3">
                     <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-indigo-500/20">
                       <Image
@@ -921,7 +927,8 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
             )}
           </div>
 
-          <nav className="flex-1 overflow-y-auto p-4 space-y-2 custom-sidebar">
+          {/* this is the second navbar in sidebar this should be scrollable custom-sidebar */}
+          <nav className="h-[553px] overflow-y-auto p-4 space-y-2  custom-sidebar ">
             {sidebarItems.map((item, index) => {
               const isDisabled = disabledMenuItems.includes(item.name);
 
@@ -1211,15 +1218,14 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                 )}
               </AnimatePresence>
             </motion.div>
-          </nav>
-
+            
           <AnimatePresence>
             {!isSidebarCollapsed && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="p-4 border-t border-indigo-200/60"
+                // className="p-4 border-t border-indigo-200/60"
               >
                 <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl shadow-md">
                   🚀 Renew Now
@@ -1227,16 +1233,20 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
               </motion.div>
             )}
           </AnimatePresence>
+          </nav>
         </motion.aside>
 
-        <main
-          className={`flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            isSidebarCollapsed ? "ml-20" : "ml-80"
+        {/* this section is for rendering the pages according to the sode bar nav link bg-amber-400 */}
+        <main 
+          className={`leftcontainer-for-page-rendering custom-sidebar h-dvh overflow-auto bg-blue-100  flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ml-20 lg:ml-0 ${
+            isSidebarCollapsed ? "ml-0" : "ml-0"
           } p-8 min-h-screen`}
         >
-          <div className="max-w-7xl mx-auto">{children}</div>
+          {/* this  where the right layout begins */}
+          <div className="w-full  container-for-sidebar-page ">{children}</div>
         </main>
 
+        {/* these are for  modals */}
         <AnimatePresence>
           {isModalOpen && (
             <motion.div
@@ -1502,6 +1512,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
             </motion.div>
           )}
         </AnimatePresence>
+    
       </div>
     </TooltipProvider>
   );
