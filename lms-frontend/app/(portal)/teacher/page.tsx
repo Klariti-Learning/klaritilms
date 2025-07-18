@@ -609,7 +609,7 @@ export default function TeacherPortal() {
 
   return (
     <div className="min-h-screen bg-blue-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-screen mx-auto space-y-8">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-white shadow-xl">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative flex items-center justify-between">

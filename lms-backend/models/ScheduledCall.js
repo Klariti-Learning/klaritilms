@@ -75,4 +75,20 @@ const scheduledCallSchema = new mongoose.Schema(
 scheduledCallSchema.index({ status: 1, date: 1 });
 scheduledCallSchema.index({ studentIds: 1, isDeleted: 1 });
 
+scheduledCallSchema.pre('remove', async function (next) {
+  const attendance = await mongoose.model('Attendance').findOne({ callId: this._id });
+  if (attendance) {
+    logger.error(`Cannot delete ScheduledCall ${this._id} with associated attendance`);
+    return next(new Error('Cannot delete call with attendance records'));
+  }
+  next();
+});
+
+scheduledCallSchema.pre('save', function (next) {
+  if (this.isModified('isDeleted') && this.isDeleted) {
+    logger.warn(`ScheduledCall ${this._id} marked as deleted`);
+  }
+  next();
+});
+
 module.exports = mongoose.model("ScheduledCall", scheduledCallSchema);

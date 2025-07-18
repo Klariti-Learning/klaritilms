@@ -72,6 +72,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         isFirstLogin: data.isFirstLogin || undefined,
         teacherId: data.teacherId || undefined,
         parentGuardianName: data.parentGuardianName || undefined,
+        parentGuardianNumber: data.parentGuardianNumber || undefined,
+
       });
     } catch (error) {
       const apiError = error as ApiError;

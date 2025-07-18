@@ -189,6 +189,8 @@ export default function StudentProfile() {
       details.profile?.grade,
       details.joinDate,
       details.teacherId,
+      details.parentGuardianName,
+      details.parentGuardianNumber,
     ];
     const totalFields = fields.length;
     const filledFields = fields.filter(
@@ -254,6 +256,8 @@ export default function StudentProfile() {
         subjects: userDetails.subjects || [],
         preferredTimeSlots: userDetails.preferredTimeSlots || [],
         timezone: userDetails.timezone || "",
+        parentGuardianName: userDetails.parentGuardianName || "",
+      parentGuardianNumber: userDetails.parentGuardianNumber || "",
         role: userDetails.role || { roleName: "Student" },
         profile: userDetails.profile || {
           bio: "",
@@ -665,8 +669,18 @@ export default function StudentProfile() {
     if (data.profile?.grade && !/^[A-Za-z0-9\s-]+$/.test(data.profile.grade)) {
       errors.grade = "Invalid grade format (e.g., 9th)";
     }
-    if (data.parentGuardianName && !/^[A-Za-z\s]+$/.test(data.parentGuardianName)) {
-    errors.parentGuardianName = "Parent/Guardian Name must contain only alphabets and spaces";
+    if (
+      data.parentGuardianName &&
+      !/^[A-Za-z\s]+$/.test(data.parentGuardianName)
+    ) {
+      errors.parentGuardianName =
+        "Parent/Guardian Name must contain only alphabets and spaces";
+    }
+    if (
+    data.parentGuardianNumber &&
+    !/^\+\d{10,15}$/.test(data.parentGuardianNumber)
+  ) {
+    errors.parentGuardianNumber = "Invalid parent/guardian phone number format";
   }
     return errors;
   };
@@ -1002,10 +1016,11 @@ export default function StudentProfile() {
                   )}
                 </div>
               </motion.div>
+
               <motion.div
   initial={{ opacity: 0, y: 10 }}
   animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.3, delay: 0.1 }}
+  transition={{ duration: 0.3, delay: 0.2 }}
   className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
 >
   <Users
@@ -1033,6 +1048,41 @@ export default function StudentProfile() {
     ) : (
       <p className="mt-1 text-gray-800 text-lg font-medium">
         {userDetails.parentGuardianName || "Not set"}
+      </p>
+    )}
+  </div>
+</motion.div>
+<motion.div
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3, delay: 0.3 }}
+  className="flex items-center bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+>
+  <Phone
+    className={`w-6 h-6 ${
+      isEditing ? "text-indigo-600" : "text-indigo-500"
+    }`}
+  />
+  <div className="flex-1 ml-4">
+    <Label
+      className={`text-sm font-medium ${
+        isEditing ? "text-indigo-600" : "text-gray-600"
+      }`}
+    >
+      Parent/Guardian Phone Number
+    </Label>
+    {isEditing ? (
+      <Input
+        value={formData.parentGuardianNumber || ""}
+        onChange={(e) => handleInputChange(e, "parentGuardianNumber")}
+        placeholder="Enter parent/guardian phone number (e.g., +1234567890)"
+        className="mt-1 border-indigo-300 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 hover:scale-[1.01]"
+        pattern="\+[1-9]\d{1,14}"
+        title="Phone number must start with + followed by 1-14 digits"
+      />
+    ) : (
+      <p className="mt-1 text-gray-800 text-lg font-medium">
+        {userDetails.parentGuardianNumber || "Not set"}
       </p>
     )}
   </div>
