@@ -91,7 +91,7 @@ const RaiseQueryPage = () => {
       try {
         const token = localStorage.getItem("token");
         if (!token || !deviceId) {
-  
+
           handleUnauthorized();
           return;
         }
@@ -275,7 +275,7 @@ const RaiseQueryPage = () => {
 
   return (
     <div className="min-h-screen bg-blue-50 p-4 md:p-6 lg:p-8 ">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-screen mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -598,14 +598,13 @@ const RaiseQueryPage = () => {
                                       e.stopPropagation();
                                       handleRatingClick(ticket._id, star);
                                     }}
-                                    className={`w-6 h-6 cursor-pointer transition-all duration-200 ${
-                                      star <=
-                                      (selectedRatings[ticket._id] ||
-                                        ticket.rating ||
-                                        0)
+                                    className={`w-6 h-6 cursor-pointer transition-all duration-200 ${star <=
+                                        (selectedRatings[ticket._id] ||
+                                          ticket.rating ||
+                                          0)
                                         ? "text-yellow-400 fill-yellow-400 scale-110"
                                         : "text-gray-300 hover:text-yellow-300 hover:scale-105"
-                                    }`}
+                                      }`}
                                   />
                                 ))}
                               </div>
@@ -616,9 +615,8 @@ const RaiseQueryPage = () => {
 
                       <div className="ml-6">
                         <ChevronDown
-                          className={`w-6 h-6 text-blue-400 transform transition-transform duration-300 ${
-                            expandedTicketId === ticket._id ? "rotate-180" : ""
-                          }`}
+                          className={`w-6 h-6 text-blue-400 transform transition-transform duration-300 ${expandedTicketId === ticket._id ? "rotate-180" : ""
+                            }`}
                         />
                       </div>
                     </div>

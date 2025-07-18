@@ -118,6 +118,7 @@ export interface ApiUserResponse {
   };
   teacherId: string;
   parentGuardianName?: string; 
+  parentGuardianNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -328,6 +329,7 @@ export interface UserDetails {
   gender: string;
   role?: { roleName: string };
   parentGuardianName?: string;
+  parentGuardianNumber?: string;
   profileImage?: string;
   subjects?: string[];
   timezone?: string;
