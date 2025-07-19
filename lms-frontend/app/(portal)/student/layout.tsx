@@ -38,7 +38,7 @@ import profile from "../../../public/Assests/small.png";
 import type { ApiError, StudentLayoutProps } from "@/types";
 import toast from "react-hot-toast";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa";
-import { useUser } from "../../../lib/UserContext";
+import { useUser } from "@/lib/UserContext";
 import {
   Tooltip,
   TooltipContent,
@@ -49,7 +49,6 @@ import api from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
 
 interface Course {
   courseId: string;
@@ -82,7 +81,6 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
   const [notificationsError, setNotificationsError] = useState<string | null>(
     null
   );
-
   const [showComingSoon, setShowComingSoon] = useState<string | null>(null);
 
   const disabledMenuItems = [
@@ -108,7 +106,8 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       try {
         setIsLoading(true);
         const response = await api.get("/users/notification-preferences");
-        const { enabled, methods, timings } = response.data.notificationPreferences;
+        const { enabled, methods, timings } =
+          response.data.notificationPreferences;
         setIsNotificationsEnabled(enabled);
         setShowNotificationOptions(false);
         setNotificationMethod(
@@ -148,7 +147,6 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
         const response = await api.get("/courses/all");
         const fetchedCourses = response.data.courses || [];
         setCourses(fetchedCourses);
-        console.log("fetchedCourses", fetchedCourses);
       } catch (error) {
         const errorMsg = error as ApiError;
         console.error(
@@ -190,7 +188,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
             ? "1day"
             : notificationTiming === "1 hour"
             ? "1hour"
-            : notificationTiming === "30min"
+            : notificationTiming === "30 min"
             ? "30min"
             : "10min",
         ],
@@ -224,7 +222,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
         ? "1day"
         : notificationTiming === "1 hour"
         ? "1hour"
-        : notificationTiming === "30min"
+        : notificationTiming === "30 min"
         ? "30min"
         : "10min",
     ];
@@ -256,8 +254,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       await logout();
     } catch (error) {
       const errorMessage = error as ApiError;
-      const errors = errorMessage.response?.data?.message || "Failed to logout";
-      toast.error(errors);
+      toast.error(errorMessage.response?.data?.message || "Failed to logout");
     }
   };
 
@@ -283,23 +280,6 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
   const toggleSidebarPin = () => {
     setIsSidebarPinned(!isSidebarPinned);
   };
-
-  const styles = `
-  .custom-sidebar::-webkit-scrollbar {
-    display: none;
-  }
-  .custom-sidebar {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .custom-notifications::-webkit-scrollbar {
-    display: none;
-  }
-  .custom-notifications {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-`;
 
   const sidebarItems = [
     {
@@ -399,19 +379,11 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       const token = localStorage.getItem("token");
       const deviceId = localStorage.getItem("deviceId");
 
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
+      if (!token) throw new Error("No authentication token found");
 
       const response = await api.get("/notifications", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Device-Id": deviceId,
-        },
-        params: {
-          page: 1,
-          limit: 10,
-        },
+        headers: { Authorization: `Bearer ${token}`, "Device-Id": deviceId },
+        params: { page: 1, limit: 10 },
       });
 
       const { notifications: notificationsData } = response.data;
@@ -423,10 +395,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
         apiError.message ||
         "Failed to load notifications";
       setNotificationsError(errorMessage);
-
-      if (apiError.response?.status !== 404) {
-        toast.error(errorMessage);
-      }
+      if (apiError.response?.status !== 404) toast.error(errorMessage);
     } finally {
       setNotificationsLoading(false);
     }
@@ -480,27 +449,18 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       const token = localStorage.getItem("token");
       const deviceId = localStorage.getItem("deviceId");
 
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
+      if (!token) throw new Error("No authentication token found");
 
       await api.put(
         `/notifications/${notificationId}/read`,
         {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Device-Id": deviceId,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}`, "Device-Id": deviceId } }
       );
-
       setNotifications((prev) =>
         prev.map((notif) =>
           notif._id === notificationId ? { ...notif, read: true } : notif
         )
       );
-
       toast.success("Notification marked as read");
     } catch (error) {
       const errorMsg = error as ApiError;
@@ -517,9 +477,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       const token = localStorage.getItem("token");
       const deviceId = localStorage.getItem("deviceId");
 
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
+      if (!token) throw new Error("No authentication token found");
 
       const unreadNotifications = notifications.filter((n) => !n.read);
       await Promise.all(
@@ -536,17 +494,16 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
           )
         )
       );
-
       setNotifications((prev) =>
         prev.map((notif) => ({ ...notif, read: true }))
       );
     } catch (error) {
       const apiError = error as ApiError;
       console.error("Failed to mark notifications as read:", apiError);
-      const errorMessage =
+      toast.error(
         apiError.response?.data?.message ||
-        "Failed to mark notifications as read";
-      toast.error(errorMessage);
+          "Failed to mark notifications as read"
+      );
     }
   };
 
@@ -576,25 +533,22 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
       lowerMessage.includes("error") ||
       lowerMessage.includes("failed") ||
       lowerMessage.includes("problem")
-    ) {
+    )
       return "error";
-    }
     if (
       lowerMessage.includes("warning") ||
       lowerMessage.includes("alert") ||
       lowerMessage.includes("attention")
-    ) {
+    )
       return "warning";
-    }
     if (
       lowerMessage.includes("success") ||
       lowerMessage.includes("completed") ||
       lowerMessage.includes("approved") ||
       lowerMessage.includes("enrolled") ||
       lowerMessage.includes("assigned")
-    ) {
+    )
       return "success";
-    }
     return "info";
   };
 
@@ -624,22 +578,22 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
   };
 
   useEffect(() => {
-    if (user && user?.role?.roleName === "Student") {
-      fetchNotifications();
-    }
+    if (user && user?.role?.roleName === "Student") fetchNotifications();
   }, [user]);
+
+  const styles = `
+    .custom-sidebar::-webkit-scrollbar { display: none; }
+    .custom-sidebar { scrollbar-width: none; -ms-overflow-style: none; }
+    .custom-notifications::-webkit-scrollbar { display: none; }
+    .custom-notifications { scrollbar-width: none; -ms-overflow-style: none; }
+  `;
 
   return (
     <TooltipProvider>
       <style>{styles}</style>
-      
-      {/* <div className="flex min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50  bg-amber-300"> */}
-      <div className="flex h-dvh bg-blue-100 ">
-        {/* <div className="flex min-h-screen bg-red-500"> */}
+      <div className="flex min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
         <motion.aside
-        
-          // className="bg-white/80 backdrop-blur-lg border-r border-indigo-200/50 shadow-md flex flex-col fixed top-[60px] left-0 h-[calc(100vh-60px)] z-40"
-          className="bg-white/80 backdrop-blur-lg h-fit  mt-17 border-r border-indigo-200/50 shadow-md flex flex-col fixed lg:relative top-[0px] lg:top-0 left-0  z-40 "
+          className="bg-white/80 backdrop-blur-lg border-r border-indigo-200/50 shadow-md flex flex-col fixed top-[60px] left-0 h-[calc(100vh-60px)] z-40"
           initial={{ width: "80px" }}
           animate={{ width: isSidebarCollapsed ? "80px" : "320px" }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
@@ -653,28 +607,34 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
             }
           }}
         >
-          <div className="p-6 border-b border-indigo-200/60 ">
+          <div className="p-6 border-b border-indigo-200/60">
             {isSidebarCollapsed ? (
-              <div className="flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 bg-gray-100 flex-shrink-0 mb-2">
-                  <Image
-                    src={userDetails?.profileImage || profile}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                    width={48}
-                    height={48}
-                  />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-bold text-gray-800">
-                    {userDetails?.name?.split(" ")[0] || user?.name?.split(" ")[0] || "Student"}
-                  </p>
-                  <Badge
-                    variant="secondary"
-                    className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 px-2.5 py-0.5 rounded-full mt-1"
-                  >
-                    {userDetails?.role?.roleName || user?.role?.roleName || "Student"}
-                  </Badge>
+              <div className="flex items-center justify-center">
+                <div className="space-y-2">
+                  <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 bg-gray-100 flex-shrink-0 mb-2 mx-auto">
+                    <Image
+                      src={userDetails?.profileImage || profile}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      width={48}
+                      height={48}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-gray-800">
+                      {userDetails?.name?.split(" ")[0] ||
+                        user?.name?.split(" ")[0] ||
+                        "Student"}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 px-2.5 py-0.5 rounded-full mt-1"
+                    >
+                      {userDetails?.role?.roleName ||
+                        user?.role?.roleName ||
+                        "Student"}
+                    </Badge>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -684,7 +644,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                 transition={{ delay: 0.2 }}
                 className="space-y-4"
               >
-                <div className="flex items-center justify-between ">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-indigo-500/20">
                       <Image
@@ -776,8 +736,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                         size="sm"
                         className="bg-indigo-600 cursor-pointer hover:bg-indigo-700 text-white rounded-xl"
                       >
-                        <Settings className="w-3 h-3 mr-1" />
-                        Profile
+                        <Settings className="w-3 h-3 mr-1" /> Profile
                       </Button>
                     </Link>
                     <Button
@@ -786,8 +745,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                       onClick={handleLogout}
                       className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-xl cursor-pointer"
                     >
-                      <LogOut className="w-3 h-3 mr-1" />
-                      Logout
+                      <LogOut className="w-3 h-3 mr-1" /> Logout
                     </Button>
                   </div>
                   <div className="flex items-center gap-2">
@@ -831,16 +789,15 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                       className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-200/50 shadow-lg"
                     >
                       <h4 className="font-semibold text-gray-800 mb-4 flex items-center">
-                        <Bell className="w-4 h-4 mr-2 text-indigo-600" />
+                        <Bell className="w-4 h-4 mr-2 text-indigo-600" />{" "}
                         Notification Settings
                       </h4>
-
                       <div className="space-y-4">
                         <div>
-                          <label className="text-sm font-medium cursor-pointer text-gray-700 mb-2 block">
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">
                             Method
                           </label>
-                          <div className="grid cursor-pointer gap-2">
+                          <div className="grid gap-2">
                             {[
                               {
                                 key: "Email",
@@ -885,7 +842,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                             <label className="text-sm font-medium text-gray-700 block">
                               Timing
                             </label>
-                            <div className="grid grid-cols-2 cursor-pointer gap-2">
+                            <div className="grid grid-cols-2 gap-2">
                               {[
                                 { key: "1 day", label: "1 Day", icon: "📅" },
                                 { key: "1 hour", label: "1 Hour", icon: "⏰" },
@@ -897,7 +854,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                                   onClick={() =>
                                     setNotificationTiming(timing.key)
                                   }
-                                  className={`flex items-center cursor-pointer justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                  className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                                     notificationTiming === timing.key
                                       ? "bg-green-500 text-white shadow-md"
                                       : "bg-white border border-gray-200 hover:border-gray-300 text-gray-700"
@@ -914,7 +871,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                         {notificationMethod && notificationTiming && (
                           <Button
                             onClick={handleSaveNotificationPreferences}
-                            className="w-full cursor-pointer bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl shadow-md"
+                            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl shadow-md"
                           >
                             Save Preferences
                           </Button>
@@ -927,8 +884,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
             )}
           </div>
 
-          {/* this is the second navbar in sidebar this should be scrollable custom-sidebar */}
-          <nav className="h-[553px] overflow-y-auto p-4 space-y-2  custom-sidebar ">
+          <nav className="flex-1 overflow-y-auto p-4 space-y-2 custom-sidebar">
             {sidebarItems.map((item, index) => {
               const isDisabled = disabledMenuItems.includes(item.name);
 
@@ -1011,7 +967,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="ml-4 pl-4 border-l border-indigo-200 mt-1 space-y-1"
+                        className="ml-6 mt-2"
                       >
                         {courses.map((course) => (
                           <Link
@@ -1040,36 +996,31 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
+                  className="relative"
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div
-                        className={`group flex items-center p-3 rounded-xl transition-all duration-200 relative ${
+                        className={`group flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-gray-100 ${
                           isDisabled
                             ? "text-gray-400 cursor-not-allowed opacity-50"
                             : pathname === item.href
-                            ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg cursor-pointer hover:bg-gray-100"
-                            : "text-gray-700 hover:text-gray-900 cursor-pointer hover:bg-gray-100"
+                            ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg"
+                            : "text-gray-700 hover:text-gray-900"
                         }`}
                         onClick={(e) => {
                           if (isDisabled) {
                             e.preventDefault();
                             setShowComingSoon(item.name);
                             setTimeout(() => setShowComingSoon(null), 2000);
-                          } else if (item.href !== "#") {
-                            router.push(item.href);
-                          }
+                          } else if (item.href !== "#") router.push(item.href);
                         }}
-                        onMouseEnter={() => {
-                          if (isDisabled) {
-                            setShowComingSoon(item.name);
-                          }
-                        }}
-                        onMouseLeave={() => {
-                          if (isDisabled) {
-                            setShowComingSoon(null);
-                          }
-                        }}
+                        onMouseEnter={() =>
+                          isDisabled && setShowComingSoon(item.name)
+                        }
+                        onMouseLeave={() =>
+                          isDisabled && setShowComingSoon(null)
+                        }
                       >
                         <span
                           className={`${
@@ -1121,8 +1072,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                         className="bg-yellow-100 text-yellow-800 border-yellow-200"
                       >
                         <div className="flex items-center gap-2">
-                          <span>🚀</span>
-                          Coming Soon!
+                          <span>🚀</span> Coming Soon!
                         </div>
                       </TooltipContent>
                     )}
@@ -1135,6 +1085,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: sidebarItems.length * 0.05 }}
+              className="relative"
             >
               <div
                 className={`group flex items-center justify-between p-3 rounded-xl transition-all duration-200 hover:bg-gray-100 cursor-pointer ${
@@ -1200,11 +1151,11 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
               <AnimatePresence>
                 {isHelpMenuOpen && !isSidebarCollapsed && (
                   <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="ml-4 pl-4 border-l border-indigo-200 mt-1"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="ml-6 mt-2"
                   >
                     <Link
                       href="/student/raise-query"
@@ -1218,14 +1169,15 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                 )}
               </AnimatePresence>
             </motion.div>
-            
+          </nav>
+
           <AnimatePresence>
             {!isSidebarCollapsed && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                // className="p-4 border-t border-indigo-200/60"
+                className="p-4 border-t border-indigo-200/60"
               >
                 <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl shadow-md">
                   🚀 Renew Now
@@ -1233,20 +1185,16 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
               </motion.div>
             )}
           </AnimatePresence>
-          </nav>
         </motion.aside>
 
-        {/* this section is for rendering the pages according to the sode bar nav link bg-amber-400 */}
-        <main 
-          className={`leftcontainer-for-page-rendering custom-sidebar h-dvh overflow-auto bg-blue-100  flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ml-20 lg:ml-0 ${
-            isSidebarCollapsed ? "ml-0" : "ml-0"
-          } p-8 min-h-screen`}
+        <main
+          className={`flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            isSidebarCollapsed ? "ml-20" : "ml-20 xl:ml-80"
+          } p-8 min-h-screen mt-[60px]`}
         >
-          {/* this  where the right layout begins */}
-          <div className="w-full  container-for-sidebar-page ">{children}</div>
+          <div className="max-w-screen mx-auto">{children}</div>
         </main>
 
-        {/* these are for  modals */}
         <AnimatePresence>
           {isModalOpen && (
             <motion.div
@@ -1254,13 +1202,13 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[1000]"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
               onClick={() => setIsModalOpen(false)}
             >
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1424,7 +1372,6 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                                 );
                                 const notificationIcon =
                                   getNotificationIcon(notificationType);
-
                                 return (
                                   <div
                                     key={notification._id}
@@ -1453,7 +1400,6 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                                       >
                                         {notification.message}
                                       </p>
-
                                       <p className="text-xs text-gray-500 mt-2 flex items-center">
                                         <Clock className="w-3 h-3 mr-1" />
                                         {formatNotificationTime(
@@ -1512,7 +1458,6 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
             </motion.div>
           )}
         </AnimatePresence>
-    
       </div>
     </TooltipProvider>
   );
