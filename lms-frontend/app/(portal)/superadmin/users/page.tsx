@@ -146,7 +146,7 @@ export default function Users() {
   };
 
   const handleCardClick = (userId: string) => {
-    router.push(`/admin/users/${userId}`);
+    router.push(`/superadmin/users/${userId}`);
   };
 
   const admins = users
@@ -585,7 +585,7 @@ export default function Users() {
                                 className="w-full bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] hover:from-[#FBBF24]/90 hover:to-[#F59E0B]/90 text-white text-xs py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                                 onClick={() =>
                                   router.push(
-                                    `/admin/assign-role?userId=${u._id}`
+                                    `/superadmin/assign-role?userId=${u._id}`
                                   )
                                 }
                                 data-testid="assign-role-btn"
