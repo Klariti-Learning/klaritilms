@@ -29,7 +29,6 @@ import {
   CheckCircle,
   Info,
   XCircle,
-  NotebookTabs,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -266,7 +265,9 @@ const SuperAdminLayout = ({ children }: TeacherLayoutProps) => {
         fill="#C5221F"
       />
       <path
-        d="M9.94014 8.52404L8.37646 7.39382C5.60179 5.91001 5 9.17692 5 9.17692V11.4651L9.94014 15.0667V8.52404Z"
+        d="M9.94014 8.52404L8.37646 7.39382C5.60179 5.91001 5 9.17692 5 9.17692V11.4651L9.94014 15.0667V8
+
+.52404Z"
         fill="#C5221F"
       />
       <path
@@ -512,13 +513,6 @@ const SuperAdminLayout = ({ children }: TeacherLayoutProps) => {
       disabled: false,
     },
     {
-          name: "Attendance",
-          icon: <NotebookTabs className="w-5 h-5" />,
-          href: "/superadmin/attendance",
-          color: "text-rose-500",
-          disabled: false,
-    },
-    {
       name: "Recordings",
       icon: <Video className="w-5 h-5" />,
       href: "/superadmin/recordings",
@@ -639,9 +633,9 @@ const SuperAdminLayout = ({ children }: TeacherLayoutProps) => {
   return (
     <TooltipProvider>
       <style>{styles}</style>
-      <div className="flex min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      <div className="flex min-h-screen bg-blue-100">
         <motion.aside
-          className="bg-white/80 backdrop-blur-lg border-r border-indigo-200/50 shadow-md flex flex-col fixed top-0 left-0 h-screen z-40"
+          className="bg-white/80 backdrop-blur-lg border-r border-indigo-200/50 shadow-md flex flex-col fixed top-13 left-0 h-screen z-40"
           initial={{ width: "80px" }}
           animate={{ width: isSidebarCollapsed ? "80px" : "320px" }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
@@ -653,258 +647,263 @@ const SuperAdminLayout = ({ children }: TeacherLayoutProps) => {
             }
           }}
         >
-          <div className="p-6 border-b border-indigo-200/60 mt-17">
-            {isSidebarCollapsed ? (
-              <div className="flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 flex-shrink-0">
-                  <Image
-                    src={userDetails?.profileImage || profile}
-                    alt="Profile"
-                    className="w-full h-full object-cover rounded-full"
-                    width={48}
-                    height={48}
-                  />
+          {/* Header Section */}
+      <div className="p-6 border-b border-indigo-200/60">
+  {isSidebarCollapsed ? (
+    <div className="flex flex-col items-center justify-center">
+      <div className="space-y-2 text-center">
+        <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 bg-gray-100 flex-shrink-0 mb-2 mx-auto">
+          <Image
+            src={userDetails?.profileImage || profile}
+            alt="Profile"
+            className="w-full h-full object-cover"
+            width={48}
+            height={48}
+          />
+        </div>
+        <p className="text-sm font-bold text-gray-800 truncate max-w-[60px]">
+          {userDetails?.name?.split(" ")[0] || user?.name?.split(" ")[0] || "Super Admin"}
+        </p>
+        <Badge
+          variant="secondary"
+          className="text-[10px] bg-indigo-50 text-indigo-700 border-indigo-200 px-2 py-0.5 rounded-full"
+        >
+          {userDetails?.role?.roleName || user?.role?.roleName || "Admin"}
+        </Badge>
+      </div>
+    </div>
+  ) : (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      className="space-y-4"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-indigo-500/20">
+            <Image
+              src={userDetails?.profileImage || profile}
+              alt="Profile"
+              className="w-full h-full object-cover"
+              width={56}
+              height={56}
+            />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800 text-lg">
+              {userDetails?.name || user?.name}
+            </h3>
+            <Badge
+              variant="secondary"
+              className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200"
+            >
+              {userDetails?.role?.roleName || user?.role?.roleName}
+            </Badge>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setShowNotifications(true);
+                  markAllNotificationsAsRead();
+                }}
+                className="h-8 w-8 rounded-xl transition-all duration-200 cursor-pointer hover:bg-indigo-100 text-gray-600 relative"
+              >
+                <Bell className="w-4 h-4" />
+                {notifications.filter((n) => !n.read).length > 0 && (
+                  <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full text-sm text-white flex items-center justify-center font-bold shadow-lg border-2 border-white">
+                    {notifications.filter((n) => !n.read).length > 9
+                      ? "9+"
+                      : notifications.filter((n) => !n.read).length}
+                  </span>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Notifications
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebarPin}
+                className={`h-8 w-8 rounded-xl cursor-pointer transition-all duration-200 ${
+                  isSidebarPinned
+                    ? "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+                    : "hover:bg-gray-100 text-gray-600"
+                }`}
+              >
+                <Pin
+                  className={`w-4 h-4 transition-transform ${
+                    isSidebarPinned ? "rotate-45" : ""
+                  }`}
+                />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {isSidebarPinned ? "Unpin sidebar" : "Pin sidebar"}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          <Link href="/superadmin/profile">
+            <Button
+              size="sm"
+              className="bg-indigo-600 cursor-pointer hover:bg-indigo-700 text-white rounded-xl"
+            >
+              <Settings className="w-3 h-3 mr-1" />
+              Profile
+            </Button>
+          </Link>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleLogout}
+            className="border-red-200 text-red-600 cursor-pointer hover:bg-red-50 hover:border-red-300 rounded-xl"
+          >
+            <LogOut className="w-3 h-3 mr-1" />
+            Logout
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isNotificationsEnabled}
+                  onChange={(e) => handleToggleNotifications(e.target.checked)}
+                  className="sr-only peer"
+                  disabled={isLoading}
+                />
+                <div
+                  className={`w-11 h-6 rounded-full peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                    isLoading
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-gray-200 peer-checked:bg-green-500"
+                  }`}
+                ></div>
+              </label>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {isNotificationsEnabled
+                ? "Disable notifications"
+                : "Enable notifications"}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+      <AnimatePresence>
+        {showNotificationOptions && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="bg-gradient-t1o-br from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-200/50 shadow-lg"
+          >
+            <h4 className="font-semibold text-gray-800 mb-4 flex items-center">
+              <Bell className="w-4 h-4 mr-2 text-indigo-600" />
+              Notification Settings
+            </h4>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Method
+                </label>
+                <div className="grid cursor-pointer gap-2">
+                  {[
+                    {
+                      key: "Email",
+                      icon: EmailIcon,
+                      desc: "Email notifications",
+                    },
+                  ].map((method) => (
+                    <button
+                      key={method.key}
+                      onClick={() => selectNotificationMethod(method.key)}
+                      className={`flex items-center gap-3 p-3 cursor-pointer rounded-xl border-2 transition-all duration-200 ${
+                        notificationMethod === method.key
+                          ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span className="text-lg">{method.icon}</span>
+                      <div className="text-left">
+                        <div className="font-medium text-sm">{method.key}</div>
+                        <div className="text-xs text-gray-500">
+                          {method.desc}
+                        </div>
+                      </div>
+                      {notificationMethod === method.key && (
+                        <ChevronRight className="w-4 h-4 ml-auto text-indigo-500" />
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="space-y-4"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-indigo-500/20">
-                      <Image
-                        src={userDetails?.profileImage || profile}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                        width={56}
-                        height={56}
-                      />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-800 text-lg">
-                        {userDetails?.name || user?.name}
-                      </h3>
-                      <Badge
-                        variant="secondary"
-                        className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200"
+
+              {notificationMethod && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="space-y-2"
+                >
+                  <label className="text-sm font-medium text-gray-700 block">
+                    Timing
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: "1 day", label: "1 Day", icon: "📅" },
+                      { key: "1 hour", label: "1 Hour", icon: "⏰" },
+                      { key: "30 min", label: "30 Min", icon: "⏱️" },
+                      { key: "10 min", label: "10 Min", icon: "⚡" },
+                    ].map((timing) => (
+                      <button
+                        key={timing.key}
+                        onClick={() => setNotificationTiming(timing.key)}
+                        className={`flex items-center cursor-pointer justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          notificationTiming === timing.key
+                            ? "bg-green-500 text-white shadow-md"
+                            : "bg-white border border-gray-200 hover:border-gray-300 text-gray-700"
+                        }`}
                       >
-                        {userDetails?.role?.roleName || user?.role?.roleName}
-                      </Badge>
-                    </div>
+                        <span>{timing.icon}</span>
+                        {timing.label}
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setShowNotifications(true);
-                            markAllNotificationsAsRead();
-                          }}
-                          className="h-8 w-8 rounded-xl transition-all duration-200 cursor-pointer hover:bg-indigo-100 text-gray-600 relative"
-                        >
-                          <Bell className="w-4 h-4" />
-                          {notifications.filter((n) => !n.read).length > 0 && (
-                            <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full text-sm text-white flex items-center justify-center font-bold shadow-lg border-2 border-white">
-                              {notifications.filter((n) => !n.read).length > 9
-                                ? "9+"
-                                : notifications.filter((n) => !n.read).length}
-                            </span>
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        Notifications
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={toggleSidebarPin}
-                          className={`h-8 w-8 rounded-xl cursor-pointer transition-all duration-200 ${
-                            isSidebarPinned
-                              ? "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
-                              : "hover:bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          <Pin
-                            className={`w-4 h-4 transition-transform ${
-                              isSidebarPinned ? "rotate-45" : ""
-                            }`}
-                          />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        {isSidebarPinned ? "Unpin sidebar" : "Pin sidebar"}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
+                </motion.div>
+              )}
 
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
-                    <Link href="/superadmin/profile">
-                      <Button
-                        size="sm"
-                        className="bg-indigo-600 cursor-pointer hover:bg-indigo-700 text-white rounded-xl"
-                      >
-                        <Settings className="w-3 h-3 mr-1" />
-                        Profile
-                      </Button>
-                    </Link>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleLogout}
-                      className="border-red-200 text-red-600 cursor-pointer hover:bg-red-50 hover:border-red-300 rounded-xl"
-                    >
-                      <LogOut className="w-3 h-3 mr-1" />
-                      Logout
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={isNotificationsEnabled}
-                            onChange={(e) =>
-                              handleToggleNotifications(e.target.checked)
-                            }
-                            className="sr-only peer"
-                            disabled={isLoading}
-                          />
-                          <div
-                            className={`w-11 h-6 rounded-full peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
-                              isLoading
-                                ? "bg-gray-300 cursor-not-allowed"
-                                : "bg-gray-200 peer-checked:bg-green-500"
-                            }`}
-                          ></div>
-                        </label>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        {isNotificationsEnabled
-                          ? "Disable notifications"
-                          : "Enable notifications"}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-                <AnimatePresence>
-                  {showNotificationOptions && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                      className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-200/50 shadow-lg"
-                    >
-                      <h4 className="font-semibold text-gray-800 mb-4 flex items-center">
-                        <Bell className="w-4 h-4 mr-2 text-indigo-600" />
-                        Notification Settings
-                      </h4>
+              {notificationMethod && notificationTiming && (
+                <Button
+                  onClick={handleSaveNotificationPreferences}
+                  className="w-full cursor-pointer bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl shadow-md"
+                >
+                  Save Preferences
+                </Button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )}
+</div>
 
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700 mb-2 block">
-                            Method
-                          </label>
-                          <div className="grid cursor-pointer gap-2">
-                            {[
-                              {
-                                key: "Email",
-                                icon: EmailIcon,
-                                desc: "Email notifications",
-                              },
-                            ].map((method) => (
-                              <button
-                                key={method.key}
-                                onClick={() =>
-                                  selectNotificationMethod(method.key)
-                                }
-                                className={`flex items-center gap-3 p-3 cursor-pointer rounded-xl border-2 transition-all duration-200 ${
-                                  notificationMethod === method.key
-                                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                                }`}
-                              >
-                                <span className="text-lg">{method.icon}</span>
-                                <div className="text-left">
-                                  <div className="font-medium text-sm">
-                                    {method.key}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {method.desc}
-                                  </div>
-                                </div>
-                                {notificationMethod === method.key && (
-                                  <ChevronRight className="w-4 h-4 ml-auto text-indigo-500" />
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {notificationMethod && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            className="space-y-2"
-                          >
-                            <label className="text-sm font-medium text-gray-700 block">
-                              Timing
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                              {[
-                                { key: "1 day", label: "1 Day", icon: "📅" },
-                                { key: "1 hour", label: "1 Hour", icon: "⏰" },
-                                { key: "30 min", label: "30 Min", icon: "⏱️" },
-                                { key: "10 min", label: "10 Min", icon: "⚡" },
-                              ].map((timing) => (
-                                <button
-                                  key={timing.key}
-                                  onClick={() =>
-                                    setNotificationTiming(timing.key)
-                                  }
-                                  className={`flex items-center cursor-pointer justify-center gap-2 p-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                    notificationTiming === timing.key
-                                      ? "bg-green-500 text-white shadow-md"
-                                      : "bg-white border border-gray-200 hover:border-gray-300 text-gray-700"
-                                  }`}
-                                >
-                                  <span>{timing.icon}</span>
-                                  {timing.label}
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {notificationMethod && notificationTiming && (
-                          <Button
-                            onClick={handleSaveNotificationPreferences}
-                            className="w-full cursor-pointer bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl shadow-md"
-                          >
-                            Save Preferences
-                          </Button>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            )}
-          </div>
-
+          {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-2 custom-sidebar">
             {sidebarItems.map((item, index) => (
               <motion.div
@@ -1028,6 +1027,7 @@ const SuperAdminLayout = ({ children }: TeacherLayoutProps) => {
             ))}
           </nav>
 
+          {/* Footer */}
           <AnimatePresence>
             {!isSidebarCollapsed && (
               <motion.div
@@ -1045,13 +1045,14 @@ const SuperAdminLayout = ({ children }: TeacherLayoutProps) => {
         </motion.aside>
 
         <main
-          className={`flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            isSidebarCollapsed ? "ml-20" : "ml-80"
-          } p-8 min-h-screen`}
+          className={`flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] w-full py-8 min-h-screen ${
+            isSidebarCollapsed ? "lg:ml-20" : "lg:ml-80"
+          }`}
         >
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-screen mx-auto">{children}</div>
         </main>
 
+        {/* Enhanced Disable Confirmation Modal */}
         <AnimatePresence>
           {showDisableConfirm && (
             <motion.div

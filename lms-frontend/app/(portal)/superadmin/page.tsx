@@ -1,5 +1,4 @@
 "use client";
-
 import type React from "react";
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -488,8 +487,8 @@ export default function SuperAdminPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 p-6 mt-10">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen  p-6 mt-10">
+      <div className="max-w-screen mx-auto space-y-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -568,7 +567,7 @@ export default function SuperAdminPortal() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm py-4">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg">
@@ -621,7 +620,7 @@ export default function SuperAdminPortal() {
           </div>
 
           <div>
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm py-4 h-full">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-lg">
@@ -669,7 +668,7 @@ export default function SuperAdminPortal() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm py-4">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-lg">
@@ -746,7 +745,7 @@ export default function SuperAdminPortal() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm py-4" >
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg">

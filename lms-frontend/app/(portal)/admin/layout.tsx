@@ -29,7 +29,6 @@ import {
   CheckCircle,
   Info,
   XCircle,
-  NotebookTabs,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -266,7 +265,9 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
         fill="#C5221F"
       />
       <path
-        d="M9.94014 8.52404L8.37646 7.39382C5.60179 5.91001 5 9.17692 5 9.17692V11.4651L9.94014 15.0667V8.52404Z"
+        d="M9.94014 8.52404L8.37646 7.39382C5.60179 5.91001 5 9.17692 5 9.17692V11.4651L9.94014 15.0667V8
+
+.52404Z"
         fill="#C5221F"
       />
       <path
@@ -512,13 +513,6 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
       disabled: false,
     },
     {
-      name: "Attendance",
-      icon: <NotebookTabs className="w-5 h-5" />,
-      href: "/admin/attendance",
-      color: "text-rose-500",
-      disabled: false,
-    },
-    {
       name: "Recordings",
       icon: <Video className="w-5 h-5" />,
       href: "/admin/recordings",
@@ -592,7 +586,7 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
       name: "Parents Corner",
       icon: <BookUser className="w-5 h-5" />,
       href: "/admin/parents",
-      color: "text-amber-500",
+      color: "text-rose-500",
       disabled: true,
     },
   ];
@@ -639,9 +633,9 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
   return (
     <TooltipProvider>
       <style>{styles}</style>
-      <div className="flex min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      <div className="flex min-h-screen bg-blue-100">
         <motion.aside
-          className="bg-white/80 backdrop-blur-lg border-r border-indigo-200/50 shadow-md flex flex-col fixed top-0 left-0 h-screen z-40"
+          className="bg-white/80 backdrop-blur-lg border-r border-indigo-200/50 shadow-md flex flex-col fixed top-13 left-0 h-screen z-40"
           initial={{ width: "80px" }}
           animate={{ width: isSidebarCollapsed ? "80px" : "320px" }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
@@ -653,17 +647,35 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
             }
           }}
         >
-          <div className="p-6 border-b border-indigo-200/60 mt-17">
+          {/* Header Section */}
+          <div className="p-6 border-b border-indigo-200/60">
             {isSidebarCollapsed ? (
               <div className="flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 flex-shrink-0">
-                  <Image
-                    src={userDetails?.profileImage || profile}
-                    alt="Profile"
-                    className="w-full h-full object-cover rounded-full"
-                    width={48}
-                    height={48}
-                  />
+                <div className="space-y-2">
+                  <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-indigo-500/20 bg-gray-100 flex-shrink-0 mb-2 mx-auto">
+                    <Image
+                      src={userDetails?.profileImage || profile}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      width={48}
+                      height={48}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-gray-800">
+                      {userDetails?.name?.split(" ")[0] ||
+                        user?.name?.split(" ")[0] ||
+                        "Admin"}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 px-2.5 py-0.5 rounded-full mt-1"
+                    >
+                      {userDetails?.role?.roleName ||
+                        user?.role?.roleName ||
+                        "Admin"}
+                    </Badge>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -905,6 +917,7 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
             )}
           </div>
 
+          {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-2 custom-sidebar">
             {sidebarItems.map((item, index) => (
               <motion.div
@@ -1028,6 +1041,7 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
             ))}
           </nav>
 
+          {/* Footer */}
           <AnimatePresence>
             {!isSidebarCollapsed && (
               <motion.div
@@ -1045,13 +1059,14 @@ const AdminLayout = ({ children }: TeacherLayoutProps) => {
         </motion.aside>
 
         <main
-          className={`flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            isSidebarCollapsed ? "ml-20" : "ml-80"
-          } p-8 min-h-screen`}
+          className={`flex-1 transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] w-full py-8 min-h-screen ${
+            isSidebarCollapsed ? "lg:ml-20" : "lg:ml-80"
+          }`}
         >
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-screen mx-auto">{children}</div>
         </main>
 
+        {/* Enhanced Disable Confirmation Modal */}
         <AnimatePresence>
           {showDisableConfirm && (
             <motion.div
