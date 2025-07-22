@@ -4,6 +4,7 @@ const { check, validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const authenticate = require("../middleware/auth");
 const Course = require("../models/Course");
+const Attendance = require('../models/Attendance');
 const Batch = require("../models/Batch");
 const User = require("../models/User");
 const Role = require("../models/Role");
@@ -2967,12 +2968,105 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
 });
 
 // Get Batches assigned to a Student
+// router.get("/batches/student", authenticate, async (req, res) => {
+//   try {
+//     const studentId = req.user.userId;
+//     const student = await User.findById(studentId).populate("role");
+
+//     if (!student || student.role.roleName !== "Student") {
+//       return res.status(403).json({ message: "Not authorized" });
+//     }
+
+//     const batches = await Batch.find({ "studentIds.studentId": studentId })
+//       .populate({
+//         path: "courseId",
+//         populate: [
+//           { path: "createdBy", select: "name" },
+//           { path: "assignedTeachers", select: "name _id" },
+//           { path: "lastUpdatedBy", select: "name" },
+//         ],
+//       })
+//       .populate({
+//         path: "studentIds.studentId",
+//         select: "name email phone profileImage subjects profile.grade",
+//       });
+
+//     const formattedBatches = batches.map((batch) => {
+//       const studentData = batch.studentIds.find(
+//         (s) => String(s.studentId._id) === String(studentId) && s.isInThisBatch
+//       );
+
+//       return {
+//         _id: batch._id,
+//         name: batch.name,
+//         courseId: batch.courseId?._id,
+//         courseTitle: batch.courseId?.title,
+//         courseDetails: batch.courseId
+//           ? {
+//               courseId: batch.courseId._id,
+//               title: batch.courseId.title,
+//               chapters: batch.courseId.chapters.map((chapter) => ({
+//                 chapterId: chapter._id,
+//                 title: chapter.title,
+//                 order: chapter.order,
+//                 lessons: chapter.lessons.map((lesson) => ({
+//                   lessonId: lesson._id,
+//                   title: lesson.title,
+//                   format: lesson.format,
+//                   learningGoals: lesson.learningGoals,
+//                   resources: lesson.resources,
+//                   order: lesson.order,
+//                 })),
+//               })),
+//               targetAudience: batch.courseId.targetAudience,
+//               duration: batch.courseId.duration,
+//               createdBy: {
+//                 _id: batch.courseId.createdBy?._id,
+//                 name: batch.courseId.createdBy?.name,
+//               },
+//               assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
+//                 _id: teacher._id,
+//                 name: teacher.name,
+//               })),
+//               lastUpdatedBy: {
+//                 _id: batch.courseId.lastUpdatedBy?._id,
+//                 name: batch.courseId.lastUpdatedBy?.name,
+//               },
+//               lastUpdatedAt: batch.courseId.lastUpdatedAt,
+//               driveFolderId: batch.courseId.driveFolderId,
+//               createdAt: batch.courseId.createdAt,
+//             }
+//           : null,
+//         studentDetails: studentData
+//           ? {
+//               _id: studentData.studentId._id,
+//               name: studentData.studentId.name,
+//               email: studentData.studentId.email,
+//               phone: studentData.studentId.phone,
+//               profileImage: studentData.studentId.profileImage,
+//               subjects: studentData.studentId.subjects,
+//               grade: studentData.studentId.profile?.grade,
+//             }
+//           : null,
+//         createdAt: batch.createdAt,
+//       };
+//     });
+
+//     const studentBatches = formattedBatches.filter((b) => b.studentDetails);
+
+//     res.json({ batches: studentBatches });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// });
+
 router.get("/batches/student", authenticate, async (req, res) => {
   try {
     const studentId = req.user.userId;
     const student = await User.findById(studentId).populate("role");
 
     if (!student || student.role.roleName !== "Student") {
+      logger.warn(`Unauthorized batch fetch attempt by user: ${studentId}`);
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -2990,75 +3084,154 @@ router.get("/batches/student", authenticate, async (req, res) => {
         select: "name email phone profileImage subjects profile.grade",
       });
 
-    const formattedBatches = batches.map((batch) => {
-      const studentData = batch.studentIds.find(
-        (s) => String(s.studentId._id) === String(studentId) && s.isInThisBatch
-      );
+    const formattedBatches = await Promise.all(
+      batches.map(async (batch) => {
+        const studentData = batch.studentIds.find(
+          (s) => String(s.studentId._id) === String(studentId) && s.isInThisBatch
+        );
 
-      return {
-        _id: batch._id,
-        name: batch.name,
-        courseId: batch.courseId?._id,
-        courseTitle: batch.courseId?.title,
-        courseDetails: batch.courseId
-          ? {
-              courseId: batch.courseId._id,
-              title: batch.courseId.title,
-              chapters: batch.courseId.chapters.map((chapter) => ({
-                chapterId: chapter._id,
-                title: chapter.title,
-                order: chapter.order,
-                lessons: chapter.lessons.map((lesson) => ({
-                  lessonId: lesson._id,
-                  title: lesson.title,
-                  format: lesson.format,
-                  learningGoals: lesson.learningGoals,
-                  resources: lesson.resources,
-                  order: lesson.order,
+        if (!studentData) return null;
+
+        // Total Students
+        const totalStudents = batch.studentIds.filter(
+          (s) => s.isInThisBatch
+        ).length;
+
+        // Total Classes
+        const totalClasses = await ScheduledCall.countDocuments({
+          batchId: batch._id,
+          isDeleted: false,
+        });
+
+        // Total Lessons
+        const totalLessons = batch.courseId
+          ? batch.courseId.chapters.reduce(
+              (sum, chapter) => sum + chapter.lessons.length,
+              0
+            )
+          : 0;
+
+        // Total Hours
+        const scheduledCalls = await ScheduledCall.find({
+          batchId: batch._id,
+          isDeleted: false,
+        });
+        const totalHours = scheduledCalls.reduce(
+          (sum, call) => sum + (call.callDuration || 0) / 60, // Convert minutes to hours
+          0
+        );
+
+        // Average Attendance Percentage (Batch)
+        const attendanceRecords = await Attendance.find({
+          batchId: batch._id,
+        });
+        const batchAttendancePercentage =
+          attendanceRecords.length > 0
+            ? (attendanceRecords.reduce((sum, record) => {
+                const presentCount = record.attendances.filter(
+                  (a) => a.status === "Present"
+                ).length;
+                const totalCount = record.attendances.length;
+                return sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0);
+              }, 0) / attendanceRecords.length)
+            : 0;
+
+        // Attendance Percentage for All Students
+        const allStudentsAttendance = await Promise.all(
+          batch.studentIds
+            .filter((s) => s.isInThisBatch)
+            .map(async (s) => {
+              const studentAttendanceRecords = await Attendance.find({
+                batchId: batch._id,
+                "attendances.studentId": s.studentId._id,
+              });
+              const percentage =
+                studentAttendanceRecords.length > 0
+                  ? (studentAttendanceRecords.reduce((sum, record) => {
+                      const studentAttendance = record.attendances.find(
+                        (a) => String(a.studentId) === String(s.studentId._id)
+                      );
+                      return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
+                    }, 0) / studentAttendanceRecords.length)
+                  : 0;
+              return {
+                studentId: s.studentId._id,
+                name: s.studentId.name,
+                attendancePercentage: parseFloat(percentage.toFixed(2)),
+              };
+            })
+        );
+
+        return {
+          _id: batch._id,
+          name: batch.name,
+          courseId: batch.courseId?._id,
+          courseTitle: batch.courseId?.title,
+          courseDetails: batch.courseId
+            ? {
+                courseId: batch.courseId._id,
+                title: batch.courseId.title,
+                chapters: batch.courseId.chapters.map((chapter) => ({
+                  chapterId: chapter._id,
+                  title: chapter.title,
+                  order: chapter.order,
+                  lessons: chapter.lessons.map((lesson) => ({
+                    lessonId: lesson._id,
+                    title: lesson.title,
+                    format: lesson.format,
+                    learningGoals: lesson.learningGoals,
+                    resources: lesson.resources,
+                    order: lesson.order,
+                  })),
                 })),
-              })),
-              targetAudience: batch.courseId.targetAudience,
-              duration: batch.courseId.duration,
-              createdBy: {
-                _id: batch.courseId.createdBy?._id,
-                name: batch.courseId.createdBy?.name,
-              },
-              assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
-                _id: teacher._id,
-                name: teacher.name,
-              })),
-              lastUpdatedBy: {
-                _id: batch.courseId.lastUpdatedBy?._id,
-                name: batch.courseId.lastUpdatedBy?.name,
-              },
-              lastUpdatedAt: batch.courseId.lastUpdatedAt,
-              driveFolderId: batch.courseId.driveFolderId,
-              createdAt: batch.courseId.createdAt,
-            }
-          : null,
-        studentDetails: studentData
-          ? {
-              _id: studentData.studentId._id,
-              name: studentData.studentId.name,
-              email: studentData.studentId.email,
-              phone: studentData.studentId.phone,
-              profileImage: studentData.studentId.profileImage,
-              subjects: studentData.studentId.subjects,
-              grade: studentData.studentId.profile?.grade,
-            }
-          : null,
-        createdAt: batch.createdAt,
-      };
-    });
+                targetAudience: batch.courseId.targetAudience,
+                duration: batch.courseId.duration,
+                createdBy: {
+                  _id: batch.courseId.createdBy?._id,
+                  name: batch.courseId.createdBy?.name,
+                },
+                assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
+                  _id: teacher._id,
+                  name: teacher.name,
+                })),
+                lastUpdatedBy: {
+                  _id: batch.courseId.lastUpdatedBy?._id,
+                  name: batch.courseId.lastUpdatedBy?.name,
+                },
+                lastUpdatedAt: batch.courseId.lastUpdatedAt,
+                driveFolderId: batch.courseId.driveFolderId,
+                createdAt: batch.courseId.createdAt,
+              }
+            : null,
+          studentDetails: {
+            _id: studentData.studentId._id,
+            name: studentData.studentId.name,
+            email: studentData.studentId.email,
+            phone: studentData.studentId.phone,
+            profileImage: studentData.studentId.profileImage,
+            subjects: studentData.studentId.subjects,
+            grade: studentData.studentId.profile?.grade,
+          },
+          totalStudents,
+          totalClasses,
+          totalLessons,
+          totalHours: parseFloat(totalHours.toFixed(2)),
+          batchAttendancePercentage: parseFloat(batchAttendancePercentage.toFixed(2)),
+          allStudentsAttendance,
+          createdAt: batch.createdAt,
+        };
+      })
+    );
 
-    const studentBatches = formattedBatches.filter((b) => b.studentDetails);
+    const studentBatches = formattedBatches.filter((b) => b !== null);
 
+    logger.info(`Batches fetched for student ${studentId}: ${studentBatches.length} batches`);
     res.json({ batches: studentBatches });
   } catch (error) {
+    logger.error("Fetch student batches error:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
-
 
 // Get all batches for Admin and Super Admin
 router.get("/batches/admin", authenticate, async (req, res) => {
@@ -3870,6 +4043,5 @@ router.get("/batch/by-course/:courseId", authenticate, async (req, res) => {
     res.status(500).json({ error: "Server error", message: err.message });
   }
 });
-
 
 module.exports = router;
