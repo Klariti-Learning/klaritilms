@@ -173,12 +173,13 @@ callView:"all" | "upcoming" | "today" | "week" | "completed" | "cancelled";
 }
 
 export interface ScheduledCall {
+  courseId: string;
   _id: string;
   teacherId: Teacher;
   teacher: Teacher; 
   studentIds: Student[];
   classType: string;
-classSubType?: string;
+  classSubType?: string;
   type: string;
   date: string;
   startTime: string;
