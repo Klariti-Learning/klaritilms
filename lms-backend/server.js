@@ -58,6 +58,7 @@ const initializeRoutesAndJobs = () => {
   const driveRoutes = require("./routes/drive");
   const demoClassRoutes = require("./routes/democlass");
   const attendanceRoutes = require("./routes/attendance"); 
+  const announcementRoutes = require("./routes/announcement"); 
   const { startPreCallNotifications } = require("./jobs/preCallNotifications");
   const { startScheduler } = require("./jobs/scheduler");
 
@@ -72,6 +73,7 @@ const initializeRoutesAndJobs = () => {
   app.use("/api/drive", driveRoutes);
   app.use("/api/demo-class", demoClassRoutes);
   app.use("/api/attendance", attendanceRoutes); 
+  app.use("/api/announcements", announcementRoutes); 
 
   startPreCallNotifications();
   startScheduler();
