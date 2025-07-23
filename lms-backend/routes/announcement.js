@@ -217,7 +217,7 @@ router.post(
 router.get("/", authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { batchId } = req.query;
+    const { batchId, page = 1, limit = 10 } = req.query;
     const user = await User.findById(userId).populate("role");
 
     let announcements;
@@ -229,38 +229,66 @@ router.get("/", authenticate, async (req, res) => {
 
     if (user.role.roleName === "Admin" || user.role.roleName === "Super Admin") {
       const query = batchId ? { batchId, teacherId: { $exists: true } } : {};
-      announcements = await Announcement.find(query).populate("teacherId", "name _id").populate("batchId", "name _id");
+      announcements = await Announcement.find(query)
+        .populate("teacherId", "name _id")
+        .populate("batchId", "name _id")
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+      const total = await Announcement.countDocuments(query);
+      logger.info(`Announcements fetched for ${user.role.roleName} ${userId}: ${announcements.length} announcements`);
+      return res.json({ announcements, total, page: Number(page), limit: Number(limit) });
     } else if (user.role.roleName === "Student") {
-      const student = await User.findById(userId).populate("batches");
-      if (!student.batches || student.batches.length === 0) {
-        logger.info(`No batches found for student ${userId}`);
-        return res.status(200).json({ announcements: [] });
+      const studentBatches = await Batch.find({
+        "studentIds.studentId": userId,
+        "studentIds.isInThisBatch": true,
+        isDeleted: false,
+      });
+
+      if (!studentBatches || studentBatches.length === 0) {
+        logger.info(`No active batches found for student ${userId}`);
+        return res.status(200).json({ announcements: [], total: 0, page: Number(page), limit: Number(limit) });
       }
 
-      const studentBatches = student.batches.filter((batch) =>
-        batch.studentIds.some((s) => s.studentId.equals(userId) && s.isInThisBatch)
-      );
-      const batchIds = studentBatches
-        .map((batch) => batch._id)
-        .filter((id) => mongoose.isValidObjectId(id));
+      const batchIds = studentBatches.map((batch) => batch._id);
+      const teacherIds = studentBatches.map((batch) => batch.teacherId).filter((id) => id); // Filter out null/undefined
 
       if (batchId && !batchIds.some((id) => id.equals(batchId))) {
         logger.warn(`Student ${userId} not enrolled in batch ${batchId}`);
         return res.status(403).json({ message: "Not enrolled in this batch" });
       }
 
-      const query = batchId ? { batchId } : { batchId: { $in: batchIds } };
-      announcements = await Announcement.find(query).populate("teacherId", "name _id").populate("batchId", "name _id");
+      const query = batchId
+        ? { batchId, teacherId: { $in: teacherIds } }
+        : {
+            $or: [
+              { batchId: { $in: batchIds } }, 
+              { teacherId: { $in: teacherIds }, batchId: null }, 
+            ],
+          };
+
+      announcements = await Announcement.find(query)
+        .populate("teacherId", "name _id")
+        .populate("batchId", "name _id")
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+
+      const total = await Announcement.countDocuments(query);
+      logger.info(`Announcements fetched for student ${userId}: ${announcements.length} announcements`);
+      return res.json({ announcements, total, page: Number(page), limit: Number(limit) });
     } else if (user.role.roleName === "Teacher") {
       const query = batchId ? { teacherId: userId, batchId } : { teacherId: userId };
-      announcements = await Announcement.find(query).populate("teacherId", "name _id").populate("batchId", "name _id");
+      announcements = await Announcement.find(query)
+        .populate("teacherId", "name _id")
+        .populate("batchId", "name _id")
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+      const total = await Announcement.countDocuments(query);
+      logger.info(`Announcements fetched for teacher ${userId}: ${announcements.length} announcements`);
+      return res.json({ announcements, total, page: Number(page), limit: Number(limit) });
     } else {
       logger.warn(`Unauthorized announcement fetch attempt by user: ${userId}`);
       return res.status(403).json({ message: "Not authorized to fetch announcements" });
     }
-
-    logger.info(`Announcements fetched for user ${userId}: ${announcements.length} announcements`);
-    res.json({ announcements });
   } catch (error) {
     logger.error(`Fetch announcements error: ${error.message}`);
     res.status(500).json({ message: "Server error", error: error.message });
