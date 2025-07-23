@@ -669,11 +669,11 @@ export default function StudentDashboard() {
             </Card>
 
             <Card
-              className="bg-[#F6F9FF] backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative px-2"
+              className="bg-[#F6F9FF] backdrop-blur-sm border-none shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative px-2"
               onClick={() => router.push("/student/schedule")}
             >
               <div className="absolute inset-0 bg-[#fcfcfc] rounded-2xl"></div>
-              <CardContent className="relative p-2 flex flex-col justify-between h-full z-10">
+              <CardContent className="relative p-2 flex flex-col justify-between h-full z-10 ">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-gray-600 font-semibold">
@@ -779,7 +779,7 @@ export default function StudentDashboard() {
               <ClassTeachers />
             </div>
 
-         <Card className="bg-white/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-all overflow-hidden lg:col-span-3 h-fit lg:h-full">
+         <Card className="bg-white/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-all overflow-hidden lg:col-span-3 h-fit lg:h-full border-none">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">

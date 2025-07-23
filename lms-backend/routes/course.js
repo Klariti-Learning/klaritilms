@@ -2545,7 +2545,7 @@ router.post(
       if (studentIds.length > 0) {
         const otherBatches = await Batch.find({
           courseId,
-          _id: { $ne: batchId }, 
+          _id: { $ne: batchId },
           isDeleted: false,
         }).lean();
 
@@ -2565,12 +2565,26 @@ router.post(
         });
 
         if (alreadyAssignedStudents.length > 0) {
+          const assignedStudentIds = [
+            ...new Set(alreadyAssignedStudents.map((s) => s.studentId)),
+          ];
+          const assignedUsers = await User.find(
+            { _id: { $in: assignedStudentIds } },
+            { name: 1 }
+          ).lean();
+
+          const idToName = {};
+          assignedUsers.forEach((u) => {
+            idToName[u._id.toString()] = u.name;
+          });
+
           const errorMessage = alreadyAssignedStudents
             .map(
               (entry) =>
-                `Student ${entry.studentId} is already assigned to this course in batch: ${entry.batchName}`
+                `Student ${idToName[entry.studentId] || entry.studentId} is already assigned to this course in batch: ${entry.batchName}`
             )
             .join("; ");
+
           logger.warn(
             `Students already assigned to course ${courseId} in other batches: ${JSON.stringify(
               alreadyAssignedStudents
@@ -2583,6 +2597,7 @@ router.post(
           path: "role",
           select: "roleName",
         });
+
         logger.debug(
           `Raw user data for studentIds ${studentIds}: ${JSON.stringify(
             users.map((u) => ({ _id: u._id, role: u.role ? u.role.roleName : "null" }))
@@ -2621,6 +2636,7 @@ router.post(
               `The following IDs are not students: ${nonStudentIds.join(", ")}`
             );
           }
+
           logger.warn(`Invalid student IDs provided: ${invalidStudentIds}`);
           return res.status(400).json({
             message: errorMessages.join("; "),
@@ -2688,12 +2704,13 @@ router.post(
   }
 );
 
-// Get Teacher assigned batch
+//teacher batches details
 router.get("/batches/teacher", authenticate, async (req, res) => {
   try {
     const teacherId = req.user.userId;
     const teacher = await User.findById(teacherId).populate("role");
     if (!teacher || teacher.role.roleName !== "Teacher") {
+      logger.warn(`Unauthorized batch fetch attempt by user: ${teacherId}`);
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -2711,74 +2728,203 @@ router.get("/batches/teacher", authenticate, async (req, res) => {
         select: "name email phone profileImage subjects",
       });
 
-    const formattedBatches = batches.map((batch) => ({
-      _id: batch._id,
-      name: batch.name,
-      courseId: batch.courseId?._id,
-      courseTitle: batch.courseId?.title,
-      courseDetails: batch.courseId
-        ? {
-            courseId: batch.courseId._id,
-            title: batch.courseId.title,
-            chapters: batch.courseId.chapters.map((chapter) => ({
-              chapterId: chapter._id,
-              title: chapter.title,
-              order: chapter.order,
-              lessons: chapter.lessons.map((lesson) => ({
-                lessonId: lesson._id,
-                title: lesson.title,
-                format: lesson.format,
-                learningGoals: lesson.learningGoals,
-                resources: lesson.resources,
-                order: lesson.order,
-              })),
-            })),
-            targetAudience: batch.courseId.targetAudience,
-            duration: batch.courseId.duration,
-            createdBy: {
-              _id: batch.courseId.createdBy?._id,
-              name: batch.courseId.createdBy?.name,
-            },
-            assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
-              _id: teacher._id,
-              name: teacher.name,
-            })),
-            lastUpdatedBy: {
-              _id: batch.courseId.lastUpdatedBy?._id,
-              name: batch.courseId.lastUpdatedBy?.name,
-            },
-            lastUpdatedAt: batch.courseId.lastUpdatedAt,
-            driveFolderId: batch.courseId.driveFolderId,
-            createdAt: batch.courseId.createdAt,
-          }
-        : null,
-      studentIds: batch.studentIds
-        .filter((s) => s.isInThisBatch === true)
-        .map((s) => ({
-          _id: s.studentId._id,
-          name: s.studentId.name,
-          email: s.studentId.email,
-          phone: s.studentId.phone,
-          profileImage: s.studentId.profileImage,
-          subjects: s.studentId.subjects,
-        })),
-      createdAt: batch.createdAt,
-    }));
+    const formattedBatches = await Promise.all(
+      batches.map(async (batch) => {
+        const totalStudents = batch.studentIds.filter(
+          (s) => s.isInThisBatch
+        ).length;
 
+        const scheduledCalls = await ScheduledCall.find({
+          batchId: batch._id,
+          isDeleted: false,
+        });
+        const totalClasses = scheduledCalls.length;
+        const completedClasses = scheduledCalls.filter(
+          (call) => call.status === "Completed"
+        ).length;
+
+        const totalLessons = batch.courseId
+          ? batch.courseId.chapters.reduce(
+              (sum, chapter) => sum + chapter.lessons.length,
+              0
+            )
+          : 0;
+
+        const validLessonIds = new Set(
+          batch.courseId
+            ? batch.courseId.chapters
+                .flatMap((chapter) => chapter.lessons)
+                .map((lesson) => lesson._id.toString())
+            : []
+        );
+        const completedLessonIds = new Set();
+        scheduledCalls
+          .filter((call) => call.status === "Completed")
+          .forEach((call) => {
+            if (call.lessonId) {
+              const lessonIdStr = call.lessonId.toString();
+              if (validLessonIds.has(lessonIdStr)) {
+                completedLessonIds.add(lessonIdStr);
+              } else {
+                logger.warn(
+                  `Invalid lessonId ${lessonIdStr} in ScheduledCall ${call._id} for batch ${batch._id}. Expected one of: ${[...validLessonIds].join(", ")}`
+                );
+              }
+            } else {
+              logger.warn(
+                `Completed ScheduledCall ${call._id} in batch ${batch._id} has no lessonId`
+              );
+            }
+          });
+        const completedLessons = completedLessonIds.size;
+
+        const totalHours = scheduledCalls.reduce(
+          (sum, call) => sum + (call.callDuration || 0) / 60,
+          0
+        );
+        const completedHours = scheduledCalls
+          .filter((call) => call.status === "Completed")
+          .reduce((sum, call) => sum + (call.callDuration || 0) / 60, 0);
+
+        const attendanceRecords = await Attendance.find({
+          batchId: batch._id,
+        });
+        const batchAttendancePercentage =
+          attendanceRecords.length > 0
+            ? (attendanceRecords.reduce((sum, record) => {
+                const presentCount = record.attendances.filter(
+                  (a) => a.status === "Present"
+                ).length;
+                const totalCount = record.attendances.length;
+                return sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0);
+              }, 0) / attendanceRecords.length)
+            : 0;
+
+        const allStudentsAttendance = await Promise.all(
+          batch.studentIds
+            .filter((s) => s.isInThisBatch)
+            .map(async (s) => {
+              const studentAttendanceRecords = await Attendance.find({
+                batchId: batch._id,
+                "attendances.studentId": s.studentId._id,
+              }).sort({ date: -1 });
+              let percentage = 0;
+              let latestStatus = "Absent"; 
+
+              if (studentAttendanceRecords.length > 0) {
+                percentage = (studentAttendanceRecords.reduce((sum, record) => {
+                  const studentAttendance = record.attendances.find(
+                    (a) => String(a.studentId) === String(s.studentId._id)
+                  );
+                  return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
+                }, 0) / studentAttendanceRecords.length);
+
+                const latestRecord = studentAttendanceRecords[0];
+                const latestAttendance = latestRecord.attendances.find(
+                  (a) => String(a.studentId) === String(s.studentId._id)
+                );
+                latestStatus = latestAttendance ? latestAttendance.status : "Absent";
+              }
+
+              return {
+                studentId: s.studentId._id,
+                name: s.studentId.name,
+                attendancePercentage: parseFloat(percentage.toFixed(2)),
+                latestAttendanceStatus: latestStatus,
+              };
+            })
+        );
+
+        return {
+          _id: batch._id,
+          name: batch.name,
+          courseId: batch.courseId?._id,
+          courseTitle: batch.courseId?.title,
+          courseDetails: batch.courseId
+            ? {
+                courseId: batch.courseId._id,
+                title: batch.courseId.title,
+                chapters: batch.courseId.chapters.map((chapter) => ({
+                  chapterId: chapter._id,
+                  title: chapter.title,
+                  order: chapter.order,
+                  lessons: chapter.lessons.map((lesson) => ({
+                    lessonId: lesson._id,
+                    title: lesson.title,
+                    format: lesson.format,
+                    learningGoals: lesson.learningGoals,
+                    resources: lesson.resources,
+                    order: lesson.order,
+                  })),
+                })),
+                targetAudience: batch.courseId.targetAudience,
+                duration: batch.courseId.duration,
+                createdBy: {
+                  _id: batch.courseId.createdBy?._id,
+                  name: batch.courseId.createdBy?.name,
+                },
+                assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
+                  _id: teacher._id,
+                  name: teacher.name,
+                })),
+                lastUpdatedBy: {
+                  _id: batch.courseId.lastUpdatedBy?._id,
+                  name: batch.courseId.lastUpdatedBy?.name,
+                },
+                lastUpdatedAt: batch.courseId.lastUpdatedAt,
+                driveFolderId: batch.courseId.driveFolderId,
+                createdAt: batch.courseId.createdAt,
+              }
+            : null,
+          studentIds: batch.studentIds
+            .filter((s) => s.isInThisBatch === true)
+            .map((s) => s.studentId._id),
+          students: batch.studentIds
+            .filter((s) => s.isInThisBatch === true)
+            .map((s) => ({
+              _id: s.studentId._id,
+              name: s.studentId.name,
+              email: s.studentId.email,
+              phone: s.studentId.phone,
+              profileImage: s.studentId.profileImage,
+              subjects: s.studentId.subjects,
+            })),
+          totalStudents,
+          totalClasses,
+          completedClasses,
+          totalLessons,
+          completedLessons,
+          totalHours: parseFloat(totalHours.toFixed(2)),
+          completedHours: parseFloat(completedHours.toFixed(2)),
+          batchAttendancePercentage: parseFloat(batchAttendancePercentage.toFixed(2)),
+          allStudentsAttendance,
+          createdAt: batch.createdAt,
+        };
+      })
+    );
+
+    logger.info(`Batches fetched for teacher ${teacherId}: ${formattedBatches.length} batches`);
     res.json({ batches: formattedBatches });
   } catch (error) {
+    logger.error(`Fetch teacher batches error: ${error.message}`);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
-// Get Teacher assigned batch by ID
+//teacher batches details by id
 router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
   try {
     const teacherId = req.user.userId;
     const batchId = req.params.batchId;
 
+    if (!mongoose.isValidObjectId(batchId)) {
+      logger.warn(`Invalid batchId format: ${batchId} for teacher: ${teacherId}`);
+      return res.status(400).json({ message: "Invalid batchId format" });
+    }
+
     const teacher = await User.findById(teacherId).populate("role");
     if (!teacher || teacher.role.roleName !== "Teacher") {
+      logger.warn(`Unauthorized batch fetch attempt by user: ${teacherId}`);
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -2797,8 +2943,114 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
       });
 
     if (!batch) {
+      logger.warn(`Batch ${batchId} not found or not assigned to teacher ${teacherId}`);
       return res.status(404).json({ message: "Batch not found or not assigned to you" });
     }
+
+    const totalStudents = batch.studentIds.filter(
+      (s) => s.isInThisBatch
+    ).length;
+
+    const scheduledCalls = await ScheduledCall.find({
+      batchId: batch._id,
+      isDeleted: false,
+    });
+    const totalClasses = scheduledCalls.length;
+    const completedClasses = scheduledCalls.filter(
+      (call) => call.status === "Completed"
+    ).length;
+
+    const totalLessons = batch.courseId
+      ? batch.courseId.chapters.reduce(
+          (sum, chapter) => sum + chapter.lessons.length,
+          0
+        )
+      : 0;
+
+    const validLessonIds = new Set(
+      batch.courseId
+        ? batch.courseId.chapters
+            .flatMap((chapter) => chapter.lessons)
+            .map((lesson) => lesson._id.toString())
+        : []
+    );
+    const completedLessonIds = new Set();
+    scheduledCalls
+      .filter((call) => call.status === "Completed")
+      .forEach((call) => {
+        if (call.lessonId) {
+          const lessonIdStr = call.lessonId.toString();
+          if (validLessonIds.has(lessonIdStr)) {
+            completedLessonIds.add(lessonIdStr);
+          } else {
+            logger.warn(
+              `Invalid lessonId ${lessonIdStr} in ScheduledCall ${call._id} for batch ${batch._id}. Expected one of: ${[...validLessonIds].join(", ")}`
+            );
+          }
+        } else {
+          logger.warn(
+            `Completed ScheduledCall ${call._id} in batch ${batch._id} has no lessonId`
+          );
+        }
+      });
+    const completedLessons = completedLessonIds.size;
+
+    const totalHours = scheduledCalls.reduce(
+      (sum, call) => sum + (call.callDuration || 0) / 60, 
+      0
+    );
+    const completedHours = scheduledCalls
+      .filter((call) => call.status === "Completed")
+      .reduce((sum, call) => sum + (call.callDuration || 0) / 60, 0);
+
+    const attendanceRecords = await Attendance.find({
+      batchId: batch._id,
+    });
+    const batchAttendancePercentage =
+      attendanceRecords.length > 0
+        ? (attendanceRecords.reduce((sum, record) => {
+            const presentCount = record.attendances.filter(
+              (a) => a.status === "Present"
+            ).length;
+            const totalCount = record.attendances.length;
+            return sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0);
+          }, 0) / attendanceRecords.length)
+        : 0;
+
+    const allStudentsAttendance = await Promise.all(
+      batch.studentIds
+        .filter((s) => s.isInThisBatch)
+        .map(async (s) => {
+          const studentAttendanceRecords = await Attendance.find({
+            batchId: batch._id,
+            "attendances.studentId": s.studentId._id,
+          }).sort({ date: -1 });
+          let percentage = 0;
+          let latestStatus = "Absent"; 
+
+          if (studentAttendanceRecords.length > 0) {
+            percentage = (studentAttendanceRecords.reduce((sum, record) => {
+              const studentAttendance = record.attendances.find(
+                (a) => String(a.studentId) === String(s.studentId._id)
+              );
+              return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
+            }, 0) / studentAttendanceRecords.length);
+
+            const latestRecord = studentAttendanceRecords[0];
+            const latestAttendance = latestRecord.attendances.find(
+              (a) => String(a.studentId) === String(s.studentId._id)
+            );
+            latestStatus = latestAttendance ? latestAttendance.status : "Absent";
+          }
+
+          return {
+            studentId: s.studentId._id,
+            name: s.studentId.name,
+            attendancePercentage: parseFloat(percentage.toFixed(2)),
+            latestAttendanceStatus: latestStatus,
+          };
+        })
+    );
 
     const teacherCourseModifications = batch.teacherCourseModifications || {};
     const batchSpecificModifications = batch.batchSpecificModifications || {};
@@ -2885,6 +3137,15 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
           profileImage: s.studentId.profileImage,
           subjects: s.studentId.subjects,
         })),
+      totalStudents,
+      totalClasses,
+      completedClasses,
+      totalLessons,
+      completedLessons,
+      totalHours: parseFloat(totalHours.toFixed(2)),
+      completedHours: parseFloat(completedHours.toFixed(2)),
+      batchAttendancePercentage: parseFloat(batchAttendancePercentage.toFixed(2)),
+      allStudentsAttendance,
       teacherCourseModifications: {
         title: teacherCourseModifications.title || null,
         chapters: teacherCourseModifications.chapters
@@ -2961,108 +3222,20 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
       createdAt: batch.createdAt,
     };
 
+    logger.info(`Batch ${batchId} fetched for teacher ${teacherId}`);
     res.json(formattedBatch);
   } catch (error) {
+    logger.error(`Fetch teacher batch ${batchId} error: ${error.message}`);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
 // Get Batches assigned to a Student
-// router.get("/batches/student", authenticate, async (req, res) => {
-//   try {
-//     const studentId = req.user.userId;
-//     const student = await User.findById(studentId).populate("role");
-
-//     if (!student || student.role.roleName !== "Student") {
-//       return res.status(403).json({ message: "Not authorized" });
-//     }
-
-//     const batches = await Batch.find({ "studentIds.studentId": studentId })
-//       .populate({
-//         path: "courseId",
-//         populate: [
-//           { path: "createdBy", select: "name" },
-//           { path: "assignedTeachers", select: "name _id" },
-//           { path: "lastUpdatedBy", select: "name" },
-//         ],
-//       })
-//       .populate({
-//         path: "studentIds.studentId",
-//         select: "name email phone profileImage subjects profile.grade",
-//       });
-
-//     const formattedBatches = batches.map((batch) => {
-//       const studentData = batch.studentIds.find(
-//         (s) => String(s.studentId._id) === String(studentId) && s.isInThisBatch
-//       );
-
-//       return {
-//         _id: batch._id,
-//         name: batch.name,
-//         courseId: batch.courseId?._id,
-//         courseTitle: batch.courseId?.title,
-//         courseDetails: batch.courseId
-//           ? {
-//               courseId: batch.courseId._id,
-//               title: batch.courseId.title,
-//               chapters: batch.courseId.chapters.map((chapter) => ({
-//                 chapterId: chapter._id,
-//                 title: chapter.title,
-//                 order: chapter.order,
-//                 lessons: chapter.lessons.map((lesson) => ({
-//                   lessonId: lesson._id,
-//                   title: lesson.title,
-//                   format: lesson.format,
-//                   learningGoals: lesson.learningGoals,
-//                   resources: lesson.resources,
-//                   order: lesson.order,
-//                 })),
-//               })),
-//               targetAudience: batch.courseId.targetAudience,
-//               duration: batch.courseId.duration,
-//               createdBy: {
-//                 _id: batch.courseId.createdBy?._id,
-//                 name: batch.courseId.createdBy?.name,
-//               },
-//               assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
-//                 _id: teacher._id,
-//                 name: teacher.name,
-//               })),
-//               lastUpdatedBy: {
-//                 _id: batch.courseId.lastUpdatedBy?._id,
-//                 name: batch.courseId.lastUpdatedBy?.name,
-//               },
-//               lastUpdatedAt: batch.courseId.lastUpdatedAt,
-//               driveFolderId: batch.courseId.driveFolderId,
-//               createdAt: batch.courseId.createdAt,
-//             }
-//           : null,
-//         studentDetails: studentData
-//           ? {
-//               _id: studentData.studentId._id,
-//               name: studentData.studentId.name,
-//               email: studentData.studentId.email,
-//               phone: studentData.studentId.phone,
-//               profileImage: studentData.studentId.profileImage,
-//               subjects: studentData.studentId.subjects,
-//               grade: studentData.studentId.profile?.grade,
-//             }
-//           : null,
-//         createdAt: batch.createdAt,
-//       };
-//     });
-
-//     const studentBatches = formattedBatches.filter((b) => b.studentDetails);
-
-//     res.json({ batches: studentBatches });
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error", error: error.message });
-//   }
-// });
-
 router.get("/batches/student", authenticate, async (req, res) => {
   try {
     const studentId = req.user.userId;
+    const { batchId } = req.query;
+
     const student = await User.findById(studentId).populate("role");
 
     if (!student || student.role.roleName !== "Student") {
@@ -3070,7 +3243,16 @@ router.get("/batches/student", authenticate, async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    const batches = await Batch.find({ "studentIds.studentId": studentId })
+    const query = { "studentIds.studentId": studentId };
+    if (batchId) {
+      if (!mongoose.isValidObjectId(batchId)) {
+        logger.warn(`Invalid batchId format: ${batchId} for user: ${studentId}`);
+        return res.status(400).json({ message: "Invalid batchId format" });
+      }
+      query._id = batchId;
+    }
+
+    const batches = await Batch.find(query)
       .populate({
         path: "courseId",
         populate: [
@@ -3084,6 +3266,11 @@ router.get("/batches/student", authenticate, async (req, res) => {
         select: "name email phone profileImage subjects profile.grade",
       });
 
+    if (batchId && batches.length === 0) {
+      logger.warn(`Batch ${batchId} not found or student ${studentId} not enrolled`);
+      return res.status(404).json({ message: "Batch not found or student not enrolled" });
+    }
+
     const formattedBatches = await Promise.all(
       batches.map(async (batch) => {
         const studentData = batch.studentIds.find(
@@ -3092,18 +3279,19 @@ router.get("/batches/student", authenticate, async (req, res) => {
 
         if (!studentData) return null;
 
-        // Total Students
         const totalStudents = batch.studentIds.filter(
           (s) => s.isInThisBatch
         ).length;
 
-        // Total Classes
-        const totalClasses = await ScheduledCall.countDocuments({
+        const scheduledCalls = await ScheduledCall.find({
           batchId: batch._id,
           isDeleted: false,
         });
+        const totalClasses = scheduledCalls.length;
+        const completedClasses = scheduledCalls.filter(
+          (call) => call.status === "Completed"
+        ).length;
 
-        // Total Lessons
         const totalLessons = batch.courseId
           ? batch.courseId.chapters.reduce(
               (sum, chapter) => sum + chapter.lessons.length,
@@ -3111,17 +3299,42 @@ router.get("/batches/student", authenticate, async (req, res) => {
             )
           : 0;
 
-        // Total Hours
-        const scheduledCalls = await ScheduledCall.find({
-          batchId: batch._id,
-          isDeleted: false,
-        });
+        const validLessonIds = new Set(
+          batch.courseId
+            ? batch.courseId.chapters
+                .flatMap((chapter) => chapter.lessons)
+                .map((lesson) => lesson._id.toString())
+            : []
+        );
+        const completedLessonIds = new Set();
+        scheduledCalls
+          .filter((call) => call.status === "Completed")
+          .forEach((call) => {
+            if (call.lessonId) {
+              const lessonIdStr = call.lessonId.toString();
+              if (validLessonIds.has(lessonIdStr)) {
+                completedLessonIds.add(lessonIdStr);
+              } else {
+                logger.warn(
+                  `Invalid lessonId ${lessonIdStr} in ScheduledCall ${call._id} for batch ${batch._id}. Expected one of: ${[...validLessonIds].join(", ")}`
+                );
+              }
+            } else {
+              logger.warn(
+                `Completed ScheduledCall ${call._id} in batch ${batch._id} has no lessonId`
+              );
+            }
+          });
+        const completedLessons = completedLessonIds.size;
+
         const totalHours = scheduledCalls.reduce(
-          (sum, call) => sum + (call.callDuration || 0) / 60, // Convert minutes to hours
+          (sum, call) => sum + (call.callDuration || 0) / 60, 
           0
         );
+        const completedHours = scheduledCalls
+          .filter((call) => call.status === "Completed")
+          .reduce((sum, call) => sum + (call.callDuration || 0) / 60, 0);
 
-        // Average Attendance Percentage (Batch)
         const attendanceRecords = await Attendance.find({
           batchId: batch._id,
         });
@@ -3136,7 +3349,6 @@ router.get("/batches/student", authenticate, async (req, res) => {
               }, 0) / attendanceRecords.length)
             : 0;
 
-        // Attendance Percentage for All Students
         const allStudentsAttendance = await Promise.all(
           batch.studentIds
             .filter((s) => s.isInThisBatch)
@@ -3144,20 +3356,30 @@ router.get("/batches/student", authenticate, async (req, res) => {
               const studentAttendanceRecords = await Attendance.find({
                 batchId: batch._id,
                 "attendances.studentId": s.studentId._id,
-              });
-              const percentage =
-                studentAttendanceRecords.length > 0
-                  ? (studentAttendanceRecords.reduce((sum, record) => {
-                      const studentAttendance = record.attendances.find(
-                        (a) => String(a.studentId) === String(s.studentId._id)
-                      );
-                      return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
-                    }, 0) / studentAttendanceRecords.length)
-                  : 0;
+              }).sort({ date: -1 }); 
+              let percentage = 0;
+              let latestStatus = "Absent"; 
+
+              if (studentAttendanceRecords.length > 0) {
+                percentage = (studentAttendanceRecords.reduce((sum, record) => {
+                  const studentAttendance = record.attendances.find(
+                    (a) => String(a.studentId) === String(s.studentId._id)
+                  );
+                  return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
+                }, 0) / studentAttendanceRecords.length);
+
+                const latestRecord = studentAttendanceRecords[0];
+                const latestAttendance = latestRecord.attendances.find(
+                  (a) => String(a.studentId) === String(s.studentId._id)
+                );
+                latestStatus = latestAttendance ? latestAttendance.status : "Absent";
+              }
+
               return {
                 studentId: s.studentId._id,
                 name: s.studentId.name,
                 attendancePercentage: parseFloat(percentage.toFixed(2)),
+                latestAttendanceStatus: latestStatus,
               };
             })
         );
@@ -3214,8 +3436,11 @@ router.get("/batches/student", authenticate, async (req, res) => {
           },
           totalStudents,
           totalClasses,
+          completedClasses,
           totalLessons,
+          completedLessons,
           totalHours: parseFloat(totalHours.toFixed(2)),
+          completedHours: parseFloat(completedHours.toFixed(2)),
           batchAttendancePercentage: parseFloat(batchAttendancePercentage.toFixed(2)),
           allStudentsAttendance,
           createdAt: batch.createdAt,
@@ -3225,10 +3450,15 @@ router.get("/batches/student", authenticate, async (req, res) => {
 
     const studentBatches = formattedBatches.filter((b) => b !== null);
 
-    logger.info(`Batches fetched for student ${studentId}: ${studentBatches.length} batches`);
+    if (studentBatches.length === 0) {
+      logger.info(`No batches found for student ${studentId}${batchId ? ` and batch ${batchId}` : ''}`);
+      return res.status(404).json({ message: "No batches found" });
+    }
+
+    logger.info(`Batches fetched for student ${studentId}: ${studentBatches.length} batches${batchId ? ` for batch ${batchId}` : ''}`);
     res.json({ batches: studentBatches });
   } catch (error) {
-    logger.error("Fetch student batches error:", error.message);
+    logger.error(`Fetch student batches error: ${error.message}`);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -3237,13 +3467,25 @@ router.get("/batches/student", authenticate, async (req, res) => {
 router.get("/batches/admin", authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
+    const { batchId } = req.query; // Get batchId from query parameters
+
     const user = await User.findById(userId).populate("role");
-    
     if (!user || !["Admin", "Super Admin"].includes(user.role.roleName)) {
+      logger.warn(`Unauthorized batch fetch attempt by user: ${userId}`);
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    const batches = await Batch.find({})
+    // Build query for batches
+    const query = {};
+    if (batchId) {
+      if (!mongoose.isValidObjectId(batchId)) {
+        logger.warn(`Invalid batchId format: ${batchId} for user: ${userId}`);
+        return res.status(400).json({ message: "Invalid batchId format" });
+      }
+      query._id = batchId;
+    }
+
+    const batches = await Batch.find(query)
       .populate({
         path: "courseId",
         populate: [
@@ -3257,66 +3499,203 @@ router.get("/batches/admin", authenticate, async (req, res) => {
         select: "name email phone profileImage subjects",
       });
 
-    const formattedBatches = batches.map((batch) => ({
-      _id: batch._id,
-      name: batch.name,
-      courseId: batch.courseId?._id,
-      courseTitle: batch.courseId?.title,
-      courseDetails: batch.courseId
-        ? {
-            courseId: batch.courseId._id,
-            title: batch.courseId.title,
-            chapters: batch.courseId.chapters.map((chapter) => ({
-              chapterId: chapter._id,
-              title: chapter.title,
-              order: chapter.order,
-              lessons: chapter.lessons.map((lesson) => ({
-                lessonId: lesson._id,
-                title: lesson.title,
-                format: lesson.format,
-                learningGoals: lesson.learningGoals,
-                resources: lesson.resources,
-                order: lesson.order,
-              })),
-            })),
-            targetAudience: batch.courseId.targetAudience,
-            duration: batch.courseId.duration,
-            createdBy: {
-              _id: batch.courseId.createdBy?._id,
-              name: batch.courseId.createdBy?.name,
-            },
-            assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
-              _id: teacher._id,
-              name: teacher.name,
-            })),
-            lastUpdatedBy: {
-              _id: batch.courseId.lastUpdatedBy?._id,
-              name: batch.courseId.lastUpdatedBy?.name,
-            },
-            lastUpdatedAt: batch.courseId.lastUpdatedAt,
-            driveFolderId: batch.courseId.driveFolderId,
-            createdAt: batch.courseId.createdAt,
-          }
-        : null,
-      studentIds: batch.studentIds
-        .filter((s) => s.isInThisBatch === true)
-        .map((s) => ({
-          _id: s.studentId._id,
-          name: s.studentId.name,
-          email: s.studentId.email,
-          phone: s.studentId.phone,
-          profileImage: s.studentId.profileImage,
-          subjects: s.studentId.subjects,
-        })),
-      createdAt: batch.createdAt,
-    }));
+    if (batchId && batches.length === 0) {
+      logger.warn(`Batch ${batchId} not found for user: ${userId}`);
+      return res.status(404).json({ message: "Batch not found" });
+    }
 
+    const formattedBatches = await Promise.all(
+      batches.map(async (batch) => {
+        // Total Students
+        const totalStudents = batch.studentIds.filter(
+          (s) => s.isInThisBatch
+        ).length;
+
+        // Total Classes and Completed Classes
+        const scheduledCalls = await ScheduledCall.find({
+          batchId: batch._id,
+          isDeleted: false,
+        });
+        const totalClasses = scheduledCalls.length;
+        const completedClasses = scheduledCalls.filter(
+          (call) => call.status === "Completed"
+        ).length;
+
+        // Total Lessons
+        const totalLessons = batch.courseId
+          ? batch.courseId.chapters.reduce(
+              (sum, chapter) => sum + chapter.lessons.length,
+              0
+            )
+          : 0;
+
+        // Completed Lessons
+        const validLessonIds = new Set(
+          batch.courseId
+            ? batch.courseId.chapters
+                .flatMap((chapter) => chapter.lessons)
+                .map((lesson) => lesson._id.toString())
+            : []
+        );
+        const completedLessonIds = new Set();
+        scheduledCalls
+          .filter((call) => call.status === "Completed")
+          .forEach((call) => {
+            if (call.lessonId) {
+              const lessonIdStr = call.lessonId.toString();
+              if (validLessonIds.has(lessonIdStr)) {
+                completedLessonIds.add(lessonIdStr);
+              } else {
+                logger.warn(
+                  `Invalid lessonId ${lessonIdStr} in ScheduledCall ${call._id} for batch ${batch._id}. Expected one of: ${[...validLessonIds].join(", ")}`
+                );
+              }
+            } else {
+              logger.warn(
+                `Completed ScheduledCall ${call._id} in batch ${batch._id} has no lessonId`
+              );
+            }
+          });
+        const completedLessons = completedLessonIds.size;
+
+        // Total Hours and Completed Hours
+        const totalHours = scheduledCalls.reduce(
+          (sum, call) => sum + (call.callDuration || 0) / 60, // Convert minutes to hours
+          0
+        );
+        const completedHours = scheduledCalls
+          .filter((call) => call.status === "Completed")
+          .reduce((sum, call) => sum + (call.callDuration || 0) / 60, 0);
+
+        // Average Attendance Percentage (Batch)
+        const attendanceRecords = await Attendance.find({
+          batchId: batch._id,
+        });
+        const batchAttendancePercentage =
+          attendanceRecords.length > 0
+            ? (attendanceRecords.reduce((sum, record) => {
+                const presentCount = record.attendances.filter(
+                  (a) => a.status === "Present"
+                ).length;
+                const totalCount = record.attendances.length;
+                return sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0);
+              }, 0) / attendanceRecords.length)
+            : 0;
+
+        // Attendance Percentage and Status for All Students
+        const allStudentsAttendance = await Promise.all(
+          batch.studentIds
+            .filter((s) => s.isInThisBatch)
+            .map(async (s) => {
+              const studentAttendanceRecords = await Attendance.find({
+                batchId: batch._id,
+                "attendances.studentId": s.studentId._id,
+              }).sort({ date: -1 }); // Sort by latest date
+              let percentage = 0;
+              let latestStatus = "Absent"; // Default to Absent if no records
+
+              if (studentAttendanceRecords.length > 0) {
+                percentage = (studentAttendanceRecords.reduce((sum, record) => {
+                  const studentAttendance = record.attendances.find(
+                    (a) => String(a.studentId) === String(s.studentId._id)
+                  );
+                  return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
+                }, 0) / studentAttendanceRecords.length);
+
+                // Get the latest attendance status
+                const latestRecord = studentAttendanceRecords[0];
+                const latestAttendance = latestRecord.attendances.find(
+                  (a) => String(a.studentId) === String(s.studentId._id)
+                );
+                latestStatus = latestAttendance ? latestAttendance.status : "Absent";
+              }
+
+              return {
+                studentId: s.studentId._id,
+                name: s.studentId.name,
+                attendancePercentage: parseFloat(percentage.toFixed(2)),
+                latestAttendanceStatus: latestStatus,
+              };
+            })
+        );
+
+        return {
+          _id: batch._id,
+          name: batch.name,
+          courseId: batch.courseId?._id,
+          courseTitle: batch.courseId?.title,
+          courseDetails: batch.courseId
+            ? {
+                courseId: batch.courseId._id,
+                title: batch.courseId.title,
+                chapters: batch.courseId.chapters.map((chapter) => ({
+                  chapterId: chapter._id,
+                  title: chapter.title,
+                  order: chapter.order,
+                  lessons: chapter.lessons.map((lesson) => ({
+                    lessonId: lesson._id,
+                    title: lesson.title,
+                    format: lesson.format,
+                    learningGoals: lesson.learningGoals,
+                    resources: lesson.resources,
+                    order: lesson.order,
+                  })),
+                })),
+                targetAudience: batch.courseId.targetAudience,
+                duration: batch.courseId.duration,
+                createdBy: {
+                  _id: batch.courseId.createdBy?._id,
+                  name: batch.courseId.createdBy?.name,
+                },
+                assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
+                  _id: teacher._id,
+                  name: teacher.name,
+                })),
+                lastUpdatedBy: {
+                  _id: batch.courseId.lastUpdatedBy?._id,
+                  name: batch.courseId.lastUpdatedBy?.name,
+                },
+                lastUpdatedAt: batch.courseId.lastUpdatedAt,
+                driveFolderId: batch.courseId.driveFolderId,
+                createdAt: batch.courseId.createdAt,
+              }
+            : null,
+          studentIds: batch.studentIds
+            .filter((s) => s.isInThisBatch === true)
+            .map((s) => ({
+              _id: s.studentId._id,
+              name: s.studentId.name,
+              email: s.studentId.email,
+              phone: s.studentId.phone,
+              profileImage: s.studentId.profileImage,
+              subjects: s.studentId.subjects,
+            })),
+          totalStudents,
+          totalClasses,
+          completedClasses,
+          totalLessons,
+          completedLessons,
+          totalHours: parseFloat(totalHours.toFixed(2)),
+          completedHours: parseFloat(completedHours.toFixed(2)),
+          batchAttendancePercentage: parseFloat(batchAttendancePercentage.toFixed(2)),
+          allStudentsAttendance,
+          createdAt: batch.createdAt,
+        };
+      })
+    );
+
+    if (formattedBatches.length === 0) {
+      logger.info(`No batches found for user ${userId}${batchId ? ` and batch ${batchId}` : ''}`);
+      return res.status(404).json({ message: "No batches found" });
+    }
+
+    logger.info(`Batches fetched for user ${userId}: ${formattedBatches.length} batches${batchId ? ` for batch ${batchId}` : ''}`);
     res.json({ batches: formattedBatches });
   } catch (error) {
+    logger.error(`Fetch admin batches error: ${error.message}`);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
-
 
 // Get all courses
 router.get("/all", authenticate, async (req, res) => {
