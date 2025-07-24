@@ -4,7 +4,7 @@ const { check, validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const authenticate = require("../middleware/auth");
 const Course = require("../models/Course");
-const Attendance = require('../models/Attendance');
+const Attendance = require("../models/Attendance");
 const Batch = require("../models/Batch");
 const User = require("../models/User");
 const Role = require("../models/Role");
@@ -76,37 +76,59 @@ router.post(
               throw new Error(`Chapter ${index + 1} title is required`);
             }
             if (!Array.isArray(chapter.lessons)) {
-              throw new Error(`Lessons in chapter ${index + 1} must be an array`);
+              throw new Error(
+                `Lessons in chapter ${index + 1} must be an array`
+              );
             }
             chapter.lessons.forEach((lesson, lessonIndex) => {
               if (!lesson.title?.trim()) {
                 throw new Error(
-                  `Lesson ${lessonIndex + 1} title in chapter ${index + 1} is required`
+                  `Lesson ${lessonIndex + 1} title in chapter ${
+                    index + 1
+                  } is required`
                 );
               }
               if (
-                !["video", "audio", "pdf", "word", "ppt", "jpg", "png", "gif", "avif", "webp", "svg"].includes(
-                  lesson.format
-                )
+                ![
+                  "video",
+                  "audio",
+                  "pdf",
+                  "word",
+                  "ppt",
+                  "jpg",
+                  "png",
+                  "gif",
+                  "avif",
+                  "webp",
+                  "svg",
+                ].includes(lesson.format)
               ) {
                 throw new Error(
-                  `Invalid format for lesson ${lessonIndex + 1} in chapter ${index + 1}`
+                  `Invalid format for lesson ${lessonIndex + 1} in chapter ${
+                    index + 1
+                  }`
                 );
               }
               if (!Array.isArray(lesson.learningGoals)) {
                 throw new Error(
-                  `Learning goals for lesson ${lessonIndex + 1} in chapter ${index + 1} must be an array`
+                  `Learning goals for lesson ${lessonIndex + 1} in chapter ${
+                    index + 1
+                  } must be an array`
                 );
               }
             });
           });
           return true;
         } catch (error) {
-          throw new Error(error.message || "Chapters must be a valid JSON array");
+          throw new Error(
+            error.message || "Chapters must be a valid JSON array"
+          );
         }
       })
       .withMessage("Chapters must be a valid JSON array"),
-    check("targetAudience").notEmpty().withMessage("Target audience is required"),
+    check("targetAudience")
+      .notEmpty()
+      .withMessage("Target audience is required"),
     check("duration").notEmpty().withMessage("Course duration is required"),
   ],
   async (req, res) => {
@@ -126,7 +148,8 @@ router.post(
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const parsedChapters = typeof chapters === "string" ? JSON.parse(chapters) : chapters;
+      const parsedChapters =
+        typeof chapters === "string" ? JSON.parse(chapters) : chapters;
 
       const resources = {};
       const worksheets = {};
@@ -143,7 +166,11 @@ router.post(
           }
           const chapterIndex = parseInt(match[1], 10);
           const lessonIndex = parseInt(match[2], 10);
-          const { fileId, webViewLink, courseFolderId: uploadedFolderId } = await uploadCourseFileToDrive(
+          const {
+            fileId,
+            webViewLink,
+            courseFolderId: uploadedFolderId,
+          } = await uploadCourseFileToDrive(
             file.path,
             file.originalname,
             file.mimetype,
@@ -158,11 +185,11 @@ router.post(
             uploadedBy: adminId,
           };
           if (!resources[chapterIndex]) resources[chapterIndex] = {};
-          if (!resources[chapterIndex][lessonIndex]) resources[chapterIndex][lessonIndex] = [];
+          if (!resources[chapterIndex][lessonIndex])
+            resources[chapterIndex][lessonIndex] = [];
           resources[chapterIndex][lessonIndex].push(resource);
           deleteLocalFile(file.path);
-        }
-        else if (file.fieldname.startsWith("worksheets")) {
+        } else if (file.fieldname.startsWith("worksheets")) {
           const match = file.fieldname.match(/worksheets\[(\d+)\]\[(\d+)\]/);
           if (!match) {
             logger.warn(`Invalid worksheet field name: ${file.fieldname}`);
@@ -172,7 +199,11 @@ router.post(
           }
           const chapterIndex = parseInt(match[1], 10);
           const lessonIndex = parseInt(match[2], 10);
-          const { fileId, webViewLink, courseFolderId: uploadedFolderId } = await uploadCourseFileToDrive(
+          const {
+            fileId,
+            webViewLink,
+            courseFolderId: uploadedFolderId,
+          } = await uploadCourseFileToDrive(
             file.path,
             file.originalname,
             file.mimetype,
@@ -187,7 +218,8 @@ router.post(
             uploadedBy: adminId,
           };
           if (!worksheets[chapterIndex]) worksheets[chapterIndex] = {};
-          if (!worksheets[chapterIndex][lessonIndex]) worksheets[chapterIndex][lessonIndex] = [];
+          if (!worksheets[chapterIndex][lessonIndex])
+            worksheets[chapterIndex][lessonIndex] = [];
           worksheets[chapterIndex][lessonIndex].push(worksheet);
           deleteLocalFile(file.path);
         }
@@ -196,17 +228,25 @@ router.post(
       const formattedChapters = parsedChapters.map((chapter, chapterIndex) => {
         const lessons = chapter.lessons.map((lesson, lessonIndex) => {
           const lessonResources = resources[chapterIndex]?.[lessonIndex] || [];
-          const lessonWorksheets = worksheets[chapterIndex]?.[lessonIndex] || [];
+          const lessonWorksheets =
+            worksheets[chapterIndex]?.[lessonIndex] || [];
           const expectedType = lesson.format === "word" ? "doc" : lesson.format;
           if (!lessonResources.every((res) => res.type === expectedType)) {
             throw new Error(
-              `Resource type mismatch for lesson ${lessonIndex + 1} in chapter ${chapterIndex + 1}`
+              `Resource type mismatch for lesson ${
+                lessonIndex + 1
+              } in chapter ${chapterIndex + 1}`
             );
           }
-          
-          if (lessonWorksheets.length > 0 && !lessonWorksheets.every((ws) => ws.type === expectedType)) {
+
+          if (
+            lessonWorksheets.length > 0 &&
+            !lessonWorksheets.every((ws) => ws.type === expectedType)
+          ) {
             throw new Error(
-              `Worksheet type mismatch for lesson ${lessonIndex + 1} in chapter ${chapterIndex + 1}`
+              `Worksheet type mismatch for lesson ${
+                lessonIndex + 1
+              } in chapter ${chapterIndex + 1}`
             );
           }
           return {
@@ -452,11 +492,9 @@ router.post(
         logger.warn(
           `One or more teacher IDs are invalid or not teachers: ${teacherIds}`
         );
-        return res
-          .status(400)
-          .json({
-            message: "One or more teacher IDs are invalid or not teachers",
-          });
+        return res.status(400).json({
+          message: "One or more teacher IDs are invalid or not teachers",
+        });
       }
 
       course.assignedTeachers = course.assignedTeachers.filter(
@@ -545,7 +583,10 @@ router.put(
   "/edit/:courseId",
   authenticate,
   [
-    check("title").optional().notEmpty().withMessage("Course title cannot be empty"),
+    check("title")
+      .optional()
+      .notEmpty()
+      .withMessage("Course title cannot be empty"),
     check("chapters")
       .optional()
       .custom((value) => {
@@ -560,39 +601,68 @@ router.put(
               throw new Error(`Chapter ${index + 1} title cannot be empty`);
             }
             if (!Array.isArray(chapter.lessons)) {
-              throw new Error(`Lessons in chapter ${index + 1} must be an array`);
+              throw new Error(
+                `Lessons in chapter ${index + 1} must be an array`
+              );
             }
             chapter.lessons.forEach((lesson, lessonIndex) => {
               if (lesson.title && !lesson.title.trim()) {
                 throw new Error(
-                  `Lesson ${lessonIndex + 1} title in chapter ${index + 1} is required`
+                  `Lesson ${lessonIndex + 1} title in chapter ${
+                    index + 1
+                  } is required`
                 );
               }
               if (
                 lesson.format &&
-                !["video", "audio", "pdf", "word", "ppt", "jpg", "png", "gif", "avif", "webp", "svg"].includes(
-                  lesson.format
-                )
+                ![
+                  "video",
+                  "audio",
+                  "pdf",
+                  "word",
+                  "ppt",
+                  "jpg",
+                  "png",
+                  "gif",
+                  "avif",
+                  "webp",
+                  "svg",
+                ].includes(lesson.format)
               ) {
                 throw new Error(
-                  `Invalid format for lesson ${lessonIndex + 1} in chapter ${index + 1}`
+                  `Invalid format for lesson ${lessonIndex + 1} in chapter ${
+                    index + 1
+                  }`
                 );
               }
-              if (lesson.learningGoals && !Array.isArray(lesson.learningGoals)) {
+              if (
+                lesson.learningGoals &&
+                !Array.isArray(lesson.learningGoals)
+              ) {
                 throw new Error(
-                  `Learning goals for lesson ${lessonIndex + 1} in chapter ${index + 1} must be an array`
+                  `Learning goals for lesson ${lessonIndex + 1} in chapter ${
+                    index + 1
+                  } must be an array`
                 );
               }
             });
           });
           return true;
         } catch (error) {
-          throw new Error(error.message || "Chapters must be a valid JSON array");
+          throw new Error(
+            error.message || "Chapters must be a valid JSON array"
+          );
         }
       })
       .withMessage("Chapters must be a valid JSON array"),
-    check("targetAudience").optional().notEmpty().withMessage("Target audience cannot be empty"),
-    check("duration").optional().notEmpty().withMessage("Course duration cannot be empty"),
+    check("targetAudience")
+      .optional()
+      .notEmpty()
+      .withMessage("Target audience cannot be empty"),
+    check("duration")
+      .optional()
+      .notEmpty()
+      .withMessage("Course duration cannot be empty"),
   ],
   upload.any(),
   async (req, res) => {
@@ -624,7 +694,9 @@ router.put(
 
       for (const file of req.files || []) {
         if (file.fieldname.startsWith("resources")) {
-          const match = file.fieldname.match(/resources\[(\d+)\]\[(\d+)\]\[(\d+)\]/);
+          const match = file.fieldname.match(
+            /resources\[(\d+)\]\[(\d+)\]\[(\d+)\]/
+          );
           if (!match) {
             logger.warn(`Invalid resource field name: ${file.fieldname}`);
             return res.status(400).json({
@@ -650,11 +722,14 @@ router.put(
             uploadedAt: new Date(),
           };
           if (!resources[chapterIndex]) resources[chapterIndex] = {};
-          if (!resources[chapterIndex][lessonIndex]) resources[chapterIndex][lessonIndex] = {};
+          if (!resources[chapterIndex][lessonIndex])
+            resources[chapterIndex][lessonIndex] = {};
           resources[chapterIndex][lessonIndex][resourceIndex] = resource;
           deleteLocalFile(file.path);
         } else if (file.fieldname.startsWith("worksheets")) {
-          const match = file.fieldname.match(/worksheets\[(\d+)\]\[(\d+)\]\[(\d+)\]/);
+          const match = file.fieldname.match(
+            /worksheets\[(\d+)\]\[(\d+)\]\[(\d+)\]/
+          );
           if (!match) {
             logger.warn(`Invalid worksheet field name: ${file.fieldname}`);
             return res.status(400).json({
@@ -680,7 +755,8 @@ router.put(
             uploadedAt: new Date(),
           };
           if (!worksheets[chapterIndex]) worksheets[chapterIndex] = {};
-          if (!worksheets[chapterIndex][lessonIndex]) worksheets[chapterIndex][lessonIndex] = {};
+          if (!worksheets[chapterIndex][lessonIndex])
+            worksheets[chapterIndex][lessonIndex] = {};
           worksheets[chapterIndex][lessonIndex][resourceIndex] = worksheet;
           deleteLocalFile(file.path);
         }
@@ -690,50 +766,77 @@ router.put(
       if (targetAudience) course.targetAudience = targetAudience;
       if (duration) course.duration = duration;
       if (chapters) {
-        const parsedChapters = JSON.parse(chapters).map((chapter, chapterIndex) => {
-          const lessons = chapter.lessons.map((lesson, lessonIndex) => {
-            const lessonResources = [];
-            const lessonWorksheets = [];
-            if (resources[chapterIndex]?.[lessonIndex]) {
-              Object.keys(resources[chapterIndex][lessonIndex])
-                .sort((a, b) => parseInt(a) - parseInt(b))
-                .forEach((resourceIndex) => {
-                  lessonResources.push(resources[chapterIndex][lessonIndex][resourceIndex]);
-                });
-            }
-            if (worksheets[chapterIndex]?.[lessonIndex]) {
-              Object.keys(worksheets[chapterIndex][lessonIndex])
-                .sort((a, b) => parseInt(a) - parseInt(b))
-                .forEach((resourceIndex) => {
-                  lessonWorksheets.push(worksheets[chapterIndex][lessonIndex][resourceIndex]);
-                });
-            }
-            const expectedType = lesson.format === "word" ? "doc" : lesson.format;
-            if (lessonResources.length > 0 && !lessonResources.every((res) => res.type === expectedType)) {
-              throw new Error(
-                `Resource type mismatch for lesson ${lessonIndex + 1} in chapter ${chapterIndex + 1}`
-              );
-            }
-            if (lessonWorksheets.length > 0 && !lessonWorksheets.every((ws) => ws.type === expectedType)) {
-              throw new Error(
-                `Worksheet type mismatch for lesson ${lessonIndex + 1} in chapter ${chapterIndex + 1}`
-              );
-            }
+        const parsedChapters = JSON.parse(chapters).map(
+          (chapter, chapterIndex) => {
+            const lessons = chapter.lessons.map((lesson, lessonIndex) => {
+              const lessonResources = [];
+              const lessonWorksheets = [];
+              if (resources[chapterIndex]?.[lessonIndex]) {
+                Object.keys(resources[chapterIndex][lessonIndex])
+                  .sort((a, b) => parseInt(a) - parseInt(b))
+                  .forEach((resourceIndex) => {
+                    lessonResources.push(
+                      resources[chapterIndex][lessonIndex][resourceIndex]
+                    );
+                  });
+              }
+              if (worksheets[chapterIndex]?.[lessonIndex]) {
+                Object.keys(worksheets[chapterIndex][lessonIndex])
+                  .sort((a, b) => parseInt(a) - parseInt(b))
+                  .forEach((resourceIndex) => {
+                    lessonWorksheets.push(
+                      worksheets[chapterIndex][lessonIndex][resourceIndex]
+                    );
+                  });
+              }
+              const expectedType =
+                lesson.format === "word" ? "doc" : lesson.format;
+              if (
+                lessonResources.length > 0 &&
+                !lessonResources.every((res) => res.type === expectedType)
+              ) {
+                throw new Error(
+                  `Resource type mismatch for lesson ${
+                    lessonIndex + 1
+                  } in chapter ${chapterIndex + 1}`
+                );
+              }
+              if (
+                lessonWorksheets.length > 0 &&
+                !lessonWorksheets.every((ws) => ws.type === expectedType)
+              ) {
+                throw new Error(
+                  `Worksheet type mismatch for lesson ${
+                    lessonIndex + 1
+                  } in chapter ${chapterIndex + 1}`
+                );
+              }
+              return {
+                title: lesson.title,
+                format: lesson.format,
+                learningGoals: lesson.learningGoals.filter((goal) =>
+                  goal?.trim()
+                ),
+                resources:
+                  lessonResources.length > 0
+                    ? lessonResources
+                    : course.chapters[chapterIndex]?.lessons[lessonIndex]
+                        ?.resources || [],
+                worksheets:
+                  lessonWorksheets.length > 0
+                    ? lessonWorksheets
+                    : course.chapters[chapterIndex]?.lessons[lessonIndex]
+                        ?.worksheets || [],
+                order: lessonIndex + 1,
+              };
+            });
             return {
-              title: lesson.title,
-              format: lesson.format,
-              learningGoals: lesson.learningGoals.filter((goal) => goal?.trim()),
-              resources: lessonResources.length > 0 ? lessonResources : course.chapters[chapterIndex]?.lessons[lessonIndex]?.resources || [],
-              worksheets: lessonWorksheets.length > 0 ? lessonWorksheets : course.chapters[chapterIndex]?.lessons[lessonIndex]?.worksheets || [],
-              order: lessonIndex + 1,
+              title: chapter.title,
+              lessons,
+              order: chapterIndex + 1,
             };
-          });
-          return {
-            title: chapter.title,
-            lessons,
-            order: chapterIndex + 1,
-          };
-        });
+          }
+        );
         course.chapters = parsedChapters;
       }
 
@@ -789,7 +892,11 @@ router.put(
         )
       );
 
-      await Promise.all([...notifications, ...adminEmailNotifications, ...teacherNotifications]);
+      await Promise.all([
+        ...notifications,
+        ...adminEmailNotifications,
+        ...teacherNotifications,
+      ]);
 
       admins.forEach((admin) => {
         getIO()
@@ -990,7 +1097,9 @@ router.post(
       .optional()
       .isArray()
       .withMessage("Student IDs must be an array")
-      .custom((value) => value.every((id) => mongoose.Types.ObjectId.isValid(id)))
+      .custom((value) =>
+        value.every((id) => mongoose.Types.ObjectId.isValid(id))
+      )
       .withMessage("All student IDs must be valid MongoDB ObjectIds"),
   ],
   async (req, res) => {
@@ -1006,11 +1115,13 @@ router.post(
     try {
       const teacher = await User.findById(teacherId).populate("role");
       if (!teacher || teacher.role.roleName !== "Teacher") {
-        logger.warn(`Unauthorized batch creation attempt by user: ${teacherId}`);
+        logger.warn(
+          `Unauthorized batch creation attempt by user: ${teacherId}`
+        );
         return res.status(403).json({ message: "Not authorized" });
       }
 
-    if (studentIds.length > 0) {
+      if (studentIds.length > 0) {
         const students = await User.find({
           _id: { $in: studentIds },
         }).populate("role");
@@ -1019,7 +1130,7 @@ router.post(
           (student) => student.role && student.role.roleName === "Student"
         );
 
-       if (validStudents.length !== studentIds.length) {
+        if (validStudents.length !== studentIds.length) {
           const invalidIds = studentIds.filter(
             (id) => !validStudents.some((s) => s._id.toString() === id)
           );
@@ -1033,7 +1144,7 @@ router.post(
       const batch = new Batch({
         name,
         teacherId,
-       studentIds: studentIds.map((id) => ({
+        studentIds: studentIds.map((id) => ({
           studentId: id,
           isInThisBatch: true,
         })),
@@ -1051,7 +1162,7 @@ router.post(
       const students = await User.find({
         _id: { $in: studentIds },
       }).populate("role");
-      
+
       const emailNotifications = students.map((student) =>
         sendBatchCreatedEmail(
           student.email,
@@ -1081,7 +1192,6 @@ router.post(
   }
 );
 
-
 // Teacher: Delete a Batch
 router.delete(
   "/batch/delete/:batchId",
@@ -1100,7 +1210,9 @@ router.delete(
     try {
       const teacher = await User.findById(teacherId).populate("role");
       if (!teacher || teacher.role.roleName !== "Teacher") {
-        logger.warn(`Unauthorized batch deletion attempt by user: ${teacherId}`);
+        logger.warn(
+          `Unauthorized batch deletion attempt by user: ${teacherId}`
+        );
         return res.status(403).json({ message: "Not authorized" });
       }
 
@@ -1155,7 +1267,9 @@ router.delete(
           });
       });
 
-      logger.info(`Batch ${batchId} permanently deleted by teacher ${teacherId}`);
+      logger.info(
+        `Batch ${batchId} permanently deleted by teacher ${teacherId}`
+      );
       res.json({ message: "Batch permanently deleted successfully" });
     } catch (error) {
       logger.error("Delete batch error:", error);
@@ -1163,7 +1277,6 @@ router.delete(
     }
   }
 );
-
 
 // Teacher: Delete Lesson from Batch
 router.post(
@@ -1285,13 +1398,18 @@ router.put(
           (student) => student.role && student.role.roleName === "Student"
         );
         if (validStudents.length !== addStudentIds.length) {
-          logger.warn(`Invalid student IDs provided for adding: ${addStudentIds}`);
+          logger.warn(
+            `Invalid student IDs provided for adding: ${addStudentIds}`
+          );
           return res
             .status(400)
-            .json({ message: "One or more student IDs to add are invalid or not students" });
+            .json({
+              message:
+                "One or more student IDs to add are invalid or not students",
+            });
         }
 
-       addStudentIds.forEach((studentId) => {
+        addStudentIds.forEach((studentId) => {
           const existingStudent = batch.studentIds.find(
             (s) => s.studentId.toString() === studentId
           );
@@ -1347,13 +1465,18 @@ router.put(
           (student) => student.role && student.role.roleName === "Student"
         );
         if (validStudents.length !== removeStudentIds.length) {
-          logger.warn(`Invalid student IDs provided for removing: ${removeStudentIds}`);
+          logger.warn(
+            `Invalid student IDs provided for removing: ${removeStudentIds}`
+          );
           return res
             .status(400)
-            .json({ message: "One or more student IDs to remove are invalid or not students" });
+            .json({
+              message:
+                "One or more student IDs to remove are invalid or not students",
+            });
         }
 
-       removeStudentIds.forEach((studentId) => {
+        removeStudentIds.forEach((studentId) => {
           const student = batch.studentIds.find(
             (s) => s.studentId.toString() === studentId
           );
@@ -1441,7 +1564,9 @@ router.put(
               throw new Error(`Chapter ${index + 1} title cannot be empty`);
             }
             if (!Array.isArray(chapter.lessons)) {
-              throw new Error(`Lessons in chapter ${index + 1} must be an array`);
+              throw new Error(
+                `Lessons in chapter ${index + 1} must be an array`
+              );
             }
             chapter.lessons.forEach((lesson, lessonIndex) => {
               if (lesson.title && !lesson.title.trim()) {
@@ -1487,7 +1612,9 @@ router.put(
           });
           return true;
         } catch (error) {
-          throw new Error(error.message || "Chapters must be a valid JSON array");
+          throw new Error(
+            error.message || "Chapters must be a valid JSON array"
+          );
         }
       })
       .withMessage("Chapters must be a valid JSON array"),
@@ -1540,12 +1667,16 @@ router.put(
       const worksheets = {};
       for (const file of req.files || []) {
         if (file.fieldname.startsWith("resources")) {
-          const match = file.fieldname.match(/resources\[(\d+)\]\[(\d+)\]\[(\d+)\]/);
+          const match = file.fieldname.match(
+            /resources\[(\d+)\]\[(\d+)\]\[(\d+)\]/
+          );
           if (!match) {
             logger.warn(`Invalid resource field name: ${file.fieldname}`);
             return res
               .status(400)
-              .json({ message: `Invalid resource field name: ${file.fieldname}` });
+              .json({
+                message: `Invalid resource field name: ${file.fieldname}`,
+              });
           }
           const chapterIndex = parseInt(match[1], 10);
           const lessonIndex = parseInt(match[2], 10);
@@ -1571,12 +1702,16 @@ router.put(
           resources[chapterIndex][lessonIndex][resourceIndex] = resource;
           deleteLocalFile(file.path);
         } else if (file.fieldname.startsWith("worksheets")) {
-          const match = file.fieldname.match(/worksheets\[(\d+)\]\[(\d+)\]\[(\d+)\]/);
+          const match = file.fieldname.match(
+            /worksheets\[(\d+)\]\[(\d+)\]\[(\d+)\]/
+          );
           if (!match) {
             logger.warn(`Invalid worksheet field name: ${file.fieldname}`);
             return res
               .status(400)
-              .json({ message: `Invalid worksheet field name: ${file.fieldname}` });
+              .json({
+                message: `Invalid worksheet field name: ${file.fieldname}`,
+              });
           }
           const chapterIndex = parseInt(match[1], 10);
           const lessonIndex = parseInt(match[2], 10);
@@ -1639,7 +1774,8 @@ router.put(
                     );
                   });
               }
-              const expectedType = lesson.format === "word" ? "doc" : lesson.format;
+              const expectedType =
+                lesson.format === "word" ? "doc" : lesson.format;
               if (
                 lessonResources.length > 0 &&
                 !lessonResources.every((res) => res.type === expectedType)
@@ -1660,13 +1796,22 @@ router.put(
                   } in chapter ${chapterIndex + 1}`
                 );
               }
-              const existingLesson = existingChapter.lessons?.[lessonIndex] || {};
+              const existingLesson =
+                existingChapter.lessons?.[lessonIndex] || {};
               return {
                 title: lesson.title,
                 format: lesson.format,
-                learningGoals: lesson.learningGoals.filter((goal) => goal.trim()),
-                resources: lessonResources.length > 0 ? lessonResources : existingLesson.resources || [],
-                worksheets: lessonWorksheets.length > 0 ? lessonWorksheets : existingLesson.worksheets || [],
+                learningGoals: lesson.learningGoals.filter((goal) =>
+                  goal.trim()
+                ),
+                resources:
+                  lessonResources.length > 0
+                    ? lessonResources
+                    : existingLesson.resources || [],
+                worksheets:
+                  lessonWorksheets.length > 0
+                    ? lessonWorksheets
+                    : existingLesson.worksheets || [],
                 order: lessonIndex + 1,
               };
             });
@@ -1698,7 +1843,10 @@ router.put(
             ...teacherCourseModifications,
           };
           await batch.save();
-          logger.info(`Batch ${batch._id} updated with teacherCourseModifications:`, batch.teacherCourseModifications);
+          logger.info(
+            `Batch ${batch._id} updated with teacherCourseModifications:`,
+            batch.teacherCourseModifications
+          );
           updatedBatchIds.push(batch._id);
 
           const batchNotifications = batch.studentIds
@@ -1750,15 +1898,21 @@ router.put(
       getIO()
         .to(teacherId.toString())
         .emit("notification", {
-          message: `You modified course "${course.title}"${batches.length > 0 ? ` for ${batches.length} batch(es)` : ""}`,
+          message: `You modified course "${course.title}"${
+            batches.length > 0 ? ` for ${batches.length} batch(es)` : ""
+          }`,
           link: `${process.env.BASE_URL}/teacher/courses/${course._id}`,
         });
 
       logger.info(
-        `Course ${courseId} modified${batches.length > 0 ? ` for batches ${updatedBatchIds.join(", ")}` : ""} by teacher ${teacherId}`
+        `Course ${courseId} modified${
+          batches.length > 0 ? ` for batches ${updatedBatchIds.join(", ")}` : ""
+        } by teacher ${teacherId}`
       );
       res.json({
-        message: `Course modified successfully${batches.length > 0 ? ` for ${batches.length} batch(es)` : ""}`,
+        message: `Course modified successfully${
+          batches.length > 0 ? ` for ${batches.length} batch(es)` : ""
+        }`,
         courseId: course._id,
         batchIds: updatedBatchIds,
       });
@@ -1820,7 +1974,9 @@ router.put(
               throw new Error(`Chapter ${index + 1} title cannot be empty`);
             }
             if (!Array.isArray(chapter.lessons)) {
-              throw new Error(`Lessons in chapter ${index + 1} must be an array`);
+              throw new Error(
+                `Lessons in chapter ${index + 1} must be an array`
+              );
             }
             chapter.lessons.forEach((lesson, lessonIndex) => {
               if (lesson.title && !lesson.title.trim()) {
@@ -1832,7 +1988,9 @@ router.put(
               }
               if (
                 lesson.format &&
-                !["video", "audio", "pdf", "word", "ppt"].includes(lesson.format)
+                !["video", "audio", "pdf", "word", "ppt"].includes(
+                  lesson.format
+                )
               ) {
                 throw new Error(
                   `Invalid format for lesson ${lessonIndex + 1} in chapter ${
@@ -1854,7 +2012,9 @@ router.put(
           });
           return true;
         } catch (error) {
-          throw new Error(error.message || "Chapters must be a valid JSON array");
+          throw new Error(
+            error.message || "Chapters must be a valid JSON array"
+          );
         }
       })
       .withMessage("Chapters must be a valid JSON array"),
@@ -1876,36 +2036,53 @@ router.put(
     }
 
     const { batchId } = req.params;
-    const { modifiedLessons, title, chapters, targetAudience, duration } = req.body;
+    const { modifiedLessons, title, chapters, targetAudience, duration } =
+      req.body;
     const teacherId = req.user.userId;
 
     try {
       const teacher = await User.findById(teacherId).populate("role");
       if (!teacher || teacher.role.roleName !== "Teacher") {
-        logger.warn(`Unauthorized batch course edit attempt by user: ${teacherId}`);
+        logger.warn(
+          `Unauthorized batch course edit attempt by user: ${teacherId}`
+        );
         return res.status(403).json({ message: "Not authorized" });
       }
 
       const batch = await Batch.findById(batchId).populate("courseId");
       if (!batch || batch.teacherId.toString() !== teacherId) {
         logger.warn(`Batch not found or not assigned to teacher: ${batchId}`);
-        return res.status(404).json({ message: "Batch not found or not assigned to you" });
+        return res
+          .status(404)
+          .json({ message: "Batch not found or not assigned to you" });
       }
 
       const course = batch.courseId;
-      if (!course.assignedTeachers.map((id) => id.toString()).includes(teacherId)) {
-        logger.warn(`Teacher ${teacherId} not assigned to course: ${course._id}`);
-        return res.status(403).json({ message: "Not authorized to modify this course" });
+      if (
+        !course.assignedTeachers.map((id) => id.toString()).includes(teacherId)
+      ) {
+        logger.warn(
+          `Teacher ${teacherId} not assigned to course: ${course._id}`
+        );
+        return res
+          .status(403)
+          .json({ message: "Not authorized to modify this course" });
       }
 
       const resources = {};
       const worksheets = {};
       for (const file of req.files || []) {
         if (file.fieldname.startsWith("resources")) {
-          const match = file.fieldname.match(/resources\[(\d+)\]\[(\d+)\]\[(\d+)\]/);
+          const match = file.fieldname.match(
+            /resources\[(\d+)\]\[(\d+)\]\[(\d+)\]/
+          );
           if (!match) {
             logger.warn(`Invalid resource field name: ${file.fieldname}`);
-            return res.status(400).json({ message: `Invalid resource field name: ${file.fieldname}` });
+            return res
+              .status(400)
+              .json({
+                message: `Invalid resource field name: ${file.fieldname}`,
+              });
           }
           const chapterIndex = parseInt(match[1], 10);
           const lessonIndex = parseInt(match[2], 10);
@@ -1926,14 +2103,21 @@ router.put(
             uploadedAt: new Date(),
           };
           if (!resources[chapterIndex]) resources[chapterIndex] = {};
-          if (!resources[chapterIndex][lessonIndex]) resources[chapterIndex][lessonIndex] = {};
+          if (!resources[chapterIndex][lessonIndex])
+            resources[chapterIndex][lessonIndex] = {};
           resources[chapterIndex][lessonIndex][resourceIndex] = resource;
           deleteLocalFile(file.path);
         } else if (file.fieldname.startsWith("worksheets")) {
-          const match = file.fieldname.match(/worksheets\[(\d+)\]\[(\d+)\]\[(\d+)\]/);
+          const match = file.fieldname.match(
+            /worksheets\[(\d+)\]\[(\d+)\]\[(\d+)\]/
+          );
           if (!match) {
             logger.warn(`Invalid worksheet field name: ${file.fieldname}`);
-            return res.status(400).json({ message: `Invalid worksheet field name: ${file.fieldname}` });
+            return res
+              .status(400)
+              .json({
+                message: `Invalid worksheet field name: ${file.fieldname}`,
+              });
           }
           const chapterIndex = parseInt(match[1], 10);
           const lessonIndex = parseInt(match[2], 10);
@@ -1954,7 +2138,8 @@ router.put(
             uploadedAt: new Date(),
           };
           if (!worksheets[chapterIndex]) worksheets[chapterIndex] = {};
-          if (!worksheets[chapterIndex][lessonIndex]) worksheets[chapterIndex][lessonIndex] = {};
+          if (!worksheets[chapterIndex][lessonIndex])
+            worksheets[chapterIndex][lessonIndex] = {};
           worksheets[chapterIndex][lessonIndex][resourceIndex] = worksheet;
           deleteLocalFile(file.path);
         }
@@ -1969,64 +2154,97 @@ router.put(
       };
 
       if (chapters) {
-        const parsedChapters = typeof chapters === "string" ? JSON.parse(chapters) : chapters;
-        batchSpecificModifications.chapters = parsedChapters.map((chapter, chapterIndex) => {
-          const existingChapter = course.chapters[chapterIndex] || {};
-          const lessons = chapter.lessons.map((lesson, lessonIndex) => {
-            const lessonResources = [];
-            const lessonWorksheets = [];
-            if (resources[chapterIndex]?.[lessonIndex]) {
-              Object.keys(resources[chapterIndex][lessonIndex])
-                .sort((a, b) => parseInt(a) - parseInt(b))
-                .forEach((resourceIndex) => {
-                  lessonResources.push(resources[chapterIndex][lessonIndex][resourceIndex]);
-                });
-            }
-            if (worksheets[chapterIndex]?.[lessonIndex]) {
-              Object.keys(worksheets[chapterIndex][lessonIndex])
-                .sort((a, b) => parseInt(a) - parseInt(b))
-                .forEach((resourceIndex) => {
-                  lessonWorksheets.push(worksheets[chapterIndex][lessonIndex][resourceIndex]);
-                });
-            }
-            const expectedType = lesson.format === "word" ? "doc" : lesson.format;
-            if (lessonResources.length > 0 && !lessonResources.every((res) => res.type === expectedType)) {
-              throw new Error(
-                `Resource type mismatch for lesson ${lessonIndex + 1} in chapter ${chapterIndex + 1}`
-              );
-            }
-            if (lessonWorksheets.length > 0 && !lessonWorksheets.every((ws) => ws.type === expectedType)) {
-              throw new Error(
-                `Worksheet type mismatch for lesson ${lessonIndex + 1} in chapter ${chapterIndex + 1}`
-              );
-            }
-            const existingLesson = existingChapter.lessons?.[lessonIndex] || {};
+        const parsedChapters =
+          typeof chapters === "string" ? JSON.parse(chapters) : chapters;
+        batchSpecificModifications.chapters = parsedChapters.map(
+          (chapter, chapterIndex) => {
+            const existingChapter = course.chapters[chapterIndex] || {};
+            const lessons = chapter.lessons.map((lesson, lessonIndex) => {
+              const lessonResources = [];
+              const lessonWorksheets = [];
+              if (resources[chapterIndex]?.[lessonIndex]) {
+                Object.keys(resources[chapterIndex][lessonIndex])
+                  .sort((a, b) => parseInt(a) - parseInt(b))
+                  .forEach((resourceIndex) => {
+                    lessonResources.push(
+                      resources[chapterIndex][lessonIndex][resourceIndex]
+                    );
+                  });
+              }
+              if (worksheets[chapterIndex]?.[lessonIndex]) {
+                Object.keys(worksheets[chapterIndex][lessonIndex])
+                  .sort((a, b) => parseInt(a) - parseInt(b))
+                  .forEach((resourceIndex) => {
+                    lessonWorksheets.push(
+                      worksheets[chapterIndex][lessonIndex][resourceIndex]
+                    );
+                  });
+              }
+              const expectedType =
+                lesson.format === "word" ? "doc" : lesson.format;
+              if (
+                lessonResources.length > 0 &&
+                !lessonResources.every((res) => res.type === expectedType)
+              ) {
+                throw new Error(
+                  `Resource type mismatch for lesson ${
+                    lessonIndex + 1
+                  } in chapter ${chapterIndex + 1}`
+                );
+              }
+              if (
+                lessonWorksheets.length > 0 &&
+                !lessonWorksheets.every((ws) => ws.type === expectedType)
+              ) {
+                throw new Error(
+                  `Worksheet type mismatch for lesson ${
+                    lessonIndex + 1
+                  } in chapter ${chapterIndex + 1}`
+                );
+              }
+              const existingLesson =
+                existingChapter.lessons?.[lessonIndex] || {};
+              return {
+                title: lesson.title,
+                format: lesson.format,
+                learningGoals: lesson.learningGoals.filter((goal) =>
+                  goal.trim()
+                ),
+                resources:
+                  lessonResources.length > 0
+                    ? lessonResources
+                    : existingLesson.resources || [],
+                worksheets:
+                  lessonWorksheets.length > 0
+                    ? lessonWorksheets
+                    : existingLesson.worksheets || [],
+                order: lessonIndex + 1,
+              };
+            });
             return {
-              title: lesson.title,
-              format: lesson.format,
-              learningGoals: lesson.learningGoals.filter((goal) => goal.trim()),
-              resources: lessonResources.length > 0 ? lessonResources : existingLesson.resources || [],
-              worksheets: lessonWorksheets.length > 0 ? lessonWorksheets : existingLesson.worksheets || [],
-              order: lessonIndex + 1,
+              title: chapter.title,
+              lessons,
+              order: chapterIndex + 1,
             };
-          });
-          return {
-            title: chapter.title,
-            lessons,
-            order: chapterIndex + 1,
-          };
-        });
+          }
+        );
       }
 
       if (modifiedLessons) {
-        const parsedLessons = typeof modifiedLessons === "string" ? JSON.parse(modifiedLessons) : modifiedLessons;
+        const parsedLessons =
+          typeof modifiedLessons === "string"
+            ? JSON.parse(modifiedLessons)
+            : modifiedLessons;
         batch.modifiedLessons = parsedLessons.map((lesson) => ({
           lessonId: lesson.lessonId,
           isDeleted: lesson.isDeleted || false,
         }));
       }
 
-      batch.batchSpecificModifications = { ...batch.batchSpecificModifications, ...batchSpecificModifications };
+      batch.batchSpecificModifications = {
+        ...batch.batchSpecificModifications,
+        ...batchSpecificModifications,
+      };
       await batch.save();
 
       const notifications = batch.studentIds
@@ -2040,7 +2258,11 @@ router.put(
         );
 
       const students = await User.find({
-        _id: { $in: batch.studentIds.filter((s) => s.isInThisBatch).map((s) => s.studentId) },
+        _id: {
+          $in: batch.studentIds
+            .filter((s) => s.isInThisBatch)
+            .map((s) => s.studentId),
+        },
       });
 
       const emailNotifications = students.map((student) =>
@@ -2072,7 +2294,9 @@ router.put(
           link: `${process.env.BASE_URL}/teacher/courses/${course._id}`,
         });
 
-      logger.info(`Course ${course._id} modified for batch ${batchId} by teacher ${teacherId}`);
+      logger.info(
+        `Course ${course._id} modified for batch ${batchId} by teacher ${teacherId}`
+      );
       res.json({
         message: "Course modified successfully for batch",
         courseId: course._id,
@@ -2096,7 +2320,9 @@ router.put(
         const ids = value.split(",");
         return ids.every((id) => mongoose.isValidObjectId(id));
       })
-      .withMessage("Student IDs must be valid MongoDB ObjectIds separated by commas"),
+      .withMessage(
+        "Student IDs must be valid MongoDB ObjectIds separated by commas"
+      ),
     check("title")
       .optional()
       .notEmpty()
@@ -2115,7 +2341,9 @@ router.put(
               throw new Error(`Chapter ${index + 1} title cannot be empty`);
             }
             if (!Array.isArray(chapter.lessons)) {
-              throw new Error(`Lessons in chapter ${index + 1} must be an array`);
+              throw new Error(
+                `Lessons in chapter ${index + 1} must be an array`
+              );
             }
             chapter.lessons.forEach((lesson, lessonIndex) => {
               if (lesson.title && !lesson.title.trim()) {
@@ -2127,7 +2355,9 @@ router.put(
               }
               if (
                 lesson.format &&
-                !["video", "audio", "pdf", "word", "ppt"].includes(lesson.format)
+                !["video", "audio", "pdf", "word", "ppt"].includes(
+                  lesson.format
+                )
               ) {
                 throw new Error(
                   `Invalid format for lesson ${lessonIndex + 1} in chapter ${
@@ -2149,7 +2379,9 @@ router.put(
           });
           return true;
         } catch (error) {
-          throw new Error(error.message || "Chapters must be a valid JSON array");
+          throw new Error(
+            error.message || "Chapters must be a valid JSON array"
+          );
         }
       })
       .withMessage("Chapters must be a valid JSON array"),
@@ -2177,40 +2409,56 @@ router.put(
     try {
       const teacher = await User.findById(teacherId).populate("role");
       if (!teacher || teacher.role.roleName !== "Teacher") {
-        logger.warn(`Unauthorized student course edit attempt by user: ${teacherId}`);
+        logger.warn(
+          `Unauthorized student course edit attempt by user: ${teacherId}`
+        );
         return res.status(403).json({ message: "Not authorized" });
       }
 
       const batch = await Batch.findById(batchId).populate("courseId");
       if (!batch || batch.teacherId.toString() !== teacherId) {
         logger.warn(`Batch not found or not assigned to teacher: ${batchId}`);
-        return res.status(404).json({ message: "Batch not found or not assigned to you" });
+        return res
+          .status(404)
+          .json({ message: "Batch not found or not assigned to you" });
       }
 
       const course = batch.courseId;
       if (course._id.toString() !== courseId) {
         logger.warn(`Course ${courseId} not associated with batch: ${batchId}`);
-        return res.status(400).json({ message: "Course not associated with this batch" });
+        return res
+          .status(400)
+          .json({ message: "Course not associated with this batch" });
       }
 
       const studentIdArray = studentIds.split(",");
       const students = await User.find({
         _id: { $in: studentIdArray },
       }).populate("role");
-      const validStudents = students.filter((s) => s.role.roleName === "Student");
+      const validStudents = students.filter(
+        (s) => s.role.roleName === "Student"
+      );
       if (validStudents.length !== studentIdArray.length) {
         logger.warn(`Invalid student IDs: ${studentIds}`);
-        return res.status(400).json({ message: "One or more student IDs are invalid" });
+        return res
+          .status(400)
+          .json({ message: "One or more student IDs are invalid" });
       }
 
       const resources = {};
       const worksheets = {};
       for (const file of req.files || []) {
         if (file.fieldname.startsWith("resources")) {
-          const match = file.fieldname.match(/resources\[(\d+)\]\[(\d+)\]\[(\d+)\]/);
+          const match = file.fieldname.match(
+            /resources\[(\d+)\]\[(\d+)\]\[(\d+)\]/
+          );
           if (!match) {
             logger.warn(`Invalid resource field name: ${file.fieldname}`);
-            return res.status(400).json({ message: `Invalid resource field name: ${file.fieldname}` });
+            return res
+              .status(400)
+              .json({
+                message: `Invalid resource field name: ${file.fieldname}`,
+              });
           }
           const chapterIndex = parseInt(match[1], 10);
           const lessonIndex = parseInt(match[2], 10);
@@ -2231,14 +2479,21 @@ router.put(
             uploadedAt: new Date(),
           };
           if (!resources[chapterIndex]) resources[chapterIndex] = {};
-          if (!resources[chapterIndex][lessonIndex]) resources[chapterIndex][lessonIndex] = {};
+          if (!resources[chapterIndex][lessonIndex])
+            resources[chapterIndex][lessonIndex] = {};
           resources[chapterIndex][lessonIndex][resourceIndex] = resource;
           deleteLocalFile(file.path);
         } else if (file.fieldname.startsWith("worksheets")) {
-          const match = file.fieldname.match(/worksheets\[(\d+)\]\[(\d+)\]\[(\d+)\]/);
+          const match = file.fieldname.match(
+            /worksheets\[(\d+)\]\[(\d+)\]\[(\d+)\]/
+          );
           if (!match) {
             logger.warn(`Invalid worksheet field name: ${file.fieldname}`);
-            return res.status(400).json({ message: `Invalid worksheet field name: ${file.fieldname}` });
+            return res
+              .status(400)
+              .json({
+                message: `Invalid worksheet field name: ${file.fieldname}`,
+              });
           }
           const chapterIndex = parseInt(match[1], 10);
           const lessonIndex = parseInt(match[2], 10);
@@ -2259,7 +2514,8 @@ router.put(
             uploadedAt: new Date(),
           };
           if (!worksheets[chapterIndex]) worksheets[chapterIndex] = {};
-          if (!worksheets[chapterIndex][lessonIndex]) worksheets[chapterIndex][lessonIndex] = {};
+          if (!worksheets[chapterIndex][lessonIndex])
+            worksheets[chapterIndex][lessonIndex] = {};
           worksheets[chapterIndex][lessonIndex][resourceIndex] = worksheet;
           deleteLocalFile(file.path);
         }
@@ -2274,53 +2530,80 @@ router.put(
       };
 
       if (chapters) {
-        const parsedChapters = typeof chapters === "string" ? JSON.parse(chapters) : chapters;
-        studentModifications.chapters = parsedChapters.map((chapter, chapterIndex) => {
-          const existingChapter = course.chapters[chapterIndex] || {};
-          const lessons = chapter.lessons.map((lesson, lessonIndex) => {
-            const lessonResources = [];
-            const lessonWorksheets = [];
-            if (resources[chapterIndex]?.[lessonIndex]) {
-              Object.keys(resources[chapterIndex][lessonIndex])
-                .sort((a, b) => parseInt(a) - parseInt(b))
-                .forEach((resourceIndex) => {
-                  lessonResources.push(resources[chapterIndex][lessonIndex][resourceIndex]);
-                });
-            }
-            if (worksheets[chapterIndex]?.[lessonIndex]) {
-              Object.keys(worksheets[chapterIndex][lessonIndex])
-                .sort((a, b) => parseInt(a) - parseInt(b))
-                .forEach((resourceIndex) => {
-                  lessonWorksheets.push(worksheets[chapterIndex][lessonIndex][resourceIndex]);
-                });
-            }
-            const expectedType = lesson.format === "word" ? "doc" : lesson.format;
-            if (lessonResources.length > 0 && !lessonResources.every((res) => res.type === expectedType)) {
-              throw new Error(
-                `Resource type mismatch for lesson ${lessonIndex + 1} in chapter ${chapterIndex + 1}`
-              );
-            }
-            if (lessonWorksheets.length > 0 && !lessonWorksheets.every((ws) => ws.type === expectedType)) {
-              throw new Error(
-                `Worksheet type mismatch for lesson ${lessonIndex + 1} in chapter ${chapterIndex + 1}`
-              );
-            }
-            const existingLesson = existingChapter.lessons?.[lessonIndex] || {};
+        const parsedChapters =
+          typeof chapters === "string" ? JSON.parse(chapters) : chapters;
+        studentModifications.chapters = parsedChapters.map(
+          (chapter, chapterIndex) => {
+            const existingChapter = course.chapters[chapterIndex] || {};
+            const lessons = chapter.lessons.map((lesson, lessonIndex) => {
+              const lessonResources = [];
+              const lessonWorksheets = [];
+              if (resources[chapterIndex]?.[lessonIndex]) {
+                Object.keys(resources[chapterIndex][lessonIndex])
+                  .sort((a, b) => parseInt(a) - parseInt(b))
+                  .forEach((resourceIndex) => {
+                    lessonResources.push(
+                      resources[chapterIndex][lessonIndex][resourceIndex]
+                    );
+                  });
+              }
+              if (worksheets[chapterIndex]?.[lessonIndex]) {
+                Object.keys(worksheets[chapterIndex][lessonIndex])
+                  .sort((a, b) => parseInt(a) - parseInt(b))
+                  .forEach((resourceIndex) => {
+                    lessonWorksheets.push(
+                      worksheets[chapterIndex][lessonIndex][resourceIndex]
+                    );
+                  });
+              }
+              const expectedType =
+                lesson.format === "word" ? "doc" : lesson.format;
+              if (
+                lessonResources.length > 0 &&
+                !lessonResources.every((res) => res.type === expectedType)
+              ) {
+                throw new Error(
+                  `Resource type mismatch for lesson ${
+                    lessonIndex + 1
+                  } in chapter ${chapterIndex + 1}`
+                );
+              }
+              if (
+                lessonWorksheets.length > 0 &&
+                !lessonWorksheets.every((ws) => ws.type === expectedType)
+              ) {
+                throw new Error(
+                  `Worksheet type mismatch for lesson ${
+                    lessonIndex + 1
+                  } in chapter ${chapterIndex + 1}`
+                );
+              }
+              const existingLesson =
+                existingChapter.lessons?.[lessonIndex] || {};
+              return {
+                title: lesson.title,
+                format: lesson.format,
+                learningGoals: lesson.learningGoals.filter((goal) =>
+                  goal.trim()
+                ),
+                resources:
+                  lessonResources.length > 0
+                    ? lessonResources
+                    : existingLesson.resources || [],
+                worksheets:
+                  lessonWorksheets.length > 0
+                    ? lessonWorksheets
+                    : existingLesson.worksheets || [],
+                order: lessonIndex + 1,
+              };
+            });
             return {
-              title: lesson.title,
-              format: lesson.format,
-              learningGoals: lesson.learningGoals.filter((goal) => goal.trim()),
-              resources: lessonResources.length > 0 ? lessonResources : existingLesson.resources || [],
-              worksheets: lessonWorksheets.length > 0 ? lessonWorksheets : existingLesson.worksheets || [],
-              order: lessonIndex + 1,
+              title: chapter.title,
+              lessons,
+              order: chapterIndex + 1,
             };
-          });
-          return {
-            title: chapter.title,
-            lessons,
-            order: chapterIndex + 1,
-          };
-        });
+          }
+        );
       }
 
       studentIdArray.forEach((studentId) => {
@@ -2328,11 +2611,12 @@ router.put(
           (mod) => mod.studentId.toString() === studentId
         );
         if (existingMod) {
-          batch.studentSpecificModifications = batch.studentSpecificModifications.map((mod) =>
-            mod.studentId.toString() === studentId
-              ? { ...mod, ...studentModifications }
-              : mod
-          );
+          batch.studentSpecificModifications =
+            batch.studentSpecificModifications.map((mod) =>
+              mod.studentId.toString() === studentId
+                ? { ...mod, ...studentModifications }
+                : mod
+            );
         } else {
           batch.studentSpecificModifications.push({
             studentId,
@@ -2420,9 +2704,19 @@ router.put(
       }
 
       const batch = await Batch.findById(batchId).populate("courseId");
-      if (!batch || batch.teacherId.toString() !== teacherId || batch.courseId._id.toString() !== courseId) {
-        logger.warn(`Batch not found or not assigned to teacher/course: ${batchId}`);
-        return res.status(404).json({ message: "Batch not found or not assigned to you for this course" });
+      if (
+        !batch ||
+        batch.teacherId.toString() !== teacherId ||
+        batch.courseId._id.toString() !== courseId
+      ) {
+        logger.warn(
+          `Batch not found or not assigned to teacher/course: ${batchId}`
+        );
+        return res
+          .status(404)
+          .json({
+            message: "Batch not found or not assigned to you for this course",
+          });
       }
 
       batch.batchSpecificModifications = {};
@@ -2431,7 +2725,9 @@ router.put(
       await batch.save();
 
       await removeSchedulesForCourse(courseId, batchId);
-      logger.info(`Schedules removed for course ${courseId} and batch ${batchId}`);
+      logger.info(
+        `Schedules removed for course ${courseId} and batch ${batchId}`
+      );
 
       const notifications = batch.studentIds
         .filter((s) => s.isInThisBatch)
@@ -2444,7 +2740,11 @@ router.put(
         );
 
       const students = await User.find({
-        _id: { $in: batch.studentIds.filter((s) => s.isInThisBatch).map((s) => s.studentId) },
+        _id: {
+          $in: batch.studentIds
+            .filter((s) => s.isInThisBatch)
+            .map((s) => s.studentId),
+        },
       });
 
       const emailNotifications = students.map((student) =>
@@ -2476,7 +2776,9 @@ router.put(
           link: `${process.env.BASE_URL}/teacher/courses`,
         });
 
-      logger.info(`Course ${courseId} unassigned from batch ${batchId} by teacher ${teacherId}`);
+      logger.info(
+        `Course ${courseId} unassigned from batch ${batchId} by teacher ${teacherId}`
+      );
       res.json({ message: "Course unassigned successfully from batch" });
     } catch (error) {
       logger.error("Unassign course error:", error);
@@ -2496,13 +2798,18 @@ router.post(
       .optional()
       .isArray()
       .withMessage("Student IDs must be an array")
-      .custom((value) => value.every((id) => mongoose.Types.ObjectId.isValid(id)))
+      .custom((value) =>
+        value.every((id) => mongoose.Types.ObjectId.isValid(id))
+      )
       .withMessage("All student IDs must be valid MongoDB ObjectIds"),
   ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      logger.warn("Validation errors in assign batch to course:", errors.array());
+      logger.warn(
+        "Validation errors in assign batch to course:",
+        errors.array()
+      );
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -2512,7 +2819,9 @@ router.post(
     try {
       const teacher = await User.findById(teacherId).populate("role");
       if (!teacher || !teacher.role || teacher.role.roleName !== "Teacher") {
-        logger.warn(`Unauthorized batch assignment attempt by user: ${teacherId}`);
+        logger.warn(
+          `Unauthorized batch assignment attempt by user: ${teacherId}`
+        );
         return res.status(403).json({ message: "Not authorized" });
       }
 
@@ -2581,7 +2890,11 @@ router.post(
           const errorMessage = alreadyAssignedStudents
             .map(
               (entry) =>
-                `Student ${idToName[entry.studentId] || entry.studentId} is already assigned to this course in batch: ${entry.batchName}`
+                `Student ${
+                  idToName[entry.studentId] || entry.studentId
+                } is already assigned to this course in batch: ${
+                  entry.batchName
+                }`
             )
             .join("; ");
 
@@ -2600,15 +2913,19 @@ router.post(
 
         logger.debug(
           `Raw user data for studentIds ${studentIds}: ${JSON.stringify(
-            users.map((u) => ({ _id: u._id, role: u.role ? u.role.roleName : "null" }))
+            users.map((u) => ({
+              _id: u._id,
+              role: u.role ? u.role.roleName : "null",
+            }))
           )}`
         );
 
         const students = users.filter(
-          (user) =>
-            user.role && user.role.roleName.toLowerCase() === "student"
+          (user) => user.role && user.role.roleName.toLowerCase() === "student"
         );
-        const foundStudentIds = students.map((student) => student._id.toString());
+        const foundStudentIds = students.map((student) =>
+          student._id.toString()
+        );
         const invalidStudentIds = studentIds.filter(
           (id) => !foundStudentIds.includes(id)
         );
@@ -2628,7 +2945,9 @@ router.post(
           const errorMessages = [];
           if (nonExistentIds.length > 0) {
             errorMessages.push(
-              `The following student IDs do not exist: ${nonExistentIds.join(", ")}`
+              `The following student IDs do not exist: ${nonExistentIds.join(
+                ", "
+              )}`
             );
           }
           if (nonStudentIds.length > 0) {
@@ -2669,7 +2988,11 @@ router.post(
         );
 
       const students = await User.find({
-        _id: { $in: batch.studentIds.filter((s) => s.isInThisBatch).map((s) => s.studentId) },
+        _id: {
+          $in: batch.studentIds
+            .filter((s) => s.isInThisBatch)
+            .map((s) => s.studentId),
+        },
         "role.roleName": "Student",
       });
 
@@ -2695,7 +3018,9 @@ router.post(
             });
         });
 
-      logger.info(`Batch ${batchId} assigned to course ${courseId} by teacher ${teacherId}`);
+      logger.info(
+        `Batch ${batchId} assigned to course ${courseId} by teacher ${teacherId}`
+      );
       res.json({ message: "Batch assigned to course successfully", batchId });
     } catch (error) {
       logger.error("Assign batch to course error:", error);
@@ -2767,7 +3092,11 @@ router.get("/batches/teacher", authenticate, async (req, res) => {
                 completedLessonIds.add(lessonIdStr);
               } else {
                 logger.warn(
-                  `Invalid lessonId ${lessonIdStr} in ScheduledCall ${call._id} for batch ${batch._id}. Expected one of: ${[...validLessonIds].join(", ")}`
+                  `Invalid lessonId ${lessonIdStr} in ScheduledCall ${
+                    call._id
+                  } for batch ${batch._id}. Expected one of: ${[
+                    ...validLessonIds,
+                  ].join(", ")}`
                 );
               }
             } else {
@@ -2791,13 +3120,15 @@ router.get("/batches/teacher", authenticate, async (req, res) => {
         });
         const batchAttendancePercentage =
           attendanceRecords.length > 0
-            ? (attendanceRecords.reduce((sum, record) => {
+            ? attendanceRecords.reduce((sum, record) => {
                 const presentCount = record.attendances.filter(
                   (a) => a.status === "Present"
                 ).length;
                 const totalCount = record.attendances.length;
-                return sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0);
-              }, 0) / attendanceRecords.length)
+                return (
+                  sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0)
+                );
+              }, 0) / attendanceRecords.length
             : 0;
 
         const allStudentsAttendance = await Promise.all(
@@ -2809,21 +3140,30 @@ router.get("/batches/teacher", authenticate, async (req, res) => {
                 "attendances.studentId": s.studentId._id,
               }).sort({ date: -1 });
               let percentage = 0;
-              let latestStatus = "Absent"; 
+              let latestStatus = "Absent";
 
               if (studentAttendanceRecords.length > 0) {
-                percentage = (studentAttendanceRecords.reduce((sum, record) => {
-                  const studentAttendance = record.attendances.find(
-                    (a) => String(a.studentId) === String(s.studentId._id)
-                  );
-                  return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
-                }, 0) / studentAttendanceRecords.length);
+                percentage =
+                  studentAttendanceRecords.reduce((sum, record) => {
+                    const studentAttendance = record.attendances.find(
+                      (a) => String(a.studentId) === String(s.studentId._id)
+                    );
+                    return (
+                      sum +
+                      (studentAttendance &&
+                      studentAttendance.status === "Present"
+                        ? 100
+                        : 0)
+                    );
+                  }, 0) / studentAttendanceRecords.length;
 
                 const latestRecord = studentAttendanceRecords[0];
                 const latestAttendance = latestRecord.attendances.find(
                   (a) => String(a.studentId) === String(s.studentId._id)
                 );
-                latestStatus = latestAttendance ? latestAttendance.status : "Absent";
+                latestStatus = latestAttendance
+                  ? latestAttendance.status
+                  : "Absent";
               }
 
               return {
@@ -2863,10 +3203,12 @@ router.get("/batches/teacher", authenticate, async (req, res) => {
                   _id: batch.courseId.createdBy?._id,
                   name: batch.courseId.createdBy?.name,
                 },
-                assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
-                  _id: teacher._id,
-                  name: teacher.name,
-                })),
+                assignedTeachers: batch.courseId.assignedTeachers.map(
+                  (teacher) => ({
+                    _id: teacher._id,
+                    name: teacher.name,
+                  })
+                ),
                 lastUpdatedBy: {
                   _id: batch.courseId.lastUpdatedBy?._id,
                   name: batch.courseId.lastUpdatedBy?.name,
@@ -2896,14 +3238,18 @@ router.get("/batches/teacher", authenticate, async (req, res) => {
           completedLessons,
           totalHours: parseFloat(totalHours.toFixed(2)),
           completedHours: parseFloat(completedHours.toFixed(2)),
-          batchAttendancePercentage: parseFloat(batchAttendancePercentage.toFixed(2)),
+          batchAttendancePercentage: parseFloat(
+            batchAttendancePercentage.toFixed(2)
+          ),
           allStudentsAttendance,
           createdAt: batch.createdAt,
         };
       })
     );
 
-    logger.info(`Batches fetched for teacher ${teacherId}: ${formattedBatches.length} batches`);
+    logger.info(
+      `Batches fetched for teacher ${teacherId}: ${formattedBatches.length} batches`
+    );
     res.json({ batches: formattedBatches });
   } catch (error) {
     logger.error(`Fetch teacher batches error: ${error.message}`);
@@ -2918,7 +3264,9 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
     const batchId = req.params.batchId;
 
     if (!mongoose.isValidObjectId(batchId)) {
-      logger.warn(`Invalid batchId format: ${batchId} for teacher: ${teacherId}`);
+      logger.warn(
+        `Invalid batchId format: ${batchId} for teacher: ${teacherId}`
+      );
       return res.status(400).json({ message: "Invalid batchId format" });
     }
 
@@ -2943,8 +3291,12 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
       });
 
     if (!batch) {
-      logger.warn(`Batch ${batchId} not found or not assigned to teacher ${teacherId}`);
-      return res.status(404).json({ message: "Batch not found or not assigned to you" });
+      logger.warn(
+        `Batch ${batchId} not found or not assigned to teacher ${teacherId}`
+      );
+      return res
+        .status(404)
+        .json({ message: "Batch not found or not assigned to you" });
     }
 
     const totalStudents = batch.studentIds.filter(
@@ -2984,7 +3336,11 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
             completedLessonIds.add(lessonIdStr);
           } else {
             logger.warn(
-              `Invalid lessonId ${lessonIdStr} in ScheduledCall ${call._id} for batch ${batch._id}. Expected one of: ${[...validLessonIds].join(", ")}`
+              `Invalid lessonId ${lessonIdStr} in ScheduledCall ${
+                call._id
+              } for batch ${batch._id}. Expected one of: ${[
+                ...validLessonIds,
+              ].join(", ")}`
             );
           }
         } else {
@@ -2996,7 +3352,7 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
     const completedLessons = completedLessonIds.size;
 
     const totalHours = scheduledCalls.reduce(
-      (sum, call) => sum + (call.callDuration || 0) / 60, 
+      (sum, call) => sum + (call.callDuration || 0) / 60,
       0
     );
     const completedHours = scheduledCalls
@@ -3008,13 +3364,15 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
     });
     const batchAttendancePercentage =
       attendanceRecords.length > 0
-        ? (attendanceRecords.reduce((sum, record) => {
+        ? attendanceRecords.reduce((sum, record) => {
             const presentCount = record.attendances.filter(
               (a) => a.status === "Present"
             ).length;
             const totalCount = record.attendances.length;
-            return sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0);
-          }, 0) / attendanceRecords.length)
+            return (
+              sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0)
+            );
+          }, 0) / attendanceRecords.length
         : 0;
 
     const allStudentsAttendance = await Promise.all(
@@ -3026,21 +3384,29 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
             "attendances.studentId": s.studentId._id,
           }).sort({ date: -1 });
           let percentage = 0;
-          let latestStatus = "Absent"; 
+          let latestStatus = "Absent";
 
           if (studentAttendanceRecords.length > 0) {
-            percentage = (studentAttendanceRecords.reduce((sum, record) => {
-              const studentAttendance = record.attendances.find(
-                (a) => String(a.studentId) === String(s.studentId._id)
-              );
-              return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
-            }, 0) / studentAttendanceRecords.length);
+            percentage =
+              studentAttendanceRecords.reduce((sum, record) => {
+                const studentAttendance = record.attendances.find(
+                  (a) => String(a.studentId) === String(s.studentId._id)
+                );
+                return (
+                  sum +
+                  (studentAttendance && studentAttendance.status === "Present"
+                    ? 100
+                    : 0)
+                );
+              }, 0) / studentAttendanceRecords.length;
 
             const latestRecord = studentAttendanceRecords[0];
             const latestAttendance = latestRecord.attendances.find(
               (a) => String(a.studentId) === String(s.studentId._id)
             );
-            latestStatus = latestAttendance ? latestAttendance.status : "Absent";
+            latestStatus = latestAttendance
+              ? latestAttendance.status
+              : "Absent";
           }
 
           return {
@@ -3054,17 +3420,24 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
 
     const teacherCourseModifications = batch.teacherCourseModifications || {};
     const batchSpecificModifications = batch.batchSpecificModifications || {};
-    const studentSpecificModifications = batch.studentSpecificModifications || [];
+    const studentSpecificModifications =
+      batch.studentSpecificModifications || [];
 
     let effectiveModifications = {};
-    const studentIds = req.query.studentIds ? req.query.studentIds.split(",") : [];
+    const studentIds = req.query.studentIds
+      ? req.query.studentIds.split(",")
+      : [];
     if (studentIds.length > 0) {
       const selectedModifications = studentSpecificModifications.find((mod) =>
         studentIds.includes(mod.studentId)
       );
-      effectiveModifications = selectedModifications || batchSpecificModifications || teacherCourseModifications;
+      effectiveModifications =
+        selectedModifications ||
+        batchSpecificModifications ||
+        teacherCourseModifications;
     } else {
-      effectiveModifications = batchSpecificModifications || teacherCourseModifications;
+      effectiveModifications =
+        batchSpecificModifications || teacherCourseModifications;
     }
 
     const formattedBatch = {
@@ -3105,21 +3478,32 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
                     order: lesson.order,
                   })),
                 })),
-            targetAudience: effectiveModifications.targetAudience || batch.courseId.targetAudience,
-            duration: effectiveModifications.duration || batch.courseId.duration,
+            targetAudience:
+              effectiveModifications.targetAudience ||
+              batch.courseId.targetAudience,
+            duration:
+              effectiveModifications.duration || batch.courseId.duration,
             createdBy: {
               _id: batch.courseId.createdBy?._id,
               name: batch.courseId.createdBy?.name,
             },
-            assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
-              _id: teacher._id,
-              name: teacher.name,
-            })),
+            assignedTeachers: batch.courseId.assignedTeachers.map(
+              (teacher) => ({
+                _id: teacher._id,
+                name: teacher.name,
+              })
+            ),
             lastUpdatedBy: {
-              _id: effectiveModifications.lastModifiedBy || batch.courseId.lastUpdatedBy?._id,
-              name: effectiveModifications.lastModifiedByName || batch.courseId.lastUpdatedBy?.name,
+              _id:
+                effectiveModifications.lastModifiedBy ||
+                batch.courseId.lastUpdatedBy?._id,
+              name:
+                effectiveModifications.lastModifiedByName ||
+                batch.courseId.lastUpdatedBy?.name,
             },
-            lastUpdatedAt: effectiveModifications.lastModifiedAt || batch.courseId.lastUpdatedAt,
+            lastUpdatedAt:
+              effectiveModifications.lastModifiedAt ||
+              batch.courseId.lastUpdatedAt,
             driveFolderId: batch.courseId.driveFolderId,
             createdAt: batch.courseId.createdAt,
           }
@@ -3144,7 +3528,9 @@ router.get("/batches/teacher/:batchId", authenticate, async (req, res) => {
       completedLessons,
       totalHours: parseFloat(totalHours.toFixed(2)),
       completedHours: parseFloat(completedHours.toFixed(2)),
-      batchAttendancePercentage: parseFloat(batchAttendancePercentage.toFixed(2)),
+      batchAttendancePercentage: parseFloat(
+        batchAttendancePercentage.toFixed(2)
+      ),
       allStudentsAttendance,
       teacherCourseModifications: {
         title: teacherCourseModifications.title || null,
@@ -3246,7 +3632,9 @@ router.get("/batches/student", authenticate, async (req, res) => {
     const query = { "studentIds.studentId": studentId };
     if (batchId) {
       if (!mongoose.isValidObjectId(batchId)) {
-        logger.warn(`Invalid batchId format: ${batchId} for user: ${studentId}`);
+        logger.warn(
+          `Invalid batchId format: ${batchId} for user: ${studentId}`
+        );
         return res.status(400).json({ message: "Invalid batchId format" });
       }
       query._id = batchId;
@@ -3267,14 +3655,19 @@ router.get("/batches/student", authenticate, async (req, res) => {
       });
 
     if (batchId && batches.length === 0) {
-      logger.warn(`Batch ${batchId} not found or student ${studentId} not enrolled`);
-      return res.status(404).json({ message: "Batch not found or student not enrolled" });
+      logger.warn(
+        `Batch ${batchId} not found or student ${studentId} not enrolled`
+      );
+      return res
+        .status(404)
+        .json({ message: "Batch not found or student not enrolled" });
     }
 
     const formattedBatches = await Promise.all(
       batches.map(async (batch) => {
         const studentData = batch.studentIds.find(
-          (s) => String(s.studentId._id) === String(studentId) && s.isInThisBatch
+          (s) =>
+            String(s.studentId._id) === String(studentId) && s.isInThisBatch
         );
 
         if (!studentData) return null;
@@ -3316,7 +3709,11 @@ router.get("/batches/student", authenticate, async (req, res) => {
                 completedLessonIds.add(lessonIdStr);
               } else {
                 logger.warn(
-                  `Invalid lessonId ${lessonIdStr} in ScheduledCall ${call._id} for batch ${batch._id}. Expected one of: ${[...validLessonIds].join(", ")}`
+                  `Invalid lessonId ${lessonIdStr} in ScheduledCall ${
+                    call._id
+                  } for batch ${batch._id}. Expected one of: ${[
+                    ...validLessonIds,
+                  ].join(", ")}`
                 );
               }
             } else {
@@ -3328,7 +3725,7 @@ router.get("/batches/student", authenticate, async (req, res) => {
         const completedLessons = completedLessonIds.size;
 
         const totalHours = scheduledCalls.reduce(
-          (sum, call) => sum + (call.callDuration || 0) / 60, 
+          (sum, call) => sum + (call.callDuration || 0) / 60,
           0
         );
         const completedHours = scheduledCalls
@@ -3340,13 +3737,15 @@ router.get("/batches/student", authenticate, async (req, res) => {
         });
         const batchAttendancePercentage =
           attendanceRecords.length > 0
-            ? (attendanceRecords.reduce((sum, record) => {
+            ? attendanceRecords.reduce((sum, record) => {
                 const presentCount = record.attendances.filter(
                   (a) => a.status === "Present"
                 ).length;
                 const totalCount = record.attendances.length;
-                return sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0);
-              }, 0) / attendanceRecords.length)
+                return (
+                  sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0)
+                );
+              }, 0) / attendanceRecords.length
             : 0;
 
         const allStudentsAttendance = await Promise.all(
@@ -3356,23 +3755,32 @@ router.get("/batches/student", authenticate, async (req, res) => {
               const studentAttendanceRecords = await Attendance.find({
                 batchId: batch._id,
                 "attendances.studentId": s.studentId._id,
-              }).sort({ date: -1 }); 
+              }).sort({ date: -1 });
               let percentage = 0;
-              let latestStatus = "Absent"; 
+              let latestStatus = "Absent";
 
               if (studentAttendanceRecords.length > 0) {
-                percentage = (studentAttendanceRecords.reduce((sum, record) => {
-                  const studentAttendance = record.attendances.find(
-                    (a) => String(a.studentId) === String(s.studentId._id)
-                  );
-                  return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
-                }, 0) / studentAttendanceRecords.length);
+                percentage =
+                  studentAttendanceRecords.reduce((sum, record) => {
+                    const studentAttendance = record.attendances.find(
+                      (a) => String(a.studentId) === String(s.studentId._id)
+                    );
+                    return (
+                      sum +
+                      (studentAttendance &&
+                      studentAttendance.status === "Present"
+                        ? 100
+                        : 0)
+                    );
+                  }, 0) / studentAttendanceRecords.length;
 
                 const latestRecord = studentAttendanceRecords[0];
                 const latestAttendance = latestRecord.attendances.find(
                   (a) => String(a.studentId) === String(s.studentId._id)
                 );
-                latestStatus = latestAttendance ? latestAttendance.status : "Absent";
+                latestStatus = latestAttendance
+                  ? latestAttendance.status
+                  : "Absent";
               }
 
               return {
@@ -3412,10 +3820,12 @@ router.get("/batches/student", authenticate, async (req, res) => {
                   _id: batch.courseId.createdBy?._id,
                   name: batch.courseId.createdBy?.name,
                 },
-                assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
-                  _id: teacher._id,
-                  name: teacher.name,
-                })),
+                assignedTeachers: batch.courseId.assignedTeachers.map(
+                  (teacher) => ({
+                    _id: teacher._id,
+                    name: teacher.name,
+                  })
+                ),
                 lastUpdatedBy: {
                   _id: batch.courseId.lastUpdatedBy?._id,
                   name: batch.courseId.lastUpdatedBy?.name,
@@ -3441,7 +3851,9 @@ router.get("/batches/student", authenticate, async (req, res) => {
           completedLessons,
           totalHours: parseFloat(totalHours.toFixed(2)),
           completedHours: parseFloat(completedHours.toFixed(2)),
-          batchAttendancePercentage: parseFloat(batchAttendancePercentage.toFixed(2)),
+          batchAttendancePercentage: parseFloat(
+            batchAttendancePercentage.toFixed(2)
+          ),
           allStudentsAttendance,
           createdAt: batch.createdAt,
         };
@@ -3451,11 +3863,19 @@ router.get("/batches/student", authenticate, async (req, res) => {
     const studentBatches = formattedBatches.filter((b) => b !== null);
 
     if (studentBatches.length === 0) {
-      logger.info(`No batches found for student ${studentId}${batchId ? ` and batch ${batchId}` : ''}`);
-      return res.status(404).json({ message: "No batches found" });
+      logger.info(
+        `No batches found for student ${studentId}${
+          batchId ? ` and batch ${batchId}` : ""
+        }`
+      );
+      return res.status(200).json({ batches: [], message: "No batches found" });
     }
 
-    logger.info(`Batches fetched for student ${studentId}: ${studentBatches.length} batches${batchId ? ` for batch ${batchId}` : ''}`);
+    logger.info(
+      `Batches fetched for student ${studentId}: ${
+        studentBatches.length
+      } batches${batchId ? ` for batch ${batchId}` : ""}`
+    );
     res.json({ batches: studentBatches });
   } catch (error) {
     logger.error(`Fetch student batches error: ${error.message}`);
@@ -3547,7 +3967,11 @@ router.get("/batches/admin", authenticate, async (req, res) => {
                 completedLessonIds.add(lessonIdStr);
               } else {
                 logger.warn(
-                  `Invalid lessonId ${lessonIdStr} in ScheduledCall ${call._id} for batch ${batch._id}. Expected one of: ${[...validLessonIds].join(", ")}`
+                  `Invalid lessonId ${lessonIdStr} in ScheduledCall ${
+                    call._id
+                  } for batch ${batch._id}. Expected one of: ${[
+                    ...validLessonIds,
+                  ].join(", ")}`
                 );
               }
             } else {
@@ -3573,13 +3997,15 @@ router.get("/batches/admin", authenticate, async (req, res) => {
         });
         const batchAttendancePercentage =
           attendanceRecords.length > 0
-            ? (attendanceRecords.reduce((sum, record) => {
+            ? attendanceRecords.reduce((sum, record) => {
                 const presentCount = record.attendances.filter(
                   (a) => a.status === "Present"
                 ).length;
                 const totalCount = record.attendances.length;
-                return sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0);
-              }, 0) / attendanceRecords.length)
+                return (
+                  sum + (totalCount > 0 ? (presentCount / totalCount) * 100 : 0)
+                );
+              }, 0) / attendanceRecords.length
             : 0;
 
         // Attendance Percentage and Status for All Students
@@ -3595,19 +4021,28 @@ router.get("/batches/admin", authenticate, async (req, res) => {
               let latestStatus = "Absent"; // Default to Absent if no records
 
               if (studentAttendanceRecords.length > 0) {
-                percentage = (studentAttendanceRecords.reduce((sum, record) => {
-                  const studentAttendance = record.attendances.find(
-                    (a) => String(a.studentId) === String(s.studentId._id)
-                  );
-                  return sum + (studentAttendance && studentAttendance.status === "Present" ? 100 : 0);
-                }, 0) / studentAttendanceRecords.length);
+                percentage =
+                  studentAttendanceRecords.reduce((sum, record) => {
+                    const studentAttendance = record.attendances.find(
+                      (a) => String(a.studentId) === String(s.studentId._id)
+                    );
+                    return (
+                      sum +
+                      (studentAttendance &&
+                      studentAttendance.status === "Present"
+                        ? 100
+                        : 0)
+                    );
+                  }, 0) / studentAttendanceRecords.length;
 
                 // Get the latest attendance status
                 const latestRecord = studentAttendanceRecords[0];
                 const latestAttendance = latestRecord.attendances.find(
                   (a) => String(a.studentId) === String(s.studentId._id)
                 );
-                latestStatus = latestAttendance ? latestAttendance.status : "Absent";
+                latestStatus = latestAttendance
+                  ? latestAttendance.status
+                  : "Absent";
               }
 
               return {
@@ -3647,10 +4082,12 @@ router.get("/batches/admin", authenticate, async (req, res) => {
                   _id: batch.courseId.createdBy?._id,
                   name: batch.courseId.createdBy?.name,
                 },
-                assignedTeachers: batch.courseId.assignedTeachers.map((teacher) => ({
-                  _id: teacher._id,
-                  name: teacher.name,
-                })),
+                assignedTeachers: batch.courseId.assignedTeachers.map(
+                  (teacher) => ({
+                    _id: teacher._id,
+                    name: teacher.name,
+                  })
+                ),
                 lastUpdatedBy: {
                   _id: batch.courseId.lastUpdatedBy?._id,
                   name: batch.courseId.lastUpdatedBy?.name,
@@ -3677,7 +4114,9 @@ router.get("/batches/admin", authenticate, async (req, res) => {
           completedLessons,
           totalHours: parseFloat(totalHours.toFixed(2)),
           completedHours: parseFloat(completedHours.toFixed(2)),
-          batchAttendancePercentage: parseFloat(batchAttendancePercentage.toFixed(2)),
+          batchAttendancePercentage: parseFloat(
+            batchAttendancePercentage.toFixed(2)
+          ),
           allStudentsAttendance,
           createdAt: batch.createdAt,
         };
@@ -3685,11 +4124,19 @@ router.get("/batches/admin", authenticate, async (req, res) => {
     );
 
     if (formattedBatches.length === 0) {
-      logger.info(`No batches found for user ${userId}${batchId ? ` and batch ${batchId}` : ''}`);
+      logger.info(
+        `No batches found for user ${userId}${
+          batchId ? ` and batch ${batchId}` : ""
+        }`
+      );
       return res.status(404).json({ message: "No batches found" });
     }
 
-    logger.info(`Batches fetched for user ${userId}: ${formattedBatches.length} batches${batchId ? ` for batch ${batchId}` : ''}`);
+    logger.info(
+      `Batches fetched for user ${userId}: ${formattedBatches.length} batches${
+        batchId ? ` for batch ${batchId}` : ""
+      }`
+    );
     res.json({ batches: formattedBatches });
   } catch (error) {
     logger.error(`Fetch admin batches error: ${error.message}`);
@@ -3704,7 +4151,9 @@ router.get("/all", authenticate, async (req, res) => {
     const user = await User.findById(userId).populate("role");
     if (
       !user ||
-      !["Admin", "Super Admin", "Teacher", "Student"].includes(user.role.roleName)
+      !["Admin", "Super Admin", "Teacher", "Student"].includes(
+        user.role.roleName
+      )
     ) {
       logger.warn(`Unauthorized course fetch attempt by user: ${userId}`);
       return res.status(403).json({ message: "Not authorized" });
@@ -3725,22 +4174,33 @@ router.get("/all", authenticate, async (req, res) => {
         .populate("assignedTeachers", "name")
         .lean();
 
-      const batches = await Batch.find({ teacherId: userId, courseId: { $ne: null }, isDeleted: false }).lean();
+      const batches = await Batch.find({
+        teacherId: userId,
+        courseId: { $ne: null },
+        isDeleted: false,
+      }).lean();
 
       courses = await Promise.all(
         teacherCourses.map(async (course) => {
           try {
             if (!course?._id) {
-              logger.warn(`Invalid course document for teacher ${userId}: ${JSON.stringify(course)}`);
+              logger.warn(
+                `Invalid course document for teacher ${userId}: ${JSON.stringify(
+                  course
+                )}`
+              );
               return null;
             }
 
-            const batch = batches.find((b) => b.courseId?.toString() === course._id.toString());
+            const batch = batches.find(
+              (b) => b.courseId?.toString() === course._id.toString()
+            );
             const hasTeacherModifications =
               batch &&
               batch.teacherCourseModifications &&
               batch.teacherCourseModifications.lastModifiedBy &&
-              batch.teacherCourseModifications.lastModifiedBy.toString() === userId;
+              batch.teacherCourseModifications.lastModifiedBy.toString() ===
+                userId;
 
             if (hasTeacherModifications) {
               return {
@@ -3752,15 +4212,25 @@ router.get("/all", authenticate, async (req, res) => {
                   batch.teacherCourseModifications.chapters.length > 0
                     ? batch.teacherCourseModifications.chapters
                     : course.chapters || [],
-                targetAudience: batch.teacherCourseModifications.targetAudience || course.targetAudience,
-                duration: batch.teacherCourseModifications.duration || course.duration,
-                lastUpdatedBy: batch.teacherCourseModifications.lastModifiedBy || course.lastUpdatedBy,
-                lastUpdatedAt: batch.teacherCourseModifications.lastModifiedAt || course.lastUpdatedAt,
+                targetAudience:
+                  batch.teacherCourseModifications.targetAudience ||
+                  course.targetAudience,
+                duration:
+                  batch.teacherCourseModifications.duration || course.duration,
+                lastUpdatedBy:
+                  batch.teacherCourseModifications.lastModifiedBy ||
+                  course.lastUpdatedBy,
+                lastUpdatedAt:
+                  batch.teacherCourseModifications.lastModifiedAt ||
+                  course.lastUpdatedAt,
               };
             }
             return course;
           } catch (error) {
-            logger.error(`Error processing course ${course?._id} for teacher ${userId}:`, error.message);
+            logger.error(
+              `Error processing course ${course?._id} for teacher ${userId}:`,
+              error.message
+            );
             return null;
           }
         })
@@ -3770,7 +4240,7 @@ router.get("/all", authenticate, async (req, res) => {
     } else if (user.role.roleName === "Student") {
       const scheduledCalls = await ScheduledCall.find({
         studentIds: userId,
-        isDeleted: { $ne: true }, 
+        isDeleted: { $ne: true },
       })
         .populate({
           path: "batchId",
@@ -3789,69 +4259,84 @@ router.get("/all", authenticate, async (req, res) => {
     }
 
     if (!Array.isArray(courses)) {
-      logger.error(`Courses is not an array for user ${userId}: ${JSON.stringify(courses)}`);
-      return res.status(500).json({ message: "Server error: Invalid course data" });
+      logger.error(
+        `Courses is not an array for user ${userId}: ${JSON.stringify(courses)}`
+      );
+      return res
+        .status(500)
+        .json({ message: "Server error: Invalid course data" });
     }
 
     const formattedCourses = courses.map((course) => {
       try {
         return {
           courseId: course._id,
-          title: course.title || '',
+          title: course.title || "",
           chapters: Array.isArray(course.chapters)
             ? course.chapters.map((chapter) => ({
                 chapterId: chapter._id || null,
-                title: chapter.title || '',
+                title: chapter.title || "",
                 order: chapter.order || 0,
                 lessons: Array.isArray(chapter.lessons)
                   ? chapter.lessons.map((lesson) => ({
-                      lessonId: lesson._id || '',
-                      title: lesson.title || '',
-                      format: lesson.format || '',
-                      learningGoals: Array.isArray(lesson.learningGoals) ? lesson.learningGoals : [],
+                      lessonId: lesson._id || "",
+                      title: lesson.title || "",
+                      format: lesson.format || "",
+                      learningGoals: Array.isArray(lesson.learningGoals)
+                        ? lesson.learningGoals
+                        : [],
                       resources: Array.isArray(lesson.resources)
                         ? lesson.resources.map((resource) => ({
-                            type: resource.type || '',
-                            url: resource.url || '',
-                            fileId: resource.fileId || '',
-                            name: resource.name || '',
-                            uploadedBy: resource.uploadedBy || '',
-                            uploadedAt: resource.uploadedAt || '',
+                            type: resource.type || "",
+                            url: resource.url || "",
+                            fileId: resource.fileId || "",
+                            name: resource.name || "",
+                            uploadedBy: resource.uploadedBy || "",
+                            uploadedAt: resource.uploadedAt || "",
                           }))
                         : [],
                       worksheets: Array.isArray(lesson.worksheets)
                         ? lesson.worksheets.map((worksheet) => ({
-                           type: worksheet.type || '',
-                            url: worksheet.url || '',
-                            fileId: worksheet.fileId || '',
-                            name: worksheet.name || '',
-                            uploadedBy: worksheet.uploadedBy || '',
-                            uploadedAt: worksheet.uploadedAt || '',
+                            type: worksheet.type || "",
+                            url: worksheet.url || "",
+                            fileId: worksheet.fileId || "",
+                            name: worksheet.name || "",
+                            uploadedBy: worksheet.uploadedBy || "",
+                            uploadedAt: worksheet.uploadedAt || "",
                           }))
                         : [],
-                      order: lesson.order || '',
+                      order: lesson.order || "",
                     }))
                   : [],
               }))
             : [],
-          targetAudience: course.targetAudience || '',
-          duration: course.duration || '',
+          targetAudience: course.targetAudience || "",
+          duration: course.duration || "",
           createdBy: course.createdBy || null,
-          assignedTeachers: Array.isArray(course.assignedTeachers) ? course.assignedTeachers : [],
-          lastUpdatedBy: course.lastUpdatedBy || '',
-          lastUpdatedAt: course.lastUpdatedAt || '',
-          driveFolderId: course.driveFolderId || '',
-          createdAt: course.createdAt || '',
+          assignedTeachers: Array.isArray(course.assignedTeachers)
+            ? course.assignedTeachers
+            : [],
+          lastUpdatedBy: course.lastUpdatedBy || "",
+          lastUpdatedAt: course.lastUpdatedAt || "",
+          driveFolderId: course.driveFolderId || "",
+          createdAt: course.createdAt || "",
         };
       } catch (error) {
-        logger.error(`Error formatting course ${course?._id} for user ${userId}:`, error.message);
+        logger.error(
+          `Error formatting course ${course?._id} for user ${userId}:`,
+          error.message
+        );
         return null;
       }
     });
 
-    const validFormattedCourses = formattedCourses.filter((course) => course !== null);
+    const validFormattedCourses = formattedCourses.filter(
+      (course) => course !== null
+    );
 
-    logger.info(`Courses fetched by user ${userId}: ${validFormattedCourses.length} courses`);
+    logger.info(
+      `Courses fetched by user ${userId}: ${validFormattedCourses.length} courses`
+    );
     res.json({ courses: validFormattedCourses });
   } catch (error) {
     logger.error("Fetch courses error:", error.message);
@@ -3870,7 +4355,9 @@ router.get("/:courseId", authenticate, async (req, res) => {
 
     if (
       !user ||
-      !["Admin", "Super Admin", "Teacher", "Student"].includes(user.role.roleName)
+      !["Admin", "Super Admin", "Teacher", "Student"].includes(
+        user.role.roleName
+      )
     ) {
       logger.warn(`Unauthorized course fetch attempt by user: ${userId}`);
       return res.status(403).json({ message: "Not authorized" });
@@ -3948,10 +4435,13 @@ router.get("/:courseId", authenticate, async (req, res) => {
       for (const batch of batches) {
         if (
           batch.teacherCourseModifications &&
-          batch.teacherCourseModifications.lastModifiedBy?.toString() === userId &&
+          batch.teacherCourseModifications.lastModifiedBy?.toString() ===
+            userId &&
           batch.teacherCourseModifications.lastModifiedAt
         ) {
-          const modifiedAt = new Date(batch.teacherCourseModifications.lastModifiedAt);
+          const modifiedAt = new Date(
+            batch.teacherCourseModifications.lastModifiedAt
+          );
           if (!latestModifiedAt || modifiedAt > latestModifiedAt) {
             latestModifiedAt = modifiedAt;
             latestModifications = batch.teacherCourseModifications;
@@ -3963,40 +4453,71 @@ router.get("/:courseId", authenticate, async (req, res) => {
         formattedCourse = {
           ...formattedCourse,
           title: latestModifications.title || course.title,
-          targetAudience: latestModifications.targetAudience || course.targetAudience,
+          targetAudience:
+            latestModifications.targetAudience || course.targetAudience,
           duration: latestModifications.duration || course.duration,
-          lastUpdatedBy: latestModifications.lastModifiedBy || course.lastUpdatedBy,
-          lastUpdatedAt: latestModifications.lastModifiedAt || course.lastUpdatedAt,
-          chapters: latestModifications.chapters && latestModifications.chapters.length > 0
-            ? latestModifications.chapters.map((modChapter, index) => ({
-                chapterId: modChapter._id || course.chapters[index]?._id || null,
-                title: modChapter.title || course.chapters[index]?.title || `Chapter ${index + 1}`,
-                order: modChapter.order || index + 1,
-                lessons: modChapter.lessons?.map((modLesson, lessonIndex) => ({
-                  lessonId: modLesson._id || course.chapters[index]?.lessons[lessonIndex]?._id || null,
-                  title: modLesson.title || course.chapters[index]?.lessons[lessonIndex]?.title || `Lesson ${lessonIndex + 1}`,
-                  format: modLesson.format || course.chapters[index]?.lessons[lessonIndex]?.format || null,
-                  learningGoals: modLesson.learningGoals || course.chapters[index]?.lessons[lessonIndex]?.learningGoals || [],
-                  resources: modLesson.resources?.length > 0 ? modLesson.resources.map((resource) => ({
-                    type: resource.type,
-                    url: resource.url,
-                    fileId: resource.fileId,
-                    name: resource.name,
-                    uploadedBy: resource.uploadedBy,
-                    uploadedAt: resource.uploadedAt,
-                  })) : course.chapters[index]?.lessons[lessonIndex]?.resources || [],
-                  worksheets: modLesson.worksheets?.length > 0 ? modLesson.worksheets.map((worksheet) => ({
-                    type: worksheet.type,
-                    url: worksheet.url,
-                    fileId: worksheet.fileId,
-                    name: worksheet.name,
-                    uploadedBy: worksheet.uploadedBy,
-                    uploadedAt: worksheet.uploadedAt,
-                  })) : course.chapters[index]?.lessons[lessonIndex]?.worksheets || [],
-                  order: modLesson.order || lessonIndex + 1,
-                })) || [],
-              }))
-            : formattedCourse.chapters,
+          lastUpdatedBy:
+            latestModifications.lastModifiedBy || course.lastUpdatedBy,
+          lastUpdatedAt:
+            latestModifications.lastModifiedAt || course.lastUpdatedAt,
+          chapters:
+            latestModifications.chapters &&
+            latestModifications.chapters.length > 0
+              ? latestModifications.chapters.map((modChapter, index) => ({
+                  chapterId:
+                    modChapter._id || course.chapters[index]?._id || null,
+                  title:
+                    modChapter.title ||
+                    course.chapters[index]?.title ||
+                    `Chapter ${index + 1}`,
+                  order: modChapter.order || index + 1,
+                  lessons:
+                    modChapter.lessons?.map((modLesson, lessonIndex) => ({
+                      lessonId:
+                        modLesson._id ||
+                        course.chapters[index]?.lessons[lessonIndex]?._id ||
+                        null,
+                      title:
+                        modLesson.title ||
+                        course.chapters[index]?.lessons[lessonIndex]?.title ||
+                        `Lesson ${lessonIndex + 1}`,
+                      format:
+                        modLesson.format ||
+                        course.chapters[index]?.lessons[lessonIndex]?.format ||
+                        null,
+                      learningGoals:
+                        modLesson.learningGoals ||
+                        course.chapters[index]?.lessons[lessonIndex]
+                          ?.learningGoals ||
+                        [],
+                      resources:
+                        modLesson.resources?.length > 0
+                          ? modLesson.resources.map((resource) => ({
+                              type: resource.type,
+                              url: resource.url,
+                              fileId: resource.fileId,
+                              name: resource.name,
+                              uploadedBy: resource.uploadedBy,
+                              uploadedAt: resource.uploadedAt,
+                            }))
+                          : course.chapters[index]?.lessons[lessonIndex]
+                              ?.resources || [],
+                      worksheets:
+                        modLesson.worksheets?.length > 0
+                          ? modLesson.worksheets.map((worksheet) => ({
+                              type: worksheet.type,
+                              url: worksheet.url,
+                              fileId: worksheet.fileId,
+                              name: worksheet.name,
+                              uploadedBy: worksheet.uploadedBy,
+                              uploadedAt: worksheet.uploadedAt,
+                            }))
+                          : course.chapters[index]?.lessons[lessonIndex]
+                              ?.worksheets || [],
+                      order: modLesson.order || lessonIndex + 1,
+                    })) || [],
+                }))
+              : formattedCourse.chapters,
         };
       }
     } else if (user.role.roleName === "Admin") {
@@ -4039,7 +4560,9 @@ router.put(
       .optional()
       .isArray()
       .withMessage("worksheetIds must be an array")
-      .custom((value) => value.every((id) => mongoose.Types.ObjectId.isValid(id)))
+      .custom((value) =>
+        value.every((id) => mongoose.Types.ObjectId.isValid(id))
+      )
       .withMessage("All worksheet IDs must be valid MongoDB ObjectIds"),
   ],
   async (req, res) => {
@@ -4059,7 +4582,9 @@ router.put(
         !user ||
         !["Admin", "Super Admin", "Teacher"].includes(user.role.roleName)
       ) {
-        logger.warn(`Unauthorized worksheet management attempt by user: ${userId}`);
+        logger.warn(
+          `Unauthorized worksheet management attempt by user: ${userId}`
+        );
         return res.status(403).json({ message: "Not authorized" });
       }
 
@@ -4092,7 +4617,9 @@ router.put(
         .find((lesson) => lesson._id.toString() === lessonId);
       if (!lesson) {
         logger.warn(`Lesson ${lessonId} not found in course: ${courseId}`);
-        return res.status(404).json({ message: "Lesson not found in this course" });
+        return res
+          .status(404)
+          .json({ message: "Lesson not found in this course" });
       }
 
       const newWorksheets = [];
@@ -4106,7 +4633,7 @@ router.put(
           course.driveFolderId
         );
         const worksheet = {
-          _id: new mongoose.Types.ObjectId(), 
+          _id: new mongoose.Types.ObjectId(),
           type: mimeToType[file.mimetype] || file.mimetype.split("/")[1],
           url: webViewLink,
           fileId,
@@ -4147,7 +4674,9 @@ router.put(
 
       if (newWorksheets.length === 0 && removedWorksheets.length === 0) {
         logger.warn(`No worksheets added or removed for lesson ${lessonId}`);
-        return res.status(400).json({ message: "No worksheets added or removed" });
+        return res
+          .status(400)
+          .json({ message: "No worksheets added or removed" });
       }
 
       if (newWorksheets.length > 0) {
@@ -4246,7 +4775,11 @@ router.put(
       });
 
       const batches = await Batch.find({ courseId });
-      const studentIds = [...new Set(batches.flatMap((batch) => batch.studentIds.map((s) => s.studentId)))];
+      const studentIds = [
+        ...new Set(
+          batches.flatMap((batch) => batch.studentIds.map((s) => s.studentId))
+        ),
+      ];
       const students = await User.find({ _id: { $in: studentIds } });
       students.forEach((student) => {
         if (newWorksheets.length > 0) {
@@ -4291,7 +4824,7 @@ router.put(
 
       logger.info(
         `Worksheets managed for lesson ${lessonId} in course ${courseId} by user ${userId}: ` +
-        `${newWorksheets.length} added, ${removedWorksheets.length} removed`
+          `${newWorksheets.length} added, ${removedWorksheets.length} removed`
       );
       res.json({
         message: "Worksheets managed successfully",
@@ -4327,7 +4860,9 @@ router.get(
       const user = await User.findById(userId).populate("role");
       if (
         !user ||
-        !["Admin", "Super Admin", "Teacher", "Student"].includes(user.role.roleName)
+        !["Admin", "Super Admin", "Teacher", "Student"].includes(
+          user.role.roleName
+        )
       ) {
         logger.warn(`Unauthorized worksheet access attempt by user: ${userId}`);
         return res.status(403).json({ message: "Not authorized" });
@@ -4347,7 +4882,9 @@ router.get(
           isAuthorized = true;
         }
       } else if (user.role.roleName === "Teacher") {
-        if (course.assignedTeachers.map((id) => id.toString()).includes(userId)) {
+        if (
+          course.assignedTeachers.map((id) => id.toString()).includes(userId)
+        ) {
           isAuthorized = true;
         }
       } else if (user.role.roleName === "Student") {
@@ -4361,11 +4898,21 @@ router.get(
       }
 
       if (!isAuthorized) {
-        logger.warn(`User ${userId} not authorized to access worksheets for course: ${courseId}`);
-        return res.status(403).json({ message: "Not authorized to access this course" });
+        logger.warn(
+          `User ${userId} not authorized to access worksheets for course: ${courseId}`
+        );
+        return res
+          .status(403)
+          .json({ message: "Not authorized to access this course" });
       }
 
-      logger.debug(`Course ${courseId} chapters: ${JSON.stringify(course.chapters, null, 2)}`);
+      logger.debug(
+        `Course ${courseId} chapters: ${JSON.stringify(
+          course.chapters,
+          null,
+          2
+        )}`
+      );
 
       const lesson = course.chapters
         .flatMap((chapter) => chapter.lessons)
@@ -4378,7 +4925,9 @@ router.get(
             .map((l) => l._id.toString())
             .join(", ")}`
         );
-        return res.status(404).json({ message: "Lesson not found in this course" });
+        return res
+          .status(404)
+          .json({ message: "Lesson not found in this course" });
       }
 
       logger.debug(`Found lesson: ${JSON.stringify(lesson, null, 2)}`);
@@ -4393,13 +4942,21 @@ router.get(
         uploadedAt: worksheet.uploadedAt,
       }));
 
-      logger.info(`Worksheets retrieved for lesson ${lessonId} in course ${courseId} by user ${userId}`);
+      logger.info(
+        `Worksheets retrieved for lesson ${lessonId} in course ${courseId} by user ${userId}`
+      );
       res.json({
-        message: worksheets.length > 0 ? "Worksheets retrieved successfully" : "No worksheets found for this lesson",
+        message:
+          worksheets.length > 0
+            ? "Worksheets retrieved successfully"
+            : "No worksheets found for this lesson",
         worksheets,
       });
     } catch (error) {
-      logger.error(`Get worksheets error for course ${courseId}, lesson ${lessonId}:`, error);
+      logger.error(
+        `Get worksheets error for course ${courseId}, lesson ${lessonId}:`,
+        error
+      );
       res.status(500).json({ message: "Server error", error: error.message });
     }
   }
@@ -4412,8 +4969,8 @@ router.get("/batch/by-course/:courseId", authenticate, async (req, res) => {
 
     const batches = await Batch.find({ courseId, isDeleted: false })
       .populate({
-        path: "courseId",      
-        select: "title"   
+        path: "courseId",
+        select: "title",
       })
       .lean();
 
