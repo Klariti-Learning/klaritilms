@@ -878,14 +878,17 @@ router.get("/calls", async (req, res) => {
   const userId = req.user.userId;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
+  const batchId = req.query.batchId; // Add batchId query parameter
 
   try {
     const admin = await Admin.findOne({ userId });
     const role = await Role.findOne({ userId });
+    let query = {};
     let calls;
 
     if (admin) {
-      calls = await ScheduledCall.find()
+      query = batchId ? { batchId } : {};
+      calls = await ScheduledCall.find(query)
         .populate("teacherId", "name email phone profile")
         .populate("studentIds", "name email phone profile")
         .populate({
@@ -897,7 +900,8 @@ router.get("/calls", async (req, res) => {
         .skip((page - 1) * limit)
         .limit(limit);
     } else if (role && role.roleName === "Teacher") {
-      calls = await ScheduledCall.find({ teacherId: userId })
+      query = batchId ? { teacherId: userId, batchId } : { teacherId: userId };
+      calls = await ScheduledCall.find(query)
         .populate("studentIds", "name email phone profile")
         .populate({
           path: "scheduledBy",
@@ -908,7 +912,8 @@ router.get("/calls", async (req, res) => {
         .skip((page - 1) * limit)
         .limit(limit);
     } else if (role && role.roleName === "Student") {
-      calls = await ScheduledCall.find({ studentIds: userId })
+      query = batchId ? { studentIds: userId, batchId } : { studentIds: userId };
+      calls = await ScheduledCall.find(query)
         .populate("teacherId", "name email phone profile")
         .populate({
           path: "scheduledBy",
@@ -941,15 +946,9 @@ router.get("/calls", async (req, res) => {
       return callObj;
     });
 
-    const total = await ScheduledCall.countDocuments(
-      admin
-        ? {}
-        : role.roleName === "Teacher"
-        ? { teacherId: userId }
-        : { studentIds: userId }
-    );
+    const total = await ScheduledCall.countDocuments(query);
 
-    logger.info(`Scheduled calls fetched for user: ${userId}, page: ${page}`);
+    logger.info(`Scheduled calls fetched for user: ${userId}, page: ${page}${batchId ? `, batchId: ${batchId}` : ''}`);
     res.json({
       calls: transformedCalls,
       total,
@@ -967,9 +966,11 @@ router.get("/student/calls", isStudent, async (req, res) => {
   const userId = req.user.userId;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
+  const batchId = req.query.batchId; // Add batchId query parameter
 
   try {
-    const calls = await ScheduledCall.find({ studentIds: userId })
+    const query = batchId ? { studentIds: userId, batchId } : { studentIds: userId };
+    const calls = await ScheduledCall.find(query)
       .populate("teacherId", "name email phone profile")
       .populate({
         path: "scheduledBy",
@@ -998,10 +999,10 @@ router.get("/student/calls", isStudent, async (req, res) => {
       return callObj;
     });
 
-    const total = await ScheduledCall.countDocuments({ studentIds: userId });
+    const total = await ScheduledCall.countDocuments(query);
 
     logger.info(
-      `Student scheduled calls fetched for user: ${userId}, page: ${page}`
+      `Student scheduled calls fetched for user: ${userId}, page: ${page}${batchId ? `, batchId: ${batchId}` : ''}`
     );
     res.json({
       calls: transformedCalls,
