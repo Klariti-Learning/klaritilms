@@ -31,6 +31,7 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from "@/components/ui/pagination";
+import { StarFilledIcon } from "@radix-ui/react-icons";
 
 interface Student {
   _id: string;
@@ -106,6 +107,7 @@ interface AttendanceRecord {
     status: string;
     markedAt: string | null;
     markedBy: { teacherId: string; name: string };
+    rating: string;
   }[];
   createdAt: string;
   updatedAt: string;
@@ -204,6 +206,8 @@ const ClassTeachers: React.FC = () => {
       const filteredRecords = records.filter((record: AttendanceRecord) =>
         record.students.some((student) => student.studentId === studentId)
       );
+
+
       setAttendanceRecords(filteredRecords);
       setSelectedBatchName(batchName);
       setSelectedBatchId(batchId);
@@ -215,6 +219,8 @@ const ClassTeachers: React.FC = () => {
       setModalLoading(false);
     }
   };
+
+  console.log(attendanceRecords)
 
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
@@ -321,63 +327,62 @@ const ClassTeachers: React.FC = () => {
               const schedule =
                 calls.length > 0
                   ? [...new Set(calls.flatMap((call) => call.days))].map(
-                      (day) => {
-                        const call = calls.find((c) => c.days.includes(day));
-                        if (!call) return `${day} - N/A`;
+                    (day) => {
+                      const call = calls.find((c) => c.days.includes(day));
+                      if (!call) return `${day} - N/A`;
 
-                        const dayMap: { [key: string]: string } = {
-                          Sunday: "Sun",
-                          Monday: "Mon",
-                          Tuesday: "Tue",
-                          Wednesday: "Wed",
-                          Thursday: "Thu",
-                          Friday: "Fri",
-                          Saturday: "Sat",
-                        };
-                        const shortDay = dayMap[day] || day;
+                      const dayMap: { [key: string]: string } = {
+                        Sunday: "Sun",
+                        Monday: "Mon",
+                        Tuesday: "Tue",
+                        Wednesday: "Wed",
+                        Thursday: "Thu",
+                        Friday: "Fri",
+                        Saturday: "Sat",
+                      };
+                      const shortDay = dayMap[day] || day;
 
-                        const formatTime = (time: string) => {
-                          if (!time) return "N/A";
-                          const [hours, minutes] = time.split(":").map(Number);
-                          const period = hours >= 12 ? "PM" : "AM";
-                          const adjustedHours = hours % 12 || 12;
-                          return `${adjustedHours
-                            .toString()
-                            .padStart(2, "0")}:${minutes
+                      const formatTime = (time: string) => {
+                        if (!time) return "N/A";
+                        const [hours, minutes] = time.split(":").map(Number);
+                        const period = hours >= 12 ? "PM" : "AM";
+                        const adjustedHours = hours % 12 || 12;
+                        return `${adjustedHours
+                          .toString()
+                          .padStart(2, "0")}:${minutes
                             .toString()
                             .padStart(2, "0")} ${period}`;
-                        };
+                      };
 
-                        const startTime = call.startTime
-                          ? formatTime(call.startTime)
-                          : "N/A";
-                        const endTime = call.endTime
-                          ? formatTime(call.endTime)
-                          : "N/A";
+                      const startTime = call.startTime
+                        ? formatTime(call.startTime)
+                        : "N/A";
+                      const endTime = call.endTime
+                        ? formatTime(call.endTime)
+                        : "N/A";
 
-                        return `${shortDay} - ${startTime} - ${endTime}`;
-                      }
-                    )
+                      return `${shortDay} - ${startTime} - ${endTime}`;
+                    }
+                  )
                   : ["N/A"];
 
               const firstClassDate =
                 calls.length > 0
                   ? new Date(
-                      Math.min(
-                        ...calls.map((call) => new Date(call.date).getTime())
-                      )
-                    ).toLocaleDateString("en-US", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })
+                    Math.min(
+                      ...calls.map((call) => new Date(call.date).getTime())
+                    )
+                  ).toLocaleDateString("en-US", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
                   : "N/A";
 
               const totalAttended =
                 calls.length > 0
-                  ? `${
-                      calls.filter((call) => call.status === "Completed").length
-                    } / ${calls.length}`
+                  ? `${calls.filter((call) => call.status === "Completed").length
+                  } / ${calls.length}`
                   : "N/A";
 
               const nextCall = calls.find(
@@ -387,19 +392,19 @@ const ClassTeachers: React.FC = () => {
               );
               const nextClassDate = nextCall
                 ? new Date(nextCall.date).toLocaleDateString("en-US", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
                 : "N/A";
 
               const nextClassTime =
                 nextCall && nextCall.startTime
                   ? `${new Date(nextCall.date).toLocaleDateString("en-US", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })} ${nextCall.startTime}`
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })} ${nextCall.startTime}`
                   : undefined;
 
               const zoomLink = nextCall?.zoomLink || "#";
@@ -598,15 +603,13 @@ const ClassTeachers: React.FC = () => {
                 </div>
 
                 <div
-                  className={`${
-                    selectedTeacher?.id === teacher.id || teachers.length === 1
-                      ? "max-h-[1000px] opacity-100"
-                      : "max-h-0 opacity-0"
-                  } overflow-hidden transition-all duration-500 ease-in-out transform ${
-                    selectedTeacher?.id === teacher.id || teachers.length === 1
+                  className={`${selectedTeacher?.id === teacher.id || teachers.length === 1
+                    ? "max-h-[1000px] opacity-100"
+                    : "max-h-0 opacity-0"
+                    } overflow-hidden transition-all duration-500 ease-in-out transform ${selectedTeacher?.id === teacher.id || teachers.length === 1
                       ? "translate-y-0"
                       : "-translate-y-2"
-                  } will-change-[max-height,opacity,transform]`}
+                    } will-change-[max-height,opacity,transform]`}
                 >
                   <div className="mt-3 p-6 bg-gray-50 rounded-2xl border border-gray-200">
                     <div className="mb-5">
@@ -718,11 +721,10 @@ const ClassTeachers: React.FC = () => {
                           href={teacher.zoomLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`flex-1 py-2 px-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg text-xs text-center ${
-                            isJoinButtonEnabled(teacher)
-                              ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200"
-                              : "bg-gray-400 cursor-not-allowed text-gray-200 shadow-gray-200"
-                          }`}
+                          className={`flex-1 py-2 px-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg text-xs text-center ${isJoinButtonEnabled(teacher)
+                            ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200"
+                            : "bg-gray-400 cursor-not-allowed text-gray-200 shadow-gray-200"
+                            }`}
                         >
                           Join Class
                         </Link>
@@ -771,11 +773,10 @@ const ClassTeachers: React.FC = () => {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={`w-full justify-start text-left font-normal border-2 rounded-lg transition-all ${
-                          fromDate
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-300"
-                        } hover:border-blue-500 focus:ring-2 focus:ring-blue-300`}
+                        className={`w-full justify-start text-left font-normal border-2 rounded-lg transition-all ${fromDate
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-300"
+                          } hover:border-blue-500 focus:ring-2 focus:ring-blue-300`}
                       >
                         <Calendar className="mr-2 h-4 w-4 text-blue-600" />
                         {fromDate ? (
@@ -799,7 +800,7 @@ const ClassTeachers: React.FC = () => {
                           selected: (date: Date) =>
                             fromDate
                               ? format(parseISO(fromDate), "yyyy-MM-dd") ===
-                                format(date, "yyyy-MM-dd")
+                              format(date, "yyyy-MM-dd")
                               : false,
                         }}
                         modifiersClassNames={{
@@ -818,11 +819,10 @@ const ClassTeachers: React.FC = () => {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={`w-full justify-start text-left font-normal border-2 rounded-lg transition-all ${
-                          toDate
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-300"
-                        } hover:border-blue-500 focus:ring-2 focus:ring-blue-300`}
+                        className={`w-full justify-start text-left font-normal border-2 rounded-lg transition-all ${toDate
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-300"
+                          } hover:border-blue-500 focus:ring-2 focus:ring-blue-300`}
                       >
                         <Calendar className="mr-2 h-4 w-4 text-blue-600" />
                         {toDate ? (
@@ -846,7 +846,7 @@ const ClassTeachers: React.FC = () => {
                           selected: (date: Date) =>
                             toDate
                               ? format(parseISO(toDate), "yyyy-MM-dd") ===
-                                format(date, "yyyy-MM-dd")
+                              format(date, "yyyy-MM-dd")
                               : false,
                         }}
                         modifiersClassNames={{
@@ -895,11 +895,12 @@ const ClassTeachers: React.FC = () => {
               ) : (
                 <table className="w-full text-sm text-left text-gray-900">
                   <thead className="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0 z-10">
-                    <tr>
+                    <tr className="text-center">
                       <th className="px-6 py-3">Date</th>
+                      <th className="px-6 py-3">Status</th>
                       <th className="px-6 py-3">Day</th>
                       <th className="px-6 py-3">Teacher</th>
-                      <th className="px-6 py-3">Status</th>
+                      <th className="px-6 py-3">Rating</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -911,27 +912,35 @@ const ClassTeachers: React.FC = () => {
                       );
                       const status = student?.status || "N/A";
                       const teacher = record.teacher?.name || "N/A";
+                      const rating = Number(student?.rating) || 0
 
                       return (
                         <tr
                           key={record.attendanceId}
-                          className="bg-white border-b hover:bg-blue-50 transition-colors"
+                          className="bg-white border-b hover:bg-blue-50 transition-colors text-center"
                         >
-                          <td className="px-6 py-4">{date}</td>
-                          <td className="px-6 py-4">{day}</td>
-                          <td className="px-6 py-4">{teacher}</td>
+                          <td className="px-6 py-4 font-semibold">{date}</td>
                           <td className="px-6 py-4">
                             <span
-                              className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                                status === "Present"
-                                  ? "bg-green-100 text-green-800"
-                                  : status === "Absent"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}
+                              className={`inline-flex items-center px-8 py-2 border-1 text-xs text-black font-bold rounded-lg ${status === "Present"
+                                ? "bg-green-100 border-green-500"
+                                : status === "Absent"
+                                  ? "bg-red-100 border-red-500"
+                                  : "bg-gray-100 border-gray-800"
+                                }`}
                             >
                               {status}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 text-gray-500 font-medium">{day}</td>
+                          <td className="px-6 py-4 text-gray-500 font-medium">{teacher}</td>
+                          <td className="px-6 py-4 text-nowrap">
+                            {[...Array(5)].map((_, index) => (
+                              <StarFilledIcon
+                                key={index}
+                                className={`h-4 w-4 inline-block ${index < rating ? "text-yellow-400" : "text-gray-300"
+                                  }`}
+                              />))}
                           </td>
                         </tr>
                       );

@@ -16,8 +16,11 @@ const scheduledCallSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Batch",
     },
+    lessonId: {
+      type: mongoose.Schema.Types.ObjectId, 
+    },
     classType: { type: String },
-    classSubType: { type: String }, 
+    classSubType: { type: String },
     type: { type: String, enum: ["zoom", "external"] },
     date: { type: Date },
     startTime: { type: String },

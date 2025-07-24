@@ -1,4 +1,3 @@
-
 const express = require("express");
 const router = express.Router();
 const { check, validationResult } = require("express-validator");
@@ -25,11 +24,13 @@ router.post(
         value.every(
           (item) =>
             mongoose.Types.ObjectId.isValid(item.studentId) &&
-            ["Present", "Absent"].includes(item.status)
+            ["Present", "Absent"].includes(item.status) &&
+            (item.rating === undefined ||
+              (Number.isInteger(item.rating) && item.rating >= 1 && item.rating <= 5))
         )
       )
       .withMessage(
-        "Each attendance must have a valid studentId and status (Present/Absent)"
+        "Each attendance must have a valid studentId, status (Present/Absent), and optional rating (1-5)"
       ),
     check("idempotencyKey")
       .notEmpty()
@@ -92,6 +93,12 @@ router.post(
         });
       }
 
+      const formattedAttendances = attendances.map((attendance) => ({
+        ...attendance,
+        ratedBy: attendance.rating ? userId : undefined,
+        markedBy: userId,
+      }));
+
       const updatedAttendance = await Attendance.findOneAndUpdate(
         { callId },
         {
@@ -99,7 +106,7 @@ router.post(
             batchId: call.batchId,
             courseId: call.courseId,
             teacherId: call.teacherId,
-            attendances,
+            attendances: formattedAttendances,
             date: call.date,
             createdBy: userId,
             idempotencyKey,
@@ -206,6 +213,7 @@ router.get(
           .populate("teacherId", "name")
           .populate("attendances.studentId", "name parentGuardianName parentGuardianNumber")
           .populate("attendances.markedBy", "name")
+          .populate("attendances.ratedBy", "name")
           .populate({
             path: "callId",
             select: "startTime endTime",
@@ -251,6 +259,13 @@ router.get(
                 parentGuardianName: student.studentId?.parentGuardianName || "N/A",
                 parentGuardianNumber: student.studentId?.parentGuardianNumber || "N/A",
                 status: student.status,
+                rating: student.rating || null,
+                ratedBy: student.ratedBy
+                  ? {
+                      teacherId: student.ratedBy._id,
+                      name: student.ratedBy.name || "N/A",
+                    }
+                  : null,
                 markedAt: student.markedAt || record.callId?.endTime || null,
                 markedBy: record.teacherId
                   ? {
@@ -290,6 +305,7 @@ router.get(
           .populate("teacherId", "name")
           .populate("attendances.studentId", "name parentGuardianName parentGuardianNumber")
           .populate("attendances.markedBy", "name")
+          .populate("attendances.ratedBy", "name")
           .populate({
             path: "callId",
             select: "startTime endTime",
@@ -329,6 +345,13 @@ router.get(
             parentGuardianName: student.studentId?.parentGuardianName || "N/A",
             parentGuardianNumber: student.studentId?.parentGuardianNumber || "N/A",
             status: student.status,
+            rating: student.rating || null,
+            ratedBy: student.ratedBy
+              ? {
+                  teacherId: student.ratedBy._id,
+                  name: student.ratedBy.name || "N/A",
+                }
+              : null,
             markedAt: student.markedAt || record.callId?.endTime || null,
             markedBy: record.teacherId
               ? {
@@ -422,6 +445,7 @@ router.get(
           .populate("courseId", "title")
           .populate("teacherId", "name")
           .populate("attendances.studentId", "name parentGuardianName parentGuardianNumber")
+          .populate("attendances.ratedBy", "name")
           .lean();
 
         logger.info(`Found ${attendanceRecordsRaw.length} attendance records for teacher ${teacherId}`);
@@ -457,6 +481,13 @@ router.get(
             parentGuardianName: student.studentId?.parentGuardianName || "N/A",
             parentGuardianNumber: student.studentId?.parentGuardianNumber || "N/A",
             status: student.status,
+            rating: student.rating || null,
+            ratedBy: student.ratedBy
+              ? {
+                  teacherId: student.ratedBy._id,
+                  name: student.ratedBy.name || "N/A",
+                }
+              : null,
             markedAt: student.markedAt || record.callId?.endTime || null,
             markedBy: record.teacherId
               ? {
@@ -491,7 +522,7 @@ router.get(
             batchName: batch.name,
             attendanceRecords: batchRecords,
           };
-        }).filter((batch) => batch.attendanceRecords.length > 0); // Remove empty batches
+        }).filter((batch) => batch.attendanceRecords.length > 0);
       } else {
         if (user.role.roleName === "Student") {
           query["attendances.studentId"] = userId;
@@ -504,6 +535,7 @@ router.get(
           .populate("courseId", "title")
           .populate("teacherId", "name")
           .populate("attendances.studentId", "name parentGuardianName parentGuardianNumber")
+          .populate("attendances.ratedBy", "name")
           .lean();
 
         logger.info(`Found ${attendanceRecordsRaw.length} attendance records`);
@@ -539,6 +571,13 @@ router.get(
             parentGuardianName: student.studentId?.parentGuardianName || "N/A",
             parentGuardianNumber: student.studentId?.parentGuardianNumber || "N/A",
             status: student.status,
+            rating: student.rating || null,
+            ratedBy: student.ratedBy
+              ? {
+                  teacherId: student.ratedBy._id,
+                  name: student.ratedBy.name || "N/A",
+                }
+              : null,
             markedAt: student.markedAt || record.callId?.endTime || null,
             markedBy: record.teacherId
               ? {
@@ -598,11 +637,18 @@ router.get(
                 batchId: batch.batchId,
                 batchName: batch.batchName,
                 attendance: new Map(),
+                ratings: new Map(),
               });
             }
             studentAttendanceMap
               .get(key)
               .attendance.set(formattedDate, student.status);
+            if (student.rating) {
+              studentAttendanceMap.get(key).ratings.set(formattedDate, {
+                rating: student.rating,
+                ratedBy: student.ratedBy?.name || "N/A",
+              });
+            }
           });
         });
       });
@@ -625,7 +671,11 @@ router.get(
           "Parent's Number",
           "Class Type",
           "Batch Name",
-          ...uniqueDates,
+          ...uniqueDates.flatMap((date) => [
+            `${date} Status`,
+            `${date} Rating`,
+            `${date} Rated By`,
+          ]),
         ],
       ];
 
@@ -638,7 +688,11 @@ router.get(
           student.parentGuardianNumber,
           student.classType,
           student.batchName,
-          ...uniqueDates.map((date) => student.attendance.get(date) || "-"),
+          ...uniqueDates.flatMap((date) => [
+            student.attendance.get(date) || "-",
+            student.ratings.get(date)?.rating || "-",
+            student.ratings.get(date)?.ratedBy || "-",
+          ]),
         ];
         worksheetData.push(row);
       });
@@ -649,14 +703,18 @@ router.get(
         worksheet[cellRef] = { v: header, t: "s", s: headerStyle };
       });
       worksheet["!cols"] = [
-        { wch: 10 }, 
+        { wch: 10 },
         { wch: 20 },
-        { wch: 20 }, 
-        { wch: 20 }, 
         { wch: 20 },
-        { wch: 20 }, 
-        { wch: 20 }, 
-        ...uniqueDates.map(() => ({ wch: 15 })),
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 20 },
+        ...uniqueDates.flatMap(() => [
+          { wch: 15 },
+          { wch: 10 },
+          { wch: 20 },
+        ]),
       ];
       XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
 
