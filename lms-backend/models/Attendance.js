@@ -33,6 +33,16 @@ const attendanceSchema = new mongoose.Schema({
         enum: ["Present", "Absent"],
         default: "Present",
       },
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+        required: false,
+      },
+      ratedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
       markedAt: {
         type: Date,
         default: Date.now,

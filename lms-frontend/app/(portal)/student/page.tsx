@@ -605,7 +605,7 @@ export default function StudentDashboard() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative mb-8 overflow-hidden rounded-2xl bg-blue-600 p-6 text-white shadow-xl"
+          className="relative mb-8 overflow-hidden rounded-2xl bg-[#487CEF] p-6 text-white shadow-xl"
         >
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative flex items-center justify-between">
@@ -774,12 +774,12 @@ export default function StudentDashboard() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+            <div className="lg:col-span-3">
               <ClassTeachers />
             </div>
 
-         <Card className="bg-white/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-all overflow-hidden lg:col-span-3 h-fit lg:h-full">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all overflow-hidden lg:col-span-7 h-fit lg:h-full">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
@@ -1174,7 +1174,7 @@ export default function StudentDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/90 border-0 shadow-md hover:shadow-lg transition-scale transform hover:scale-[1.02] duration-300 overflow-hidden lg:col-span-5 min-h-[300px] py-4">
+            <Card className="bg-white/90 border-0 shadow-md hover:shadow-lg transition-scale transform hover:scale-[1.02] duration-300 overflow-hidden lg:col-span-10 min-h-[300px] py-4">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
