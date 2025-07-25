@@ -1,8 +1,8 @@
 "use client"
 
+import {Suspense, useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarCheck2, ChartNoAxesColumn, Clock, Download, Sparkles, Target, User } from "lucide-react";
@@ -20,6 +20,7 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination"
 import { format, parseISO } from "date-fns";
+import SuspenseFallback from "@/components/SuspenseFallback";
 
 export interface AttendanceRecord {
     attendanceId: string;
@@ -60,7 +61,7 @@ export interface StudentAttendance {
 }
 
 
-export default function CallAttendanceDetails() {
+export function CallAttendanceDetailsContent() {
     const { user } = useAuth();
     const { loading: authLoading, deviceId } = useAuth();
     const router = useRouter();
@@ -695,4 +696,12 @@ export default function CallAttendanceDetails() {
             </div >
         </div >
     )
+}
+
+export default function CallAttendanceDetails() {
+  return (
+    <Suspense fallback={<SuspenseFallback />}>
+      <CallAttendanceDetailsContent />
+    </Suspense>
+  );
 }
