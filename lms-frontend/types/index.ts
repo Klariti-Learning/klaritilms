@@ -556,3 +556,35 @@ export interface ErrorData {
   errors?: { msg: string }[];
 }
 
+export interface BatchDetails {
+ allStudentsAttendance?: {
+  attendancePercentage: number;
+  name: string;
+  studentId: string;
+}[],
+  totalClasses:number,
+  totalHours:number,
+  totalLessons:number,
+  totalStudents:number,
+  courseTitle:string,
+  _id:string
+}
+
+
+export interface BatchSingle {
+  allStudentsAttendance?: {
+  attendancePercentage: number;
+  name: string;
+  studentId: string;
+}[],
+  totalClasses:number,
+  completedClasses:number,
+  completedLessons:number,
+  totalHours:number,
+  totalLessons:number,
+  totalStudents:number,
+  courseTitle:string,
+  completedHours:number,
+  
+  _id:string
+}
