@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+
+import {Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import api from "@/lib/api";
@@ -14,8 +15,9 @@ import Announcements from "./Announcements";
 import UpcomingEvents from "./UpcomingEvents";
 import GroupChat from "./GroupChat";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import SuspenseFallback from "@/components/SuspenseFallback";
 
-export default function Batch() {
+export function BatchContent() {
   const { user, loading: authLoading, deviceId } = useAuth();
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -438,5 +440,13 @@ export default function Batch() {
         )}
       </section>
     </motion.div>
+  );
+}
+
+export default function Batch() {
+  return (
+    <Suspense fallback={<SuspenseFallback />}>
+      <BatchContent />
+    </Suspense>
   );
 }
