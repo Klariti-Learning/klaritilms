@@ -384,73 +384,70 @@ export function TeacherCoursesContent() {
     }
   };
 
-  const handleAssignCourse = async (batchId: string, courseId: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token || !deviceId) {
-
-        handleUnauthorized();
-        return;
-      }
-
-      const batch = batches.find((b) => b._id === batchId);
-      if (!batch) {
-        toast.error("Batch not found");
-        return;
-      }
-
-      const studentIds = batch.studentIds.map((s) => s._id);
-
-      const response = await api.post("/courses/batch/assign", {
-        batchId,
-        courseId,
-        studentIds,
-      });
-      toast.success(
-        response.data.message || "Course assigned to batch successfully"
-      );
-
-      setBatches((prev) =>
-        prev.map((batch) =>
-          batch._id === batchId
-            ? {
-              ...batch,
-              courseId,
-              courseTitle:
-                courses.find((c) => c._id === courseId)?.title || "N/A",
-            }
-            : batch
-        )
-      );
-      setFilteredBatches((prev) =>
-        prev.map((batch) =>
-          batch._id === batchId
-            ? {
-              ...batch,
-              courseId,
-              courseTitle:
-                courses.find((c) => c._id === courseId)?.title || "N/A",
-            }
-            : batch
-        )
-      );
-      setAssignCourseModal(null);
-      setSelectedCourseId(null);
-    } catch (error) {
-      const apiError = error as ApiError;
-      console.error(
-        "[TeacherCoursesContent] Failed to assign course:",
-        apiError
-      );
-      if (apiError.response?.status === 401) {
-        handleUnauthorized();
-      } else {
-        toast.error(
-          apiError.response?.data?.message || "Failed to assign course to batch"
-        );
-      }
+const handleAssignCourse = async (batchId: string, courseId: string) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token || !deviceId) {
+      handleUnauthorized();
+      return;
     }
-  };
+
+    const batch = batches.find((b) => b._id === batchId);
+    if (!batch) {
+      toast.error("Batch not found");
+      return;
+    }
+
+    const studentIds = batch.studentIds
+      .map((s) => (typeof s === "string" ? s : s._id))
+      .filter((id) => id && /^[0-9a-fA-F]{24}$/.test(id)); 
+
+    if (studentIds.length === 0) {
+      toast.error("No valid student IDs found for this batch");
+      return;
+    }
+
+    const response = await api.post("/courses/batch/assign", {
+      batchId,
+      courseId,
+      studentIds,
+    });
+    toast.success(response.data.message || "Course assigned to batch successfully");
+
+    setBatches((prev) =>
+      prev.map((batch) =>
+        batch._id === batchId
+          ? {
+              ...batch,
+              courseId,
+              courseTitle: courses.find((c) => c._id === courseId)?.title || "N/A",
+            }
+          : batch
+      )
+    );
+    setFilteredBatches((prev) =>
+      prev.map((batch) =>
+        batch._id === batchId
+          ? {
+              ...batch,
+              courseId,
+              courseTitle: courses.find((c) => c._id === courseId)?.title || "N/A",
+            }
+          : batch
+      )
+    );
+    setAssignCourseModal(null);
+    setSelectedCourseId(null);
+  } catch (error) {
+    const apiError = error as ApiError;
+    console.error("[TeacherCoursesContent] Failed to assign course:", apiError);
+    if (apiError.response?.status === 401) {
+      handleUnauthorized();
+    } else {
+      toast.error(apiError.response?.data?.message || "Failed to assign course to batch");
+    }
+  }
+};
 
   const handleOpenDeleteModal = (type: "batch", id: string, title: string) => {
     setDeleteModal({ type, id, title });
