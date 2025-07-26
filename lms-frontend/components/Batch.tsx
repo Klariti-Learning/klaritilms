@@ -192,7 +192,7 @@ export function BatchContent() {
           </div>
         </motion.div>
 
-        <div className="cards-wrapper w-full grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="cards-wrapper w-full grid grid-cols-1 lg:grid-cols-4 gap-4 space-y-6">
           <Card
             className="bg-blue-50 p-1 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
           >
@@ -329,6 +329,7 @@ export function BatchContent() {
             </CardContent>
           </Card>
         </div>
+
         {batches.length > 0 &&
           <Tabs value={batch?._id} onValueChange={(value) => fetchBatchDetailById(value)} className="my-4">
             <TabsList className="flex gap-4 bg-white rounded-lg shadow-lg px-4 py-8 w-fit">
