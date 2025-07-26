@@ -1,6 +1,6 @@
 "use client";
 
-import {Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import api from "@/lib/api";
@@ -170,7 +170,7 @@ export function BatchContent() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative mb-8 overflow-hidden rounded-2xl bg-blue-600 p-9 text-white shadow-xl"
+          className="relative mb-8 overflow-hidden rounded-2xl bg-[#487CEF] p-6 text-white shadow-xl"
         >
           <div className="relative flex items-center justify-between">
             <div>
@@ -194,7 +194,7 @@ export function BatchContent() {
 
         <div className="cards-wrapper w-full grid grid-cols-1 lg:grid-cols-4 gap-4">
           <Card
-            className="bg-[#F6F9FF] backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
+            className="bg-blue-50 p-1 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
           >
             <CardContent className="relative flex flex-col justify-between z-10">
               <div className="flex items-center justify-between">
@@ -235,7 +235,7 @@ export function BatchContent() {
           </Card>
 
           <Card
-            className="bg-[#F6F9FF] backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
+            className="bg-green-50 p-1 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
           >
             <CardContent className="relative flex flex-col justify-between z-10">
               <div className="flex items-center justify-between">
@@ -266,7 +266,7 @@ export function BatchContent() {
           </Card>
 
           <Card
-            className="bg-[#F6F9FF] backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
+            className="bg-pink-50 p-1 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
           >
             <CardContent className="relative flex flex-col justify-between z-10">
               <div className="flex items-center justify-between">
@@ -299,7 +299,7 @@ export function BatchContent() {
           </Card>
 
           <Card
-            className="bg-[#F6F9FF] backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
+            className="bg-yellow-50 p-1 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
           >
             <CardContent className="relative flex flex-col justify-between z-10">
               <div className="flex items-center justify-between">
@@ -336,9 +336,8 @@ export function BatchContent() {
               <TabsTrigger
                 key={eachbatch._id}
                 value={eachbatch._id}
-                className={`px-4 py-4 rounded-lg shadow ${
-                  batch?._id === eachbatch._id ? "bg-[#487CEF] text-white" : "bg-white text-black shadow-md"
-                }`}
+                className={`px-4 py-4 rounded-lg shadow ${batch?._id === eachbatch._id ? "bg-[#487CEF] text-white" : "hover:bg-blue-50 hover:scale-105 bg-white text-black shadow-md"
+                  }`}
               >
                 {eachbatch.courseTitle[0].toUpperCase()}{eachbatch.courseTitle.slice(1)} Batch
               </TabsTrigger>
@@ -346,8 +345,8 @@ export function BatchContent() {
           </TabsList>
         </Tabs>
 
-        <div className="batchstudents-announcements grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-4 col-span-1 shadow-md rounded-lg">
+        <div className="batchstudents-announcements grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="bg-white p-4 col-span-2 shadow-md rounded-lg">
             <div className="batch-student-card-header flex items-center gap-x-5">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -369,11 +368,11 @@ export function BatchContent() {
               </div>
             </div>
             <div className="border-[2px] border-gray-300 rounded-lg mt-4">
-              <div className="table-header flex border-gray-300 justify-between border-b-2 p-4 font-bold">
+              <div className="table-header flex border-gray-300 justify-between pl-10 px-6 border-b-2 p-4 font-bold">
                 <h3>Name</h3>
                 <h3>Attendance</h3>
               </div>
-              <ul className="student-list py-4">
+              <ul className="student-list py-4 pl-4 pr-10">
                 {batch?.allStudentsAttendance?.map((student, index) => {
                   return (
                     <li
@@ -407,7 +406,7 @@ export function BatchContent() {
                               </clipPath>
                             </defs>
                           </svg>
-                          <h6 className="">{student?.name}</h6>
+                          <h6 className="font-semibold">{student?.name}</h6>
                         </div>
                         <h6 className="pr-4">{student?.attendancePercentage}</h6>
                       </div>
