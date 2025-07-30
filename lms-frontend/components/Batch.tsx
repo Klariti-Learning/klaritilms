@@ -1,6 +1,6 @@
 "use client";
 
-import {Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import api from "@/lib/api";
@@ -170,7 +170,7 @@ export function BatchContent() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative mb-8 overflow-hidden rounded-2xl bg-blue-600 p-9 text-white shadow-xl"
+          className="relative mb-8 overflow-hidden rounded-2xl bg-[#487CEF] p-6 text-white shadow-xl"
         >
           <div className="relative flex items-center justify-between">
             <div>
@@ -192,9 +192,9 @@ export function BatchContent() {
           </div>
         </motion.div>
 
-        <div className="cards-wrapper w-full grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="cards-wrapper w-full grid grid-cols-1 lg:grid-cols-4 gap-4 space-y-6">
           <Card
-            className="bg-[#F6F9FF] backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
+            className="bg-blue-50 p-1 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
           >
             <CardContent className="relative flex flex-col justify-between z-10">
               <div className="flex items-center justify-between">
@@ -229,13 +229,13 @@ export function BatchContent() {
                 </svg>
               </div>
               <div className="flex items-center justify-between">
-                <span>{batch?.totalStudents}</span>
+                <span>{batch?.totalStudents || "0"}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card
-            className="bg-[#F6F9FF] backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
+            className="bg-green-50 p-1 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
           >
             <CardContent className="relative flex flex-col justify-between z-10">
               <div className="flex items-center justify-between">
@@ -260,13 +260,13 @@ export function BatchContent() {
                 </svg>
               </div>
               <div className="flex items-center justify-between">
-                <span>{batch?.completedClasses}/{batch?.totalClasses}</span>
+                <span>{batch?.completedClasses || "0"}/{batch?.totalClasses || "0"}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card
-            className="bg-[#F6F9FF] backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
+            className="bg-pink-50 p-1 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
           >
             <CardContent className="relative flex flex-col justify-between z-10">
               <div className="flex items-center justify-between">
@@ -293,13 +293,13 @@ export function BatchContent() {
                 </svg>
               </div>
               <div className="flex items-center justify-between">
-                <strong>{batch?.completedLessons}/{batch?.totalLessons}</strong>
+                <strong>{batch?.completedLessons || "0"}/{batch?.totalLessons || "0"}</strong>
               </div>
             </CardContent>
           </Card>
 
           <Card
-            className="bg-[#F6F9FF] backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
+            className="bg-yellow-50 p-1 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all transform hover:scale-105 overflow-hidden cursor-pointer w-full h-fit flex flex-col justify-between relative"
           >
             <CardContent className="relative flex flex-col justify-between z-10">
               <div className="flex items-center justify-between">
@@ -324,30 +324,31 @@ export function BatchContent() {
                 </svg>
               </div>
               <div className="flex items-center justify-between">
-                <span>{batch?.completedHours}/{batch?.totalHours}</span>
+                <span>{batch?.completedHours || "0"}/{batch?.totalHours || "0"}</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs value={batch?._id} onValueChange={(value) => fetchBatchDetailById(value)} className="my-4">
-          <TabsList className="flex gap-4 bg-white rounded-lg shadow-lg px-4 py-8 w-fit">
-            {batches?.map((eachbatch) => (
-              <TabsTrigger
-                key={eachbatch._id}
-                value={eachbatch._id}
-                className={`px-4 py-4 rounded-lg shadow ${
-                  batch?._id === eachbatch._id ? "bg-[#487CEF] text-white" : "bg-white text-black shadow-md"
-                }`}
-              >
-                {eachbatch.courseTitle[0].toUpperCase()}{eachbatch.courseTitle.slice(1)} Batch
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        {batches.length > 0 &&
+          <Tabs value={batch?._id} onValueChange={(value) => fetchBatchDetailById(value)} className="my-4">
+            <TabsList className="flex gap-4 bg-white rounded-lg shadow-lg px-4 py-8 w-fit">
+              {batches?.map((eachbatch) => (
+                <TabsTrigger
+                  key={eachbatch._id}
+                  value={eachbatch._id}
+                  className={`px-4 py-4 rounded-lg shadow ${batch?._id === eachbatch._id ? "bg-[#487CEF] text-white" : "hover:bg-blue-50 hover:scale-105 bg-white text-black shadow-md"
+                    }`}
+                >
+                  {eachbatch.courseTitle[0].toUpperCase()}{eachbatch.courseTitle.slice(1)} Batch
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        }
 
-        <div className="batchstudents-announcements grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-4 col-span-1 shadow-md rounded-lg">
+        <div className="batchstudents-announcements grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="bg-white p-4 col-span-2 shadow-md rounded-lg">
             <div className="batch-student-card-header flex items-center gap-x-5">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -368,55 +369,62 @@ export function BatchContent() {
                 <p className="text-md text-[#868484]">Together as one span batch.</p>
               </div>
             </div>
-            <div className="border-[2px] border-gray-300 rounded-lg mt-4">
-              <div className="table-header flex border-gray-300 justify-between border-b-2 p-4 font-bold">
-                <h3>Name</h3>
-                <h3>Attendance</h3>
-              </div>
-              <ul className="student-list py-4">
-                {batch?.allStudentsAttendance?.map((student, index) => {
-                  return (
-                    <li
-                      className={`${index + 1 === batch?.allStudentsAttendance?.length ? "border-b-[0px]" : "border-b-[1px]"} border-gray-300`}
-                      key={student.studentId}
-                    >
-                      <div className="list-data flex justify-between pb-4 pt-4">
-                        <div className="flex items-center gap-2 pl-4">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="39"
-                            height="39"
-                            viewBox="0 0 39 39"
-                            fill="none"
-                          >
-                            <rect x="0.5" y="1.5" width="35" height="35" rx="17.5" fill="white" />
-                            <rect x="0.5" y="1.5" width="35" height="35" rx="17.5" stroke="#C3C3C3" />
-                            <path
-                              d="M18 19C18.9518 19 19.8823 18.7178 20.6737 18.1889C21.4651 17.6601 22.0819 16.9085 22.4462 16.0292C22.8104 15.1498 22.9057 14.1822 22.72 13.2486C22.5343 12.3151 22.076 11.4576 21.403 10.7846C20.7299 10.1115 19.8724 9.65316 18.9389 9.46747C18.0053 9.28178 17.0377 9.37709 16.1583 9.74133C15.279 10.1056 14.5274 10.7224 13.9986 11.5138C13.4697 12.3052 13.1875 13.2357 13.1875 14.1875C13.1875 15.4639 13.6945 16.6879 14.597 17.5905C15.4996 18.493 16.7236 19 18 19ZM18 20.375C15.0171 20.375 9.0625 22.2175 9.0625 25.875V28.625H26.9375V25.875C26.9375 22.2175 20.9829 20.375 18 20.375Z"
-                              fill="#2688FF"
-                            />
-                            <g clipPath="url(#clip0_500_2305)">
+            {batch ? (
+              <div className="border-[2px] border-gray-300 rounded-lg mt-4">
+                <div className="table-header flex border-gray-300 justify-between pl-10 px-6 border-b-2 p-4 font-bold">
+                  <h3>Name</h3>
+                  <h3>Attendance</h3>
+                </div>
+                <ul className="student-list py-4 pl-4 pr-10">
+                  {batch?.allStudentsAttendance?.map((student, index) => {
+                    return (
+                      <li
+                        className={`${index + 1 === batch?.allStudentsAttendance?.length ? "border-b-[0px]" : "border-b-[1px]"} border-gray-300`}
+                        key={student.studentId}
+                      >
+                        <div className="list-data flex justify-between pb-4 pt-4">
+                          <div className="flex items-center gap-2 pl-4">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="39"
+                              height="39"
+                              viewBox="0 0 39 39"
+                              fill="none"
+                            >
+                              <rect x="0.5" y="1.5" width="35" height="35" rx="17.5" fill="white" />
+                              <rect x="0.5" y="1.5" width="35" height="35" rx="17.5" stroke="#C3C3C3" />
                               <path
-                                d="M29 23C24.5817 23 21 26.5817 21 31C21 35.4183 24.5817 39 29 39C33.4183 39 37 35.4183 37 31C37 26.5817 33.4183 23 29 23ZM29.0527 25.7988L30.3135 29.7353L34.4453 29.8281L31.0908 32.2422L32.2793 36.2012L28.9463 33.7568L25.5488 36.1113L26.8437 32.1855L23.5547 29.6816L27.6885 29.7002L29.0527 25.7988Z"
-                                fill="#F4B33B"
+                                d="M18 19C18.9518 19 19.8823 18.7178 20.6737 18.1889C21.4651 17.6601 22.0819 16.9085 22.4462 16.0292C22.8104 15.1498 22.9057 14.1822 22.72 13.2486C22.5343 12.3151 22.076 11.4576 21.403 10.7846C20.7299 10.1115 19.8724 9.65316 18.9389 9.46747C18.0053 9.28178 17.0377 9.37709 16.1583 9.74133C15.279 10.1056 14.5274 10.7224 13.9986 11.5138C13.4697 12.3052 13.1875 13.2357 13.1875 14.1875C13.1875 15.4639 13.6945 16.6879 14.597 17.5905C15.4996 18.493 16.7236 19 18 19ZM18 20.375C15.0171 20.375 9.0625 22.2175 9.0625 25.875V28.625H26.9375V25.875C26.9375 22.2175 20.9829 20.375 18 20.375Z"
+                                fill="#2688FF"
                               />
-                            </g>
-                            <defs>
-                              <clipPath id="clip0_500_2305">
-                                <rect width="16" height="16" fill="white" transform="translate(21 23)" />
-                              </clipPath>
-                            </defs>
-                          </svg>
-                          <h6 className="">{student?.name}</h6>
+                              <g clipPath="url(#clip0_500_2305)">
+                                <path
+                                  d="M29 23C24.5817 23 21 26.5817 21 31C21 35.4183 24.5817 39 29 39C33.4183 39 37 35.4183 37 31C37 26.5817 33.4183 23 29 23ZM29.0527 25.7988L30.3135 29.7353L34.4453 29.8281L31.0908 32.2422L32.2793 36.2012L28.9463 33.7568L25.5488 36.1113L26.8437 32.1855L23.5547 29.6816L27.6885 29.7002L29.0527 25.7988Z"
+                                  fill="#F4B33B"
+                                />
+                              </g>
+                              <defs>
+                                <clipPath id="clip0_500_2305">
+                                  <rect width="16" height="16" fill="white" transform="translate(21 23)" />
+                                </clipPath>
+                              </defs>
+                            </svg>
+                            <h6 className="font-semibold">{student?.name}</h6>
+                          </div>
+                          <h6 className="pr-4">{student?.attendancePercentage}</h6>
                         </div>
-                        <h6 className="pr-4">{student?.attendancePercentage}</h6>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : (
+              <div className="text-gray-500 font-semibold text-center">
+                There is no batch to display
+              </div>
+            )}
           </div>
+
           <div className="bg-white col-span-1 lg:col-span-3 shadow-md rounded-lg announcements">
             <Announcements />
           </div>
