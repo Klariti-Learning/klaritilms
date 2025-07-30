@@ -51,7 +51,6 @@ const initializeRoutesAndJobs = () => {
   const adminRoutes = require("./routes/admin");
   const notificationRoutes = require("./routes/notification");
   const scheduleRoutes = require("./routes/schedule");
-  const recordingsRoutes = require("./routes/recording");
   const ticketRoutes = require("./routes/ticket");
   const userRoutes = require("./routes/users");
   const courseRoutes = require("./routes/course");
@@ -66,7 +65,6 @@ const initializeRoutesAndJobs = () => {
   app.use("/api/admin", adminRoutes);
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/schedule", scheduleRoutes);
-  app.use("/api/recordings", recordingsRoutes);
   app.use("/api/tickets", ticketRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/courses", courseRoutes);
