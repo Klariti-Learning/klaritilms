@@ -15,7 +15,6 @@ import {
   ShoppingBag,
   FileText,
   Users2,
-  School,
   BookUser,
   Users,
   Pin,
@@ -304,12 +303,6 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
           },
         ]
       : []),
-    {
-      name: "My Classes",
-      icon: <School className="w-5 h-5" />,
-      href: "/student/schedule",
-      color: "text-orange-500",
-    },
     {
       name: "My Recordings",
       icon: <Video className="w-5 h-5" />,
@@ -975,7 +968,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                             href={`/student/courses/${course.courseId}`}
                           >
                             <div
-                              className={`flex items-center p-2 rounded-lg text-sm transition-all duration-200 ${
+                              className={`flex items-center p-2 rounded-lg text-sm transition-all duration-200 cursor-pointer ${
                                 pathname ===
                                 `/student/courses/${course.courseId}`
                                   ? "bg-indigo-100 text-indigo-700 font-medium"
@@ -1004,9 +997,11 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                         className={`group flex items-center p-3 rounded-xl transition-all duration-200 hover:bg-gray-100 ${
                           isDisabled
                             ? "text-gray-400 cursor-not-allowed opacity-50"
-                            : pathname === item.href
-                            ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg"
-                            : "text-gray-700 hover:text-gray-900"
+                            : `cursor-pointer ${
+                                pathname === item.href
+                                  ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg"
+                                  : "text-gray-700 hover:text-gray-900"
+                              }`
                         }`}
                         onClick={(e) => {
                           if (isDisabled) {
@@ -1161,7 +1156,7 @@ const StudentLayout = ({ children }: StudentLayoutProps) => {
                       href="/student/raise-query"
                       onClick={handleRaiseQueryClick}
                     >
-                      <div className="flex items-center p-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200">
+                      <div className="flex items-center p-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 cursor-pointer">
                         Raise a Query
                       </div>
                     </Link>

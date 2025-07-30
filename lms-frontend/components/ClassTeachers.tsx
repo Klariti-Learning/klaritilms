@@ -262,13 +262,11 @@ const ClassTeachers: React.FC = () => {
         params.toDate = toDate;
       }
 
-      // Call the /attendance/export endpoint with responseType: 'blob'
       const response = await api.get("/attendance/export", {
         params,
-        responseType: "blob", // Handle binary data for Excel file
+        responseType: "blob",
       });
 
-      // Create a blob from the response data with correct MIME type for Excel
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });

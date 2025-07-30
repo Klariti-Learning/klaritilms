@@ -3640,7 +3640,11 @@ router.get("/batches/student", authenticate, async (req, res) => {
       query._id = batchId;
     }
 
-    const batches = await Batch.find(query)
+    // Find batches with assigned courses and scheduled calls
+    const batches = await Batch.find({
+      ...query,
+      courseId: { $ne: null }, // Ensure courseId is not null
+    })
       .populate({
         path: "courseId",
         populate: [
@@ -3654,17 +3658,29 @@ router.get("/batches/student", authenticate, async (req, res) => {
         select: "name email phone profileImage subjects profile.grade",
       });
 
-    if (batchId && batches.length === 0) {
+    // Filter batches to only include those with scheduled calls
+    const filteredBatches = [];
+    for (const batch of batches) {
+      const scheduledCalls = await ScheduledCall.find({
+        batchId: batch._id,
+        isDeleted: false,
+      });
+      if (scheduledCalls.length > 0) {
+        filteredBatches.push(batch);
+      }
+    }
+
+    if (batchId && filteredBatches.length === 0) {
       logger.warn(
-        `Batch ${batchId} not found or student ${studentId} not enrolled`
+        `Batch ${batchId} not found, student ${studentId} not enrolled, or no scheduled calls`
       );
       return res
         .status(404)
-        .json({ message: "Batch not found or student not enrolled" });
+        .json({ message: "Batch not found, student not enrolled, or no scheduled calls" });
     }
 
     const formattedBatches = await Promise.all(
-      batches.map(async (batch) => {
+      filteredBatches.map(async (batch) => {
         const studentData = batch.studentIds.find(
           (s) =>
             String(s.studentId._id) === String(studentId) && s.isInThisBatch
@@ -3864,11 +3880,16 @@ router.get("/batches/student", authenticate, async (req, res) => {
 
     if (studentBatches.length === 0) {
       logger.info(
-        `No batches found for student ${studentId}${
+        `No batches with assigned courses and scheduled calls found for student ${studentId}${
           batchId ? ` and batch ${batchId}` : ""
         }`
       );
-      return res.status(200).json({ batches: [], message: "No batches found" });
+      return res
+        .status(200)
+        .json({
+          batches: [],
+          message: "No batches with assigned courses and scheduled calls found",
+        });
     }
 
     logger.info(
